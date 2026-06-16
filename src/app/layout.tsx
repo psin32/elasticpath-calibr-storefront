@@ -7,6 +7,9 @@ export const metadata: Metadata = {
     template: "%s | Elasticpath Calibr",
   },
   description: "Modern B2B & B2C storefront powered by Elastic Path",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
