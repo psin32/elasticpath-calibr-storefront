@@ -4,7 +4,6 @@ import {
   getByContextProductsForNode,
   extractProductImage,
   type Product,
-  type ElasticPathFile,
   type IncludedResponse,
 } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
@@ -17,6 +16,21 @@ export type ProductCardData = {
   originalPriceFormatted?: string;
   imageUrl?: string;
   description?: string;
+  hasVariations?: boolean;
+};
+
+export type ProductVariationOption = {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder?: number;
+};
+
+export type ProductVariation = {
+  id: string;
+  name: string;
+  options: ProductVariationOption[];
+  sortOrder?: number;
 };
 
 export type ProductDetailData = {
@@ -29,7 +43,46 @@ export type ProductDetailData = {
   sku?: string;
   imageUrl?: string;
   additionalImages?: string[];
+  variations?: ProductVariation[];
+  variationMatrix?: Record<string, unknown>;
+  childSlugs?: Record<string, string>;
+  selectedOptionIds?: string[];
+  productType?: string;
 };
+
+function extractChildIds(matrix: Record<string, unknown>): string[] {
+  const ids: string[] = [];
+  function traverse(node: unknown) {
+    if (typeof node === "string") {
+      ids.push(node);
+    } else if (node && typeof node === "object") {
+      Object.values(node as Record<string, unknown>).forEach(traverse);
+    }
+  }
+  traverse(matrix);
+  return [...new Set(ids)];
+}
+
+async function buildChildSlugs(
+  client: Awaited<ReturnType<typeof createElasticPathClient>>,
+  matrix: Record<string, unknown>,
+): Promise<Record<string, string>> {
+  const childIds = extractChildIds(matrix);
+  if (!childIds.length) return {};
+  const responses = await Promise.all(
+    childIds.map((id) =>
+      getByContextProduct({ client, path: { product_id: id }, query: {} }).catch(() => null),
+    ),
+  );
+  const slugMap: Record<string, string> = {};
+  for (const r of responses) {
+    const p = r?.data?.data;
+    if (p?.id && p.attributes?.slug) {
+      slugMap[p.id] = p.attributes.slug;
+    }
+  }
+  return slugMap;
+}
 
 function formatProduct(
   product: Product,
@@ -43,6 +96,7 @@ function formatProduct(
   const originalPrice =
     product.meta?.original_display_price?.without_tax?.formatted ??
     product.meta?.original_display_price?.with_tax?.formatted;
+  const variationMatrix = product.meta?.variation_matrix as Record<string, unknown> | undefined;
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -51,6 +105,7 @@ function formatProduct(
     priceFormatted: price,
     originalPriceFormatted: originalPrice,
     imageUrl: image?.link?.href,
+    hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
   };
 }
 
@@ -63,6 +118,22 @@ function formatProductDetail(
     .filter((f) => f.link?.href && f.id !== mainImage?.id)
     .map((f) => f.link!.href!)
     .filter(Boolean);
+
+  const variations: ProductVariation[] = (product.meta?.variations ?? [])
+    .map((v) => ({
+      id: v.id ?? "",
+      name: v.name ?? "",
+      sortOrder: v.sort_order ?? 0,
+      options: (v.options ?? [])
+        .sort((a, b) => (b.sort_order ?? 0) - (a.sort_order ?? 0))
+        .map((o) => ({ id: o.id ?? "", name: o.name ?? "", description: o.description ?? undefined, sortOrder: o.sort_order ?? 0 })),
+    }))
+    .filter((v) => v.id && v.options.length > 0)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const selectedOptionIds = product.meta?.child_option_ids?.length
+    ? (product.meta.child_option_ids as string[])
+    : undefined;
 
   return {
     id: product.id ?? "",
@@ -79,6 +150,10 @@ function formatProductDetail(
     sku: product.attributes?.sku,
     imageUrl: mainImage?.link?.href,
     additionalImages,
+    variations: variations.length > 0 ? variations : undefined,
+    variationMatrix: product.meta?.variation_matrix as Record<string, unknown> | undefined,
+    selectedOptionIds,
+    productType: product.meta?.product_types?.[0],
   };
 }
 
@@ -127,7 +202,37 @@ export async function getProductBySlug(
   });
   const product = response.data?.data?.[0];
   if (!product) return null;
-  return formatProductDetail(product, response.data?.included);
+
+  const formatted = formatProductDetail(product, response.data?.included);
+
+  if (formatted.productType === "child") {
+    // Fetch parent product to get the full variation list and child slug map
+    const parentId =
+      (product.attributes as Record<string, unknown>)?.base_product_id as string | undefined ??
+      (product.relationships?.parent?.data as { id?: string } | undefined)?.id;
+
+    if (parentId) {
+      const parentRes = await getByContextProduct({
+        client,
+        path: { product_id: parentId },
+        query: {},
+      });
+      const parentProduct = parentRes.data?.data;
+      if (parentProduct) {
+        const parentFormatted = formatProductDetail(parentProduct, undefined);
+        if (parentFormatted.variations) formatted.variations = parentFormatted.variations;
+        if (parentFormatted.variationMatrix) {
+          formatted.variationMatrix = parentFormatted.variationMatrix;
+          formatted.childSlugs = await buildChildSlugs(client, parentFormatted.variationMatrix);
+        }
+      }
+    }
+  } else if (formatted.variationMatrix && Object.keys(formatted.variationMatrix).length > 0) {
+    // Parent product — fetch child slugs for navigation
+    formatted.childSlugs = await buildChildSlugs(client, formatted.variationMatrix);
+  }
+
+  return formatted;
 }
 
 export async function getProductById(

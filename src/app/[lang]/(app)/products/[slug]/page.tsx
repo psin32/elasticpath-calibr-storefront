@@ -4,7 +4,7 @@ import { ProductThumbnail } from "@/components/product/ProductThumbnail";
 import { ProductName } from "@/components/product/ProductName";
 import { ProductDescription } from "@/components/product/ProductDescription";
 import { Price } from "@/components/product/Price";
-import { QuantityAddToCart } from "@/components/product/QuantityAddToCart";
+import { VariantAddToCart } from "@/components/product/VariantAddToCart";
 import { getProductBySlug } from "@/lib/api/products";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -102,7 +102,14 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            <QuantityAddToCart productId={product.id} />
+            <VariantAddToCart
+              productId={product.id}
+              lang={lang}
+              variations={product.variations}
+              variationMatrix={product.variationMatrix}
+              childSlugs={product.childSlugs}
+              selectedOptionIds={product.selectedOptionIds}
+            />
           </div>
         </div>
       </main>

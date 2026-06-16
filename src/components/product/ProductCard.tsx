@@ -3,6 +3,7 @@ import { ProductThumbnail } from "./ProductThumbnail";
 import { ProductName } from "./ProductName";
 import { Price } from "./Price";
 import { AddToCart } from "./AddToCart";
+import { QuickViewButton } from "./QuickViewButton";
 import type { ProductCardData } from "@/lib/api/products";
 
 type ProductCardProps = {
@@ -33,7 +34,11 @@ export function ProductCard({ product, lang, priority = false }: ProductCardProp
 
         <div className="flex items-center justify-between mt-auto pt-2">
           <Price formatted={product.priceFormatted} originalFormatted={product.originalPriceFormatted} className="text-base" />
-          <AddToCart productId={product.id} />
+          {product.hasVariations ? (
+            <QuickViewButton product={product} lang={lang} />
+          ) : (
+            <AddToCart productId={product.id} />
+          )}
         </div>
       </div>
     </article>
