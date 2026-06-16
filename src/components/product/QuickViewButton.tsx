@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Eye, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { ProductThumbnail } from "./ProductThumbnail";
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export function QuickViewButton({ product, lang }: Props) {
+  const t = useTranslations("product");
   const [isOpen, setIsOpen] = useState(false);
   const [detail, setDetail] = useState<ProductDetailData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,7 +89,7 @@ export function QuickViewButton({ product, lang }: Props) {
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-white hover:opacity-90 transition-opacity"
       >
         <Eye size={14} />
-        Quick view
+        {t("quickView")}
       </button>
 
       <Modal

@@ -6,6 +6,7 @@ import { ProductDescription } from "@/components/product/ProductDescription";
 import { Price } from "@/components/product/Price";
 import { VariantAddToCart } from "@/components/product/VariantAddToCart";
 import { BundleConfigurator } from "@/components/product/BundleConfigurator";
+import { BulkBuyOffer } from "@/components/product/BulkBuyOffer";
 import { getProductBySlug } from "@/lib/api/products";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -111,6 +112,12 @@ export default async function ProductDetailPage({ params }: Props) {
                   description={product.description}
                   className="text-base"
                 />
+              </div>
+            )}
+
+            {product.bulkBuyTiers && product.bulkBuyTiers.length > 0 && (
+              <div className="mb-8">
+                <BulkBuyOffer tiers={product.bulkBuyTiers} />
               </div>
             )}
 

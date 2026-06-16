@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ProductVariation } from "@/lib/api/products";
 
 type Props = {
@@ -37,6 +38,8 @@ export function ProductVariationSelector({
   selectedOptions,
   onOptionChange,
 }: Props) {
+  const t = useTranslations("product");
+
   function handleSelect(variationId: string, optionId: string) {
     const updated = { ...selectedOptions, [variationId]: optionId };
     onOptionChange(variationId, optionId);
@@ -63,6 +66,8 @@ export function ProductVariationSelector({
                 <button
                   key={option.id}
                   type="button"
+                  aria-label={t("selectOption", { name: option.description ?? option.name })}
+                  aria-pressed={isSelected}
                   onClick={() => handleSelect(variation.id, option.id)}
                   className={[
                     "px-4 py-2 rounded-lg text-sm font-medium border transition-colors",
