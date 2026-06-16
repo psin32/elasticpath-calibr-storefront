@@ -5,6 +5,7 @@ import { ProductName } from "@/components/product/ProductName";
 import { ProductDescription } from "@/components/product/ProductDescription";
 import { Price } from "@/components/product/Price";
 import { VariantAddToCart } from "@/components/product/VariantAddToCart";
+import { BundleConfigurator } from "@/components/product/BundleConfigurator";
 import { getProductBySlug } from "@/lib/api/products";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -36,12 +37,17 @@ export default async function ProductDetailPage({ params }: Props) {
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-2 text-sm text-gray-500">
             <li>
-              <Link href={`/${lang}`} className="hover:text-gray-900 transition-colors">
+              <Link
+                href={`/${lang}`}
+                className="hover:text-gray-900 transition-colors"
+              >
                 Home
               </Link>
             </li>
             <li aria-hidden="true">›</li>
-            <li className="font-medium text-gray-900 truncate max-w-xs">{product.name}</li>
+            <li className="font-medium text-gray-900 truncate max-w-xs">
+              {product.name}
+            </li>
           </ol>
         </nav>
 
@@ -57,18 +63,22 @@ export default async function ProductDetailPage({ params }: Props) {
               />
             </div>
 
-            {product.additionalImages && product.additionalImages.length > 0 && (
-              <div className="grid grid-cols-4 gap-3">
-                {product.additionalImages.slice(0, 4).map((url, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg overflow-hidden border border-gray-100 bg-gray-50 aspect-square relative"
-                  >
-                    <ProductThumbnail imageUrl={url} name={`${product.name} view ${i + 1}`} />
-                  </div>
-                ))}
-              </div>
-            )}
+            {product.additionalImages &&
+              product.additionalImages.length > 0 && (
+                <div className="grid grid-cols-4 gap-3">
+                  {product.additionalImages.slice(0, 4).map((url, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg overflow-hidden border border-gray-100 bg-gray-50 aspect-square relative"
+                    >
+                      <ProductThumbnail
+                        imageUrl={url}
+                        name={`${product.name} view ${i + 1}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
 
           {/* Right: Details */}
@@ -85,13 +95,15 @@ export default async function ProductDetailPage({ params }: Props) {
               className="text-3xl sm:text-4xl mb-4"
             />
 
-            <div className="mb-6">
-              <Price
-                formatted={product.priceFormatted}
-                originalFormatted={product.originalPriceFormatted}
-                className="text-2xl"
-              />
-            </div>
+            {!product.isBundle && (
+              <div className="mb-6">
+                <Price
+                  formatted={product.priceFormatted}
+                  originalFormatted={product.originalPriceFormatted}
+                  className="text-2xl"
+                />
+              </div>
+            )}
 
             {product.description && (
               <div className="mb-8">
@@ -102,14 +114,23 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            <VariantAddToCart
-              productId={product.id}
-              lang={lang}
-              variations={product.variations}
-              variationMatrix={product.variationMatrix}
-              childSlugs={product.childSlugs}
-              selectedOptionIds={product.selectedOptionIds}
-            />
+            {product.isBundle && product.components?.length ? (
+              <BundleConfigurator
+                productId={product.id}
+                components={product.components}
+                initialPrice={product.priceFormatted}
+                initialOriginalPrice={product.originalPriceFormatted}
+              />
+            ) : (
+              <VariantAddToCart
+                productId={product.id}
+                lang={lang}
+                variations={product.variations}
+                variationMatrix={product.variationMatrix}
+                childSlugs={product.childSlugs}
+                selectedOptionIds={product.selectedOptionIds}
+              />
+            )}
           </div>
         </div>
       </main>

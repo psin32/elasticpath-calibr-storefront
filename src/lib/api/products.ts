@@ -33,6 +33,30 @@ export type ProductVariation = {
   sortOrder?: number;
 };
 
+export type BundleComponentOption = {
+  id: string;
+  name: string;
+  sku?: string;
+  imageUrl?: string;
+  quantity: number;
+  min?: number;
+  max?: number;
+  sortOrder: number;
+  isDefault: boolean;
+  priceFormatted?: string;
+  originalPriceFormatted?: string;
+  saleId?: string;
+};
+
+export type BundleComponent = {
+  key: string;
+  name: string;
+  min: number;
+  max: number;
+  sortOrder: number;
+  options: BundleComponentOption[];
+};
+
 export type ProductDetailData = {
   id: string;
   slug: string;
@@ -48,6 +72,8 @@ export type ProductDetailData = {
   childSlugs?: Record<string, string>;
   selectedOptionIds?: string[];
   productType?: string;
+  isBundle?: boolean;
+  components?: BundleComponent[];
 };
 
 function extractChildIds(matrix: Record<string, unknown>): string[] {
@@ -71,7 +97,11 @@ async function buildChildSlugs(
   if (!childIds.length) return {};
   const responses = await Promise.all(
     childIds.map((id) =>
-      getByContextProduct({ client, path: { product_id: id }, query: {} }).catch(() => null),
+      getByContextProduct({
+        client,
+        path: { product_id: id },
+        query: {},
+      }).catch(() => null),
     ),
   );
   const slugMap: Record<string, string> = {};
@@ -96,7 +126,9 @@ function formatProduct(
   const originalPrice =
     product.meta?.original_display_price?.without_tax?.formatted ??
     product.meta?.original_display_price?.with_tax?.formatted;
-  const variationMatrix = product.meta?.variation_matrix as Record<string, unknown> | undefined;
+  const variationMatrix = product.meta?.variation_matrix as
+    | Record<string, unknown>
+    | undefined;
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -119,6 +151,62 @@ function formatProductDetail(
     .map((f) => f.link!.href!)
     .filter(Boolean);
 
+  const isBundle =
+    !!product.meta?.product_types?.includes("bundle") ||
+    !!(
+      product.attributes?.components &&
+      Object.keys(product.attributes.components).length > 0
+    );
+
+  let components: BundleComponent[] | undefined;
+  if (isBundle && product.attributes?.components) {
+    const cpMap = new Map<string, Product>();
+    for (const cp of included?.component_products ?? []) {
+      if (cp.id) cpMap.set(cp.id, cp);
+    }
+
+    components = Object.entries(product.attributes.components)
+      .map(([key, comp]) => {
+        const options: BundleComponentOption[] = (comp.options ?? [])
+          .filter((opt) => opt.id)
+          .map((opt) => {
+            const optProduct = cpMap.get(opt.id!);
+            const optImage = optProduct
+              ? extractProductImage(optProduct, included?.main_images)
+              : undefined;
+            return {
+              id: opt.id!,
+              name: optProduct?.attributes?.name ?? opt.id!,
+              sku: optProduct?.attributes?.sku,
+              imageUrl: optImage?.link?.href,
+              quantity: opt.quantity ?? opt.min ?? 1,
+              min: opt.min != null ? opt.min : undefined,
+              max: opt.max != null ? opt.max : undefined,
+              sortOrder: opt.sort_order ?? 0,
+              isDefault: opt.default ?? false,
+              priceFormatted:
+                optProduct?.meta?.display_price?.without_tax?.formatted ??
+                optProduct?.meta?.display_price?.with_tax?.formatted,
+              originalPriceFormatted:
+                optProduct?.meta?.original_display_price?.without_tax
+                  ?.formatted ??
+                optProduct?.meta?.original_display_price?.with_tax?.formatted,
+              saleId: optProduct?.meta?.sale_id,
+            };
+          })
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+
+        return {
+          key,
+          name: comp.name ?? key,
+          min: comp.min ?? 1,
+          max: comp.max ?? 1,
+          sortOrder: comp.sort_order ?? 0,
+          options,
+        };
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
   const variations: ProductVariation[] = (product.meta?.variations ?? [])
     .map((v) => ({
       id: v.id ?? "",
@@ -126,7 +214,12 @@ function formatProductDetail(
       sortOrder: v.sort_order ?? 0,
       options: (v.options ?? [])
         .sort((a, b) => (b.sort_order ?? 0) - (a.sort_order ?? 0))
-        .map((o) => ({ id: o.id ?? "", name: o.name ?? "", description: o.description ?? undefined, sortOrder: o.sort_order ?? 0 })),
+        .map((o) => ({
+          id: o.id ?? "",
+          name: o.name ?? "",
+          description: o.description ?? undefined,
+          sortOrder: o.sort_order ?? 0,
+        })),
     }))
     .filter((v) => v.id && v.options.length > 0)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -151,9 +244,13 @@ function formatProductDetail(
     imageUrl: mainImage?.link?.href,
     additionalImages,
     variations: variations.length > 0 ? variations : undefined,
-    variationMatrix: product.meta?.variation_matrix as Record<string, unknown> | undefined,
+    variationMatrix: product.meta?.variation_matrix as
+      | Record<string, unknown>
+      | undefined,
     selectedOptionIds,
     productType: product.meta?.product_types?.[0],
+    isBundle,
+    components,
   };
 }
 
@@ -197,7 +294,7 @@ export async function getProductBySlug(
     client,
     query: {
       filter: `eq(slug,${slug})`,
-      include: ["main_image", "files"],
+      include: ["main_image", "files", "component_products"],
     },
   });
   const product = response.data?.data?.[0];
@@ -208,7 +305,9 @@ export async function getProductBySlug(
   if (formatted.productType === "child") {
     // Fetch parent product to get the full variation list and child slug map
     const parentId =
-      (product.attributes as Record<string, unknown>)?.base_product_id as string | undefined ??
+      ((product.attributes as Record<string, unknown>)?.base_product_id as
+        | string
+        | undefined) ??
       (product.relationships?.parent?.data as { id?: string } | undefined)?.id;
 
     if (parentId) {
@@ -220,16 +319,26 @@ export async function getProductBySlug(
       const parentProduct = parentRes.data?.data;
       if (parentProduct) {
         const parentFormatted = formatProductDetail(parentProduct, undefined);
-        if (parentFormatted.variations) formatted.variations = parentFormatted.variations;
+        if (parentFormatted.variations)
+          formatted.variations = parentFormatted.variations;
         if (parentFormatted.variationMatrix) {
           formatted.variationMatrix = parentFormatted.variationMatrix;
-          formatted.childSlugs = await buildChildSlugs(client, parentFormatted.variationMatrix);
+          formatted.childSlugs = await buildChildSlugs(
+            client,
+            parentFormatted.variationMatrix,
+          );
         }
       }
     }
-  } else if (formatted.variationMatrix && Object.keys(formatted.variationMatrix).length > 0) {
+  } else if (
+    formatted.variationMatrix &&
+    Object.keys(formatted.variationMatrix).length > 0
+  ) {
     // Parent product — fetch child slugs for navigation
-    formatted.childSlugs = await buildChildSlugs(client, formatted.variationMatrix);
+    formatted.childSlugs = await buildChildSlugs(
+      client,
+      formatted.variationMatrix,
+    );
   }
 
   return formatted;

@@ -125,6 +125,24 @@
     "countryPlaceholder": "GB",
     "countryRequired": "Country is required"
   },
+  "bundle": {
+    "optional": "Optional",
+    "required": "Required",
+    "selectExact": "Select {count}",
+    "selectRange": "Select {min}–{max}",
+    "selectedCount": "{selected}/{max} selected",
+    "now": "Now",
+    "was": "Was",
+    "saleFallback": "Sale",
+    "sku": "SKU: {sku}",
+    "qty": "Qty:",
+    "quantityDisplay": "Qty: {qty}",
+    "selectAtLeast": "Select at least {min, plural, one {# option} other {# options}}",
+    "moreNeeded": "({count} more needed)",
+    "qtyRange": "Qty: {min}–{max}",
+    "addToCart": "Add Bundle to Cart",
+    "adding": "Adding…"
+  },
   "account": {
     "title": "My Account",
     "myAccount": "My Account",

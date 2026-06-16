@@ -40,6 +40,7 @@ type CartContextValue = {
   cartId: string | null;
   isLoading: boolean;
   addItem: (productId: string, quantity?: number) => Promise<void>;
+  addBundleItem: (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity?: number) => Promise<void>;
   removeItem: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -133,6 +134,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [epClient, cartId, applyCartsResponse]
   );
 
+  const addBundleItem = useCallback(
+    async (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity = 1) => {
+      if (!epClient || !cartId) return;
+      setIsLoading(true);
+      try {
+        const res = await manageCarts({
+          client: epClient,
+          path: { cartID: cartId },
+          body: {
+            data: {
+              type: "cart_item",
+              id: productId,
+              quantity,
+              bundle_configuration: { selected_options: selectedOptions },
+            },
+          } as any,
+        });
+        if (res.data) applyCartsResponse(res.data);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [epClient, cartId, applyCartsResponse]
+  );
+
   const removeItem = useCallback(
     async (cartItemId: string) => {
       if (!epClient || !cartId) return;
@@ -198,6 +224,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cartId,
         isLoading,
         addItem,
+        addBundleItem,
         removeItem,
         updateQuantity,
         clearCart,

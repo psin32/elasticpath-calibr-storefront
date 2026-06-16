@@ -125,6 +125,24 @@
     "countryPlaceholder": "ES",
     "countryRequired": "El país es obligatorio"
   },
+  "bundle": {
+    "optional": "Opcional",
+    "required": "Obligatorio",
+    "selectExact": "Seleccionar {count}",
+    "selectRange": "Seleccionar {min}–{max}",
+    "selectedCount": "{selected}/{max} seleccionado(s)",
+    "now": "Ahora",
+    "was": "Antes",
+    "saleFallback": "Oferta",
+    "sku": "SKU: {sku}",
+    "qty": "Cant.:",
+    "quantityDisplay": "Cant.: {qty}",
+    "selectAtLeast": "Selecciona al menos {min, plural, one {# opción} other {# opciones}}",
+    "moreNeeded": "({count} más necesario(s))",
+    "qtyRange": "Cant.: {min}–{max}",
+    "addToCart": "Añadir paquete al carrito",
+    "adding": "Añadiendo…"
+  },
   "account": {
     "title": "Mi cuenta",
     "myAccount": "Mi cuenta",
