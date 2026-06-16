@@ -75,10 +75,10 @@ export function AccountButton() {
         </span>
         <span className="hidden sm:flex sm:flex-col sm:items-start sm:max-w-[140px]">
           {memberName && (
-            <span className="text-xs font-medium leading-tight truncate w-full">{memberName}</span>
+            <span className="text-xs font-medium leading-tight truncate w-full text-left">{memberName}</span>
           )}
           {(hasMultipleAccounts || !memberName) && (
-            <span className={`leading-tight truncate w-full ${memberName ? "text-[11px] text-gray-500" : "text-sm"}`}>
+            <span className={`leading-tight truncate w-full text-left ${memberName ? "text-[11px] text-gray-500" : "text-sm"}`}>
               {accountName}
             </span>
           )}
@@ -88,20 +88,14 @@ export function AccountButton() {
 
       {showDropdown && (
         <div className="absolute right-0 top-full mt-1 w-60 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-          {/* Member info header */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            {memberName && (
-              <p className="text-sm font-medium text-gray-900 truncate">{memberName}</p>
-            )}
-            <p className={`truncate ${memberName ? "text-xs text-gray-500" : "text-sm font-medium text-gray-900"}`}>
-              {accountName}
-            </p>
-            {credentials?.member_email && (
-              <p className="text-xs text-gray-400 truncate mt-0.5">
+          {/* Email — only unique info not already shown in the button trigger */}
+          {credentials?.member_email && (
+            <div className="px-3 py-2 border-b border-gray-100">
+              <p className="text-xs text-gray-400 truncate">
                 {credentials.member_email}
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Account switcher — only shown when member belongs to multiple accounts */}
           {hasMultipleAccounts && (

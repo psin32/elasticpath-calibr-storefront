@@ -98,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const creds = await loginWithAccountManagement(email, password);
       persistCredentials(creds);
+      router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Login failed";
       setError(msg);
@@ -105,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [persistCredentials]);
+  }, [persistCredentials, router]);
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
@@ -114,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const creds = await registerWithAccountManagement(name, email, password);
         persistCredentials(creds);
+        router.refresh();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Registration failed";
         setError(msg);
@@ -122,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [persistCredentials]
+    [persistCredentials, router]
   );
 
   const forgotPassword = useCallback(async (email: string) => {
@@ -156,7 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AM_CREDENTIALS_STORAGE_KEY);
     clearAmTokenCookie();
     setCredentials(null);
-  }, []);
+    router.refresh();
+  }, [router]);
 
   const clearError = useCallback(() => setError(null), []);
 
