@@ -1,7 +1,7 @@
 "use client";
 
-// Importing the loader ensures all registerComponent() calls run before
-// PlasmicCanvasHost boots, making custom components available in Studio.
+// Side-effect import: runs all registerComponent() calls before PlasmicCanvasHost boots.
+import "@/components/plasmic/plasmic-registrations";
 import { PLASMIC } from "@/components/plasmic/plasmic-loader";
 import { PlasmicCanvasHost } from "@plasmicapp/loader-nextjs";
 

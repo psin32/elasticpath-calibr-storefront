@@ -28,9 +28,9 @@ export default async function HomePage({ params }: PageProps) {
       ) : (
         <>
           <HeroSection lang={lang} />
+          <FeaturedSection lang={lang} products={products} />
         </>
       )}
-      <FeaturedSection lang={lang} products={products} />
     </div>
   );
 }
