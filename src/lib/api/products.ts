@@ -8,6 +8,11 @@ import {
 } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
 
+export type BulkBuyTier = {
+  quantityRange: string;
+  priceFormatted: string;
+};
+
 export type ProductCardData = {
   id: string;
   slug: string;
@@ -17,6 +22,7 @@ export type ProductCardData = {
   imageUrl?: string;
   description?: string;
   hasVariations?: boolean;
+  hasBulkBuy?: boolean;
 };
 
 export type ProductVariationOption = {
@@ -74,6 +80,7 @@ export type ProductDetailData = {
   productType?: string;
   isBundle?: boolean;
   components?: BundleComponent[];
+  bulkBuyTiers?: BulkBuyTier[];
 };
 
 function extractChildIds(matrix: Record<string, unknown>): string[] {
@@ -129,6 +136,7 @@ function formatProduct(
   const variationMatrix = product.meta?.variation_matrix as
     | Record<string, unknown>
     | undefined;
+  const tiersAttr = (product.attributes as Record<string, unknown>)?.tiers;
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -138,6 +146,7 @@ function formatProduct(
     originalPriceFormatted: originalPrice,
     imageUrl: image?.link?.href,
     hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
+    hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
   };
 }
 
@@ -228,6 +237,36 @@ function formatProductDetail(
     ? (product.meta.child_option_ids as string[])
     : undefined;
 
+  const rawTiers = (product.attributes as Record<string, unknown>)?.tiers as
+    | Record<string, { minimum_quantity?: number; price?: Record<string, { amount?: number }> }>
+    | undefined;
+  let bulkBuyTiers: BulkBuyTier[] | undefined;
+  if (rawTiers && Object.keys(rawTiers).length > 0) {
+    const rawPrice = (product.attributes as Record<string, unknown>)?.price as
+      | Record<string, { amount?: number }>
+      | undefined;
+    const currency = rawPrice ? Object.keys(rawPrice)[0] : "USD";
+    const baseAmount = rawPrice?.[currency]?.amount ?? 0;
+    const fmt = new Intl.NumberFormat("en", { style: "currency", currency });
+    const messages = Object.values(rawTiers)
+      .filter((t) => t.minimum_quantity != null)
+      .map((t) => ({
+        quantity: t.minimum_quantity!,
+        price: t.price?.[currency]?.amount != null ? fmt.format(t.price[currency].amount! / 100) : "",
+      }))
+      .sort((a, b) => a.quantity - b.quantity);
+    let lastQty = 1;
+    let lastPrice = fmt.format(baseAmount / 100);
+    const rows: BulkBuyTier[] = [];
+    for (const msg of messages) {
+      rows.push({ quantityRange: `${lastQty} - ${msg.quantity - 1}`, priceFormatted: lastPrice });
+      lastQty = msg.quantity;
+      lastPrice = msg.price;
+    }
+    rows.push({ quantityRange: `${lastQty} +`, priceFormatted: lastPrice });
+    bulkBuyTiers = rows;
+  }
+
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -251,6 +290,7 @@ function formatProductDetail(
     productType: product.meta?.product_types?.[0],
     isBundle,
     components,
+    bulkBuyTiers,
   };
 }
 

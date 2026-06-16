@@ -154,5 +154,15 @@
     "continueShopping": "Continue shopping",
     "signOut": "Sign out",
     "switchAccount": "Switch account"
+  },
+  "product": {
+    "quickView": "Quick view",
+    "selectAllOptions": "Select all options to add to cart",
+    "selectOption": "Select {name}",
+    "bulkBuyOffer": "Bulk Buy Offer",
+    "qty": "QTY",
+    "pricePerItem": "Price Per Item",
+    "bulkBuyTag": "Bulk Buy",
+    "variationTag": "Variation"
   }
 }

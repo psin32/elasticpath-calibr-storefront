@@ -154,5 +154,15 @@
     "continueShopping": "Continuer les achats",
     "signOut": "Se déconnecter",
     "switchAccount": "Changer de compte"
+  },
+  "product": {
+    "quickView": "Aperçu rapide",
+    "selectAllOptions": "Sélectionnez toutes les options pour ajouter au panier",
+    "selectOption": "Sélectionner {name}",
+    "bulkBuyOffer": "Offre d'achat en gros",
+    "qty": "QTÉ",
+    "pricePerItem": "Prix par article",
+    "bulkBuyTag": "Achat en gros",
+    "variationTag": "Variation"
   }
 }

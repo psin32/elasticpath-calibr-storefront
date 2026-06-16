@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ProductVariation } from "@/lib/api/products";
 import { ProductVariationSelector } from "./ProductVariationSelector";
 import { QuantityAddToCart } from "./QuantityAddToCart";
@@ -29,6 +30,7 @@ export function VariantAddToCart({
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const t = useTranslations("product");
 
   const initialSelectedOptions = useMemo(() => {
     if (!selectedOptionIds?.length || !variations?.length) return {};
@@ -84,7 +86,7 @@ export function VariantAddToCart({
         </div>
         {hasVariations && !allSelected && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover/cart:opacity-100 transition-opacity pointer-events-none z-10">
-            Select all options to add to cart
+            {t("selectAllOptions")}
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
           </div>
         )}
