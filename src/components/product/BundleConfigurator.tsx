@@ -6,12 +6,16 @@ import { configureByContextProduct } from "@epcc-sdk/sdks-shopper";
 import type { Client } from "@hey-api/client-fetch";
 import { createEpClient } from "@/lib/api/ep-client";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button/Button";
 import { Badge } from "@/components/ui/Badge/Badge";
 import { Skeleton } from "@/components/ui/Skeleton/Skeleton";
 import { ProductThumbnail } from "./ProductThumbnail";
 import { QuantitySelector } from "./QuantitySelector";
-import type { BundleComponent, BundleComponentOption } from "@/lib/api/products";
+import type {
+  BundleComponent,
+  BundleComponentOption,
+} from "@/lib/api/products";
 
 type OptionSelection = { productId: string; quantity: number };
 type SelectionState = Record<string, OptionSelection[]>;
@@ -60,32 +64,73 @@ export function BundleConfigurator({
   const sorted = [...components].sort((a, b) => a.sortOrder - b.sortOrder);
 
   const [selections, setSelections] = useState<SelectionState>(() =>
-    buildInitialSelections(sorted)
+    buildInitialSelections(sorted),
   );
   const [quantity, setQuantity] = useState(1);
 
-  const [optionPrices, setOptionPrices] = useState<Record<string, OptionPrice>>(() => {
+  const [optionPrices, setOptionPrices] = useState<Record<string, OptionPrice>>(
+    () => {
+      const prices: Record<string, OptionPrice> = {};
+      for (const component of components) {
+        for (const option of component.options) {
+          if (option.priceFormatted) {
+            // saleId intentionally omitted — configure endpoint is the authoritative source
+            // to prevent the badge flashing on then off when configure overwrites static data
+            prices[option.id] = {
+              price: option.priceFormatted,
+              originalPrice: option.originalPriceFormatted,
+            };
+          }
+        }
+      }
+      return prices;
+    },
+  );
+
+  const [configuredPrice, setConfiguredPrice] = useState<string | null>(
+    initialPrice ?? null,
+  );
+  const [originalConfiguredPrice, setOriginalConfiguredPrice] = useState<
+    string | null
+  >(initialOriginalPrice ?? null);
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  const { addBundleItem, isLoading } = useCart();
+  const { credentials } = useAuth();
+
+  // Reset state when account changes (login / logout / account switch).
+  // Using a ref so the effect only fires on actual changes, not on every render.
+  const accountRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const current = credentials?.selected ?? null;
+    if (accountRef.current === undefined) {
+      accountRef.current = current;
+      return;
+    }
+    if (current === accountRef.current) return;
+    accountRef.current = current;
+
+    const sortedComponents = [...components].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    setSelections(buildInitialSelections(sortedComponents));
     const prices: Record<string, OptionPrice> = {};
-    for (const component of components) {
-      for (const option of component.options) {
-        if (option.priceFormatted) {
-          prices[option.id] = {
-            price: option.priceFormatted,
-            originalPrice: option.originalPriceFormatted,
-            saleId: option.saleId,
+    for (const c of components) {
+      for (const o of c.options) {
+        if (o.priceFormatted) {
+          prices[o.id] = {
+            price: o.priceFormatted,
+            originalPrice: o.originalPriceFormatted,
           };
         }
       }
     }
-    return prices;
-  });
-
-  const [configuredPrice, setConfiguredPrice] = useState<string | null>(initialPrice ?? null);
-  const [originalConfiguredPrice, setOriginalConfiguredPrice] = useState<string | null>(
-    initialOriginalPrice ?? null
-  );
-  const [isConfiguring, setIsConfiguring] = useState(false);
-  const { addBundleItem, isLoading } = useCart();
+    setOptionPrices(prices);
+    setConfiguredPrice(initialPrice ?? null);
+    setOriginalConfiguredPrice(initialOriginalPrice ?? null);
+    setQuantity(1);
+    epClientRef.current = createEpClient();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentials?.selected]);
 
   const buildCartOptions = useCallback(
     (state: SelectionState): Record<string, Record<string, number>> => {
@@ -100,7 +145,7 @@ export function BundleConfigurator({
       }
       return result;
     },
-    []
+    [],
   );
 
   const configurePrices = useCallback(
@@ -122,12 +167,12 @@ export function BundleConfigurator({
         setConfiguredPrice(
           product.meta?.display_price?.without_tax?.formatted ??
             product.meta?.display_price?.with_tax?.formatted ??
-            null
+            null,
         );
         setOriginalConfiguredPrice(
           product.meta?.original_display_price?.without_tax?.formatted ??
             product.meta?.original_display_price?.with_tax?.formatted ??
-            null
+            null,
         );
 
         const compProducts = product.meta?.component_products as
@@ -157,7 +202,8 @@ export function BundleConfigurator({
               const originalPrice =
                 data.original_display_price?.without_tax?.formatted ??
                 data.original_display_price?.with_tax?.formatted;
-              if (price) updated[id] = { price, originalPrice, saleId: data.sale_id };
+              if (price)
+                updated[id] = { price, originalPrice, saleId: data.sale_id };
             }
             return updated;
           });
@@ -168,7 +214,7 @@ export function BundleConfigurator({
         setIsConfiguring(false);
       }
     },
-    [productId, buildCartOptions]
+    [productId, buildCartOptions],
   );
 
   useEffect(() => {
@@ -176,7 +222,10 @@ export function BundleConfigurator({
     return () => clearTimeout(timer);
   }, [selections, configurePrices]);
 
-  const toggleOption = (component: BundleComponent, option: BundleComponentOption) => {
+  const toggleOption = (
+    component: BundleComponent,
+    option: BundleComponentOption,
+  ) => {
     const { key, min, max } = component;
     setSelections((prev) => {
       const current = prev[key] ?? [];
@@ -184,25 +233,38 @@ export function BundleConfigurator({
 
       if (isSelected) {
         if (current.length <= min) return prev;
-        return { ...prev, [key]: current.filter((s) => s.productId !== option.id) };
+        return {
+          ...prev,
+          [key]: current.filter((s) => s.productId !== option.id),
+        };
       } else {
         if (max === 1) {
-          return { ...prev, [key]: [{ productId: option.id, quantity: option.quantity }] };
+          return {
+            ...prev,
+            [key]: [{ productId: option.id, quantity: option.quantity }],
+          };
         }
         if (current.length >= max) return prev;
         return {
           ...prev,
-          [key]: [...current, { productId: option.id, quantity: option.quantity }],
+          [key]: [
+            ...current,
+            { productId: option.id, quantity: option.quantity },
+          ],
         };
       }
     });
   };
 
-  const changeOptionQty = (componentKey: string, optProductId: string, qty: number) => {
+  const changeOptionQty = (
+    componentKey: string,
+    optProductId: string,
+    qty: number,
+  ) => {
     setSelections((prev) => ({
       ...prev,
       [componentKey]: (prev[componentKey] ?? []).map((s) =>
-        s.productId === optProductId ? { ...s, quantity: qty } : s
+        s.productId === optProductId ? { ...s, quantity: qty } : s,
       ),
     }));
   };
@@ -211,7 +273,9 @@ export function BundleConfigurator({
     await addBundleItem(productId, buildCartOptions(selections), quantity);
   };
 
-  const allRequired = sorted.every((c) => (selections[c.key] ?? []).length >= c.min);
+  const allRequired = sorted.every(
+    (c) => (selections[c.key] ?? []).length >= c.min,
+  );
 
   return (
     <div className={className}>
@@ -223,7 +287,9 @@ export function BundleConfigurator({
               isConfiguring ? "opacity-50" : "opacity-100"
             }`}
           >
-            <span className="text-2xl font-bold text-gray-900">{configuredPrice}</span>
+            <span className="text-2xl font-bold text-gray-900">
+              {configuredPrice}
+            </span>
             {originalConfiguredPrice && (
               <span className="text-base text-gray-400 line-through">
                 {originalConfiguredPrice}
@@ -245,17 +311,22 @@ export function BundleConfigurator({
           const atMax = selectedCount >= max;
           const satisfied = selectedCount >= min;
           const sortedOptions = [...component.options].sort(
-            (a, b) => a.sortOrder - b.sortOrder
+            (a, b) => a.sortOrder - b.sortOrder,
           );
 
           return (
             <div key={key} className="border border-gray-200 rounded-xl p-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-900">{component.name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {component.name}
+                </h3>
                 <div className="flex items-center gap-2">
                   {isMulti && (
-                    <Badge variant={satisfied ? "success" : "warning"} size="sm">
+                    <Badge
+                      variant={satisfied ? "success" : "warning"}
+                      size="sm"
+                    >
                       {t("selectedCount", { selected: selectedCount, max })}
                     </Badge>
                   )}
@@ -272,9 +343,13 @@ export function BundleConfigurator({
               {/* Options */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {sortedOptions.map((option) => {
-                  const isSelected = currentSels.some((s) => s.productId === option.id);
-                  const selectedEntry = currentSels.find((s) => s.productId === option.id);
-                  const isDisabled = !isSelected && atMax;
+                  const isSelected = currentSels.some(
+                    (s) => s.productId === option.id,
+                  );
+                  const selectedEntry = currentSels.find(
+                    (s) => s.productId === option.id,
+                  );
+                  const isDisabled = !isSelected && atMax && max > 1;
                   const canDeselect = isSelected && selectedCount > min;
                   const optPrice = optionPrices[option.id];
                   const hasVariableQty =
@@ -290,7 +365,9 @@ export function BundleConfigurator({
                       role="button"
                       tabIndex={clickable ? 0 : -1}
                       aria-pressed={isSelected}
-                      onClick={() => clickable && toggleOption(component, option)}
+                      onClick={() =>
+                        clickable && toggleOption(component, option)
+                      }
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -303,13 +380,16 @@ export function BundleConfigurator({
                         isSelected
                           ? "border-brand-primary bg-brand-primary/5"
                           : isDisabled
-                          ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                          : "border-gray-200 hover:border-gray-300 cursor-pointer"
+                            ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                            : "border-gray-200 hover:border-gray-300 cursor-pointer"
                       }`}
                     >
                       {option.imageUrl && (
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-50 shrink-0">
-                          <ProductThumbnail imageUrl={option.imageUrl} name={option.name} />
+                          <ProductThumbnail
+                            imageUrl={option.imageUrl}
+                            name={option.name}
+                          />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -323,7 +403,7 @@ export function BundleConfigurator({
                         )}
                         {optPrice ? (
                           <div className="mt-1">
-                            {optPrice.originalPrice ? (
+                            {optPrice.originalPrice && optPrice.saleId ? (
                               <>
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs font-bold text-gray-900">
@@ -334,12 +414,14 @@ export function BundleConfigurator({
                                     size="sm"
                                     className="bg-red-500 text-white uppercase tracking-wide"
                                   >
-                                    {optPrice.saleId ?? t("saleFallback")}
+                                    {optPrice.saleId}
                                   </Badge>
                                 </div>
                                 <p className="text-[11px] text-gray-400 mt-0.5">
                                   {t("was")}{" "}
-                                  <span className="line-through">{optPrice.originalPrice}</span>
+                                  <span className="line-through">
+                                    {optPrice.originalPrice}
+                                  </span>
                                 </p>
                               </>
                             ) : (
@@ -393,7 +475,10 @@ export function BundleConfigurator({
                       {/* Min/max range hint — bottom-right corner when not selected */}
                       {!isSelected && hasVariableQty && (
                         <p className="absolute bottom-1.5 right-2 text-[10px] text-gray-400">
-                          {t("qtyRange", { min: option.min!, max: option.max! })}
+                          {t("qtyRange", {
+                            min: option.min!,
+                            max: option.max!,
+                          })}
                         </p>
                       )}
 
@@ -406,7 +491,9 @@ export function BundleConfigurator({
                         >
                           <QuantitySelector
                             value={selectedEntry?.quantity ?? option.quantity}
-                            onChange={(qty) => changeOptionQty(key, option.id, qty)}
+                            onChange={(qty) =>
+                              changeOptionQty(key, option.id, qty)
+                            }
                             min={option.min!}
                             max={option.max!}
                           />
@@ -421,7 +508,8 @@ export function BundleConfigurator({
               {!satisfied && min > 0 && (
                 <p className="mt-2 text-xs text-amber-600">
                   {t("selectAtLeast", { min })}
-                  {selectedCount > 0 && ` ${t("moreNeeded", { count: min - selectedCount })}`}
+                  {selectedCount > 0 &&
+                    ` ${t("moreNeeded", { count: min - selectedCount })}`}
                 </p>
               )}
             </div>

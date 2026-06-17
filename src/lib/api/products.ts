@@ -78,6 +78,7 @@ export type ProductDetailData = {
   childSlugs?: Record<string, string>;
   selectedOptionIds?: string[];
   productType?: string;
+  saleId?: string;
   isBundle?: boolean;
   components?: BundleComponent[];
   bulkBuyTiers?: BulkBuyTier[];
@@ -288,6 +289,7 @@ function formatProductDetail(
       | undefined,
     selectedOptionIds,
     productType: product.meta?.product_types?.[0],
+    saleId: product.meta?.sale_id ?? undefined,
     isBundle,
     components,
     bulkBuyTiers,

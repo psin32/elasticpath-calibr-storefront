@@ -20,7 +20,6 @@ export function QuantityAddToCart({ productId }: Props) {
           className="flex-1"
         />
       </div>
-      <p className="text-xs text-gray-400">Free shipping on orders over $50</p>
     </div>
   );
 }

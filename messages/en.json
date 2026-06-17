@@ -163,6 +163,10 @@
     "qty": "QTY",
     "pricePerItem": "Price Per Item",
     "bulkBuyTag": "Bulk Buy",
-    "variationTag": "Variation"
+    "variationTag": "Variation",
+    "detailsLabel": "Product Details",
+    "notFoundTitle": "Product Not Found",
+    "notFoundMessage": "The product you're looking for doesn't exist or may have been removed.",
+    "notFoundCta": "Continue Shopping"
   }
 }

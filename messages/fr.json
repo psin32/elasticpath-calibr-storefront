@@ -163,6 +163,10 @@
     "qty": "QTÉ",
     "pricePerItem": "Prix par article",
     "bulkBuyTag": "Achat en gros",
-    "variationTag": "Variation"
+    "variationTag": "Variation",
+    "detailsLabel": "Détails du produit",
+    "notFoundTitle": "Produit introuvable",
+    "notFoundMessage": "Le produit que vous recherchez n'existe pas ou a peut-être été supprimé.",
+    "notFoundCta": "Continuer les achats"
   }
 }

@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Header } from "@/components/header/Header";
 import { ProductThumbnail } from "@/components/product/ProductThumbnail";
 import { ProductName } from "@/components/product/ProductName";
 import { ProductDescription } from "@/components/product/ProductDescription";
 import { Price } from "@/components/product/Price";
-import { VariantAddToCart } from "@/components/product/VariantAddToCart";
-import { BundleConfigurator } from "@/components/product/BundleConfigurator";
+import { ProductActions } from "@/components/product/ProductActions";
 import { BulkBuyOffer } from "@/components/product/BulkBuyOffer";
+import { Badge } from "@/components/ui/Badge/Badge";
 import { getProductBySlug } from "@/lib/api/products";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -27,7 +28,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductDetailPage({ params }: Props) {
   const { lang, slug } = await params;
 
-  const product = await getProductBySlug(slug).catch(() => null);
+  const [product, t] = await Promise.all([
+    getProductBySlug(slug).catch(() => null),
+    getTranslations("product"),
+  ]);
   if (!product) notFound();
 
   return (
@@ -84,6 +88,18 @@ export default async function ProductDetailPage({ params }: Props) {
 
           {/* Right: Details */}
           <div className="flex flex-col">
+            {product.saleId && product.originalPriceFormatted && (
+              <div className="mb-3">
+                <Badge
+                  variant="error"
+                  size="sm"
+                  className="bg-red-500 text-white uppercase tracking-wide px-3"
+                >
+                  {product.saleId}
+                </Badge>
+              </div>
+            )}
+
             {product.sku && (
               <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-3">
                 SKU: {product.sku}
@@ -106,37 +122,35 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            {product.description && (
-              <div className="mb-8">
-                <ProductDescription
-                  description={product.description}
-                  className="text-base"
-                />
-              </div>
-            )}
-
             {product.bulkBuyTiers && product.bulkBuyTiers.length > 0 && (
               <div className="mb-8">
                 <BulkBuyOffer tiers={product.bulkBuyTiers} />
               </div>
             )}
 
-            {product.isBundle && product.components?.length ? (
-              <BundleConfigurator
-                productId={product.id}
-                components={product.components}
-                initialPrice={product.priceFormatted}
-                initialOriginalPrice={product.originalPriceFormatted}
-              />
-            ) : (
-              <VariantAddToCart
-                productId={product.id}
-                lang={lang}
-                variations={product.variations}
-                variationMatrix={product.variationMatrix}
-                childSlugs={product.childSlugs}
-                selectedOptionIds={product.selectedOptionIds}
-              />
+            <ProductActions
+              productId={product.id}
+              lang={lang}
+              isBundle={product.isBundle}
+              components={product.components}
+              initialPrice={product.priceFormatted}
+              initialOriginalPrice={product.originalPriceFormatted}
+              variations={product.variations}
+              variationMatrix={product.variationMatrix}
+              childSlugs={product.childSlugs}
+              selectedOptionIds={product.selectedOptionIds}
+            />
+
+            {product.description && (
+              <div className="mt-8">
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-widest mb-3">
+                  {t("detailsLabel")}
+                </h2>
+                <ProductDescription
+                  description={product.description}
+                  className="text-base"
+                />
+              </div>
             )}
           </div>
         </div>
