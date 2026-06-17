@@ -61,14 +61,16 @@
       "Bash(node -e \"console.log\\(require\\('/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/node_modules/next/package.json'\\).version\\)\")",
       "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.slice\\(-10\\).join\\('\\\\n'\\)\\)\")",
       "Bash(node -e \"console.log\\(require\\('/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/node_modules/@plasmicapp/host/package.json'\\).version\\)\")",
-      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.slice\\(-8\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.slice\\(-8\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(mkdir -p /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/products/search /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/hierarchies/\\\\[hierarchyId\\\\]/nodes /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/catalog/products /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/components/plasmic/blocks/ProductCarousel)"
     ],
     "additionalDirectories": [
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app",
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]",
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)",
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/order-confirmation",
-      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/[...path]"
+      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/[...path]",
+      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/hierarchies/[hierarchyId]"
     ]
   }
 }

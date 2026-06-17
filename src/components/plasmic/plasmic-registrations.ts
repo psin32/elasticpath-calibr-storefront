@@ -25,6 +25,11 @@ import { AddToCart } from "@/components/product/AddToCart";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { QuantityAddToCart } from "@/components/product/QuantityAddToCart";
 
+// Commerce — carousel
+import { ProductCarousel, type ProductCarouselProps } from "@/components/plasmic/blocks/ProductCarousel/ProductCarousel";
+import { ProductPickerControl } from "@/components/plasmic/blocks/ProductCarousel/ProductPickerControl";
+import { NodePickerControl } from "@/components/plasmic/blocks/ProductCarousel/NodePickerControl";
+
 // Shared default product used for canvas preview
 const DEMO_PRODUCT = {
   id: "demo-product",
@@ -284,5 +289,76 @@ if (PLASMIC) {
     },
     importPath: "@/components/product/ProductGrid",
     importName: "ProductGrid",
+  });
+
+  // ─── ProductCarousel ──────────────────────────────────────────────────────
+  PLASMIC.registerComponent(ProductCarousel, {
+    name: "ProductCarousel",
+    description:
+      "Displays an Elastic Path catalog product carousel. Select products by ID or by a catalog node.",
+    props: {
+      selectionMode: {
+        type: "choice",
+        options: ["products", "node"],
+        defaultValue: "products",
+        description: "Fetch products by specific IDs or by a catalog node",
+      },
+      products: {
+        type: "custom",
+        control: ProductPickerControl,
+        description:
+          "Search and select catalog products by name, SKU, or slug (used when Selection Mode is 'products')",
+        hidden: (props: ProductCarouselProps) => props.selectionMode === "node",
+      },
+      nodeId: {
+        type: "custom",
+        control: NodePickerControl,
+        description:
+          "Select a hierarchy then a node — products in that node will be shown (used when Selection Mode is 'node')",
+        hidden: (props: ProductCarouselProps) => props.selectionMode !== "node",
+      },
+      lang: {
+        type: "string",
+        defaultValue: "en",
+        description: "Locale prefix for product detail page links (e.g. 'en', 'fr')",
+      },
+      title: {
+        type: "string",
+        defaultValue: "",
+        description: "Optional heading rendered above the carousel",
+      },
+      slidesToShow: {
+        type: "number",
+        defaultValue: 4,
+        description: "Number of product cards visible at once",
+      },
+      autoplay: {
+        type: "boolean",
+        defaultValue: false,
+        description: "Automatically scroll the carousel",
+      },
+      autoplayInterval: {
+        type: "number",
+        defaultValue: 3000,
+        description: "Autoplay interval in milliseconds",
+        hidden: (props: ProductCarouselProps) => !props.autoplay,
+      },
+      showDots: {
+        type: "boolean",
+        defaultValue: false,
+        description: "Show pagination dots below the carousel",
+      },
+      infinite: {
+        type: "boolean",
+        defaultValue: false,
+        description: "Loop back to the start when reaching the last card",
+      },
+      className: {
+        type: "class",
+        description: "CSS class applied to the carousel wrapper",
+      },
+    },
+    importPath: "@/components/plasmic/blocks/ProductCarousel/ProductCarousel",
+    importName: "ProductCarousel",
   });
 }

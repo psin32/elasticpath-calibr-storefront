@@ -6,6 +6,8 @@ import {
   PlasmicRootProvider,
 } from "@plasmicapp/loader-nextjs";
 import { PLASMIC } from "./plasmic-loader";
+// Side-effect: ensures all code components are registered before PlasmicRootProvider renders
+import "./plasmic-registrations";
 
 type PlasmicContentProps = {
   component: string;

@@ -4,6 +4,10 @@
 import "@/components/plasmic/plasmic-registrations";
 import { PLASMIC } from "@/components/plasmic/plasmic-loader";
 import { PlasmicCanvasHost } from "@plasmicapp/loader-nextjs";
+import { NextIntlClientProvider } from "next-intl";
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
+import enMessages from "../../../messages/en.json";
 
 export default function PlasmicHostPage() {
   if (!PLASMIC) {
@@ -15,5 +19,13 @@ export default function PlasmicHostPage() {
     );
   }
 
-  return <PlasmicCanvasHost />;
+  return (
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      <AuthProvider>
+        <CartProvider>
+          <PlasmicCanvasHost />
+        </CartProvider>
+      </AuthProvider>
+    </NextIntlClientProvider>
+  );
 }

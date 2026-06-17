@@ -239,7 +239,13 @@ function formatProductDetail(
     : undefined;
 
   const rawTiers = (product.attributes as Record<string, unknown>)?.tiers as
-    | Record<string, { minimum_quantity?: number; price?: Record<string, { amount?: number }> }>
+    | Record<
+        string,
+        {
+          minimum_quantity?: number;
+          price?: Record<string, { amount?: number }>;
+        }
+      >
     | undefined;
   let bulkBuyTiers: BulkBuyTier[] | undefined;
   if (rawTiers && Object.keys(rawTiers).length > 0) {
@@ -253,14 +259,20 @@ function formatProductDetail(
       .filter((t) => t.minimum_quantity != null)
       .map((t) => ({
         quantity: t.minimum_quantity!,
-        price: t.price?.[currency]?.amount != null ? fmt.format(t.price[currency].amount! / 100) : "",
+        price:
+          t.price?.[currency]?.amount != null
+            ? fmt.format(t.price[currency].amount! / 100)
+            : "",
       }))
       .sort((a, b) => a.quantity - b.quantity);
     let lastQty = 1;
     let lastPrice = fmt.format(baseAmount / 100);
     const rows: BulkBuyTier[] = [];
     for (const msg of messages) {
-      rows.push({ quantityRange: `${lastQty} - ${msg.quantity - 1}`, priceFormatted: lastPrice });
+      rows.push({
+        quantityRange: `${lastQty} - ${msg.quantity - 1}`,
+        priceFormatted: lastPrice,
+      });
       lastQty = msg.quantity;
       lastPrice = msg.price;
     }
@@ -304,6 +316,7 @@ export async function getFeaturedProducts(
     client,
     query: {
       include: ["main_image"],
+      filter: "in(product_types,standard,parent)",
       "page[limit]": BigInt(limit),
     },
   });

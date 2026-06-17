@@ -1,5 +1,5 @@
 import { Header } from "@/components/header/Header";
-import { ProductGrid } from "@/components/product/ProductGrid";
+import { ProductCarouselDisplay } from "@/components/product/ProductCarouselDisplay";
 import { getFeaturedProducts } from "@/lib/api/products";
 import { plasmicConfig } from "@/lib/plasmic-config";
 import { PLASMIC_SERVER } from "@/components/plasmic/plasmic-server-loader";
@@ -14,7 +14,7 @@ export default async function HomePage({ params }: PageProps) {
   const { lang } = await params;
 
   const [products, plasmicData] = await Promise.all([
-    getFeaturedProducts(8),
+    getFeaturedProducts(25),
     plasmicConfig.enabled
       ? PLASMIC_SERVER?.maybeFetchComponentData("homepage")
       : null,
@@ -99,7 +99,7 @@ async function FeaturedSection({
       </div>
 
       {products.length > 0 ? (
-        <ProductGrid products={products} lang={lang} />
+        <ProductCarouselDisplay products={products} lang={lang} />
       ) : (
         <p className="text-gray-400 text-sm text-center py-12">
           No products available. Make sure your Elastic Path catalog is

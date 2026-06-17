@@ -19,7 +19,7 @@ export function ProductCard({ product, lang, priority = false }: ProductCardProp
   const t = useTranslations("product");
 
   return (
-    <article className="group flex flex-col rounded-xl border border-gray-100 bg-white overflow-hidden hover:shadow-md transition-shadow duration-200">
+    <article className="group flex flex-col h-full rounded-xl border border-gray-100 bg-white overflow-hidden hover:shadow-md transition-shadow duration-200">
       <Link href={`/${lang}/products/${product.slug}`} className="relative block">
         <ProductThumbnail
           imageUrl={product.imageUrl}
@@ -40,7 +40,7 @@ export function ProductCard({ product, lang, priority = false }: ProductCardProp
 
       <div className="p-4 flex flex-col gap-2 flex-1">
         <Link href={`/${lang}/products/${product.slug}`} className="block">
-          <ProductName name={product.name} as="h3" className="text-sm hover:underline" />
+          <ProductName name={product.name} as="h3" className="text-sm hover:underline line-clamp-3" />
         </Link>
 
         {product.description && (
