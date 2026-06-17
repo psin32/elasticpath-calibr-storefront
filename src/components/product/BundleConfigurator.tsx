@@ -376,7 +376,7 @@ export function BundleConfigurator({
                       }}
                       className={`relative flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-colors select-none ${
                         hasVariableQty ? (isSelected ? "pb-10" : "pb-6") : ""
-                      } ${
+                      } ${optPrice?.saleId ? "pt-5" : ""} ${
                         isSelected
                           ? "border-brand-primary bg-brand-primary/5"
                           : isDisabled
@@ -384,6 +384,16 @@ export function BundleConfigurator({
                             : "border-gray-200 hover:border-gray-300 cursor-pointer"
                       }`}
                     >
+                      {optPrice?.saleId && (
+                        <Badge
+                          variant="error"
+                          size="sm"
+                          className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-white uppercase tracking-wide whitespace-nowrap"
+                        >
+                          {optPrice.saleId}
+                        </Badge>
+                      )}
+
                       {option.imageUrl && (
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-50 shrink-0">
                           <ProductThumbnail
@@ -403,20 +413,11 @@ export function BundleConfigurator({
                         )}
                         {optPrice ? (
                           <div className="mt-1">
-                            {optPrice.originalPrice && optPrice.saleId ? (
+                            {optPrice.originalPrice ? (
                               <>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-gray-900">
-                                    {t("now")} {optPrice.price}
-                                  </span>
-                                  <Badge
-                                    variant="error"
-                                    size="sm"
-                                    className="bg-red-500 text-white uppercase tracking-wide px-3"
-                                  >
-                                    {optPrice.saleId}
-                                  </Badge>
-                                </div>
+                                <span className="text-xs font-bold text-gray-900">
+                                  {t("now")} {optPrice.price}
+                                </span>
                                 <p className="text-[11px] text-gray-400 mt-0.5">
                                   {t("was")}{" "}
                                   <span className="line-through">
