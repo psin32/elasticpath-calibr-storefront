@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 type FooterProps = {
   lang: string;
@@ -28,19 +29,8 @@ export function Footer({ lang }: FooterProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link
-              href={`/${lang}`}
-              className="inline-flex items-center gap-2 text-gray-900 font-bold text-lg tracking-tight"
-            >
-              <span
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-white text-sm font-bold"
-                style={{
-                  backgroundColor: `#${process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "EB0A52"}`,
-                }}
-              >
-                EP
-              </span>
-              Elastic Path
+            <Link href={`/${lang}`}>
+              <Image src="/logo.png" alt="Elastic Path" width={120} height={28} />
             </Link>
             <p className="mt-3 text-sm text-gray-500 leading-relaxed">
               API-first composable commerce built for enterprise brands with

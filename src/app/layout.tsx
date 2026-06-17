@@ -3,8 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Elasticpath Calibr",
-    template: "%s | Elasticpath Calibr",
+    default: "Calibr by Elasticpath",
+    template: "%s | Calibr by Elasticpath",
   },
   description: "Modern B2B & B2C storefront powered by Elastic Path",
   icons: {
