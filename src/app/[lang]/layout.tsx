@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { locales, type Locale } from "@/lib/i18n/config";
+import { LocaleHtml } from "@/components/LocaleHtml";
 
 export const metadata: Metadata = {
   title: {
@@ -27,8 +28,9 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={lang} suppressHydrationWarning>
-      <body>{children}</body>
-    </html>
+    <>
+      <LocaleHtml locale={lang} />
+      {children}
+    </>
   );
 }
