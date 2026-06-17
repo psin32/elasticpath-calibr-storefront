@@ -412,7 +412,7 @@ export function BundleConfigurator({
                                   <Badge
                                     variant="error"
                                     size="sm"
-                                    className="bg-red-500 text-white uppercase tracking-wide"
+                                    className="bg-red-500 text-white uppercase tracking-wide px-3"
                                   >
                                     {optPrice.saleId}
                                   </Badge>
