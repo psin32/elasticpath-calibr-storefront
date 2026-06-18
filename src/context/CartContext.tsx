@@ -22,6 +22,14 @@ import {
 import type { Client } from "@hey-api/client-fetch";
 import { createEpClient } from "@/lib/api/ep-client";
 
+export type BundleComponentItem = {
+  componentName: string;
+  productName: string;
+  quantity: number;
+  unitPriceFormatted?: string;
+  lineTotalFormatted?: string;
+};
+
 export type CartLineItem = {
   id: string;
   productId: string;
@@ -31,6 +39,7 @@ export type CartLineItem = {
   unitPriceFormatted: string;
   lineTotalFormatted: string;
   imageHref?: string;
+  bundleComponents?: BundleComponentItem[];
 };
 
 type CartContextValue = {
@@ -50,6 +59,36 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 function toCartLineItem(item: CartItemObject): CartLineItem {
   const withTax = item.meta?.display_price?.with_tax;
+  const raw = item as any;
+
+  let bundleComponents: BundleComponentItem[] | undefined;
+  const selectedOptions: Record<string, Record<string, number>> | undefined =
+    raw.bundle_configuration?.selected_options;
+
+  if (selectedOptions) {
+    const componentProducts: any[] =
+      raw.bundle_configuration?.component_products ?? [];
+    const components: Record<string, { name: string }> = raw.components ?? {};
+    const result: BundleComponentItem[] = [];
+
+    for (const [componentSlug, selections] of Object.entries(selectedOptions)) {
+      const componentName = components[componentSlug]?.name ?? componentSlug;
+      for (const [productId, quantity] of Object.entries(selections)) {
+        const product = componentProducts.find((p: any) => p.id === productId);
+        const productName = product?.attributes?.name ?? productId;
+        const dp = product?.meta?.display_price;
+        const dpx = product?.meta?.display_price_extended;
+        const unitPriceFormatted =
+          dp?.with_tax?.formatted ?? dp?.without_tax?.formatted;
+        const lineTotalFormatted =
+          dpx?.with_tax?.value?.formatted ?? dpx?.without_tax?.value?.formatted;
+        result.push({ componentName, productName, quantity, unitPriceFormatted, lineTotalFormatted });
+      }
+    }
+
+    if (result.length > 0) bundleComponents = result;
+  }
+
   return {
     id: item.id ?? "",
     productId: item.product_id ?? "",
@@ -59,6 +98,7 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
     unitPriceFormatted: (withTax as any)?.unit?.formatted ?? "",
     lineTotalFormatted: (withTax as any)?.value?.formatted ?? "",
     imageHref: item.image?.href,
+    bundleComponents,
   };
 }
 

@@ -48,7 +48,7 @@ export function CartButton() {
         role="dialog"
         aria-modal="true"
         aria-label={t("cart")}
-        className="fixed top-0 right-0 h-screen w-full max-w-md bg-white shadow-2xl z-[9999] flex flex-col animate-slide-in-right"
+        className="fixed top-0 right-0 h-screen w-full max-w-lg bg-white shadow-2xl z-[9999] flex flex-col animate-slide-in-right"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
@@ -107,6 +107,37 @@ export function CartButton() {
                         <p className="mt-0.5 text-xs text-gray-400">
                           SKU: {item.sku}
                         </p>
+                      )}
+                      {item.bundleComponents && item.bundleComponents.length > 0 && (
+                        <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 divide-y divide-gray-100 overflow-hidden">
+                          {item.bundleComponents.map((c, idx) => (
+                            <div key={idx} className="px-3 py-2 flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider leading-none mb-0.5">
+                                  {c.componentName}
+                                </p>
+                                <p className="text-xs text-gray-700 line-clamp-2 leading-snug">
+                                  {c.productName}
+                                </p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p className="text-xs font-semibold text-gray-700">
+                                  ×{c.quantity}
+                                </p>
+                                {c.unitPriceFormatted && (
+                                  <p className="text-[11px] text-gray-400 leading-tight">
+                                    {c.unitPriceFormatted}
+                                  </p>
+                                )}
+                                {c.lineTotalFormatted && c.quantity > 1 && (
+                                  <p className="text-[11px] font-medium text-gray-600 leading-tight">
+                                    {c.lineTotalFormatted}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                       <p className="mt-0.5 text-xs text-gray-500">
                         {item.unitPriceFormatted} each
