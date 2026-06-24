@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
       { hostname: "**.cm.elasticpath.com" },
       { hostname: "**.cloudfront.net" },
       { hostname: "**.**.com" },
+      { hostname: "**.**.net" },
+      { hostname: "**.co.in" },
     ],
   },
 };

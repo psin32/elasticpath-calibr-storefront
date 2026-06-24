@@ -8,6 +8,8 @@ export type NavLeaf = {
 export type NavColumnGroup = {
   /** Optional column heading */
   heading?: string;
+  /** When set, the heading renders as a link to this path */
+  headingHref?: string;
   items: NavLeaf[];
 };
 

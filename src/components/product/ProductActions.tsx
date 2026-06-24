@@ -16,6 +16,7 @@ type Props = {
   variationMatrix?: Record<string, unknown>;
   childSlugs?: Record<string, string>;
   selectedOptionIds?: string[];
+  parentId?: string;
 };
 
 export function ProductActions({
@@ -29,6 +30,7 @@ export function ProductActions({
   variationMatrix,
   childSlugs,
   selectedOptionIds,
+  parentId,
 }: Props) {
   const { credentials } = useAuth();
   const authKey = credentials?.selected ?? "guest";
@@ -53,6 +55,7 @@ export function ProductActions({
       variationMatrix={variationMatrix}
       childSlugs={childSlugs}
       selectedOptionIds={selectedOptionIds}
+      parentId={parentId}
     />
   );
 }

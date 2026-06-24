@@ -159,22 +159,42 @@ function MegaMenu({ item, lang, onMouseEnter, onMouseLeave }: MegaMenuProps) {
               {col.groups.map((group, gi) => (
                 <div key={gi}>
                   {group.heading && (
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                      {group.heading}
-                    </p>
+                    group.headingHref ? (
+                      <Link
+                        href={`/${lang}${group.headingHref}`}
+                        role="menuitem"
+                        className="block text-xs font-semibold text-gray-700 uppercase tracking-widest mb-3 hover:text-gray-900 transition-colors"
+                      >
+                        {group.heading}
+                      </Link>
+                    ) : (
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                        {group.heading}
+                      </p>
+                    )
                   )}
                   <ul className="space-y-2">
-                    {group.items.map((leaf) => (
-                      <li key={leaf.key}>
-                        <Link
-                          href={`/${lang}${leaf.href}`}
-                          role="menuitem"
-                          className="text-sm text-gray-700 hover:text-gray-900 hover:underline underline-offset-2 transition-colors"
-                        >
-                          {leaf.label}
-                        </Link>
-                      </li>
-                    ))}
+                    {group.items.map((leaf, li) => {
+                      const isViewAll = leaf.key.startsWith("view-all-");
+                      return (
+                        <li key={leaf.key}>
+                          {isViewAll && li > 0 && (
+                            <div className="border-t border-gray-100 mt-2 pt-2" />
+                          )}
+                          <Link
+                            href={`/${lang}${leaf.href}`}
+                            role="menuitem"
+                            className={
+                              isViewAll
+                                ? "text-xs font-medium text-brand-secondary hover:underline underline-offset-2 transition-colors"
+                                : "text-sm text-gray-700 hover:text-gray-900 hover:underline underline-offset-2 transition-colors"
+                            }
+                          >
+                            {leaf.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}

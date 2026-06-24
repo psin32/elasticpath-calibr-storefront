@@ -4,9 +4,9 @@ import { useState } from "react";
 import { QuantitySelector } from "./QuantitySelector";
 import { AddToCart } from "./AddToCart";
 
-type Props = { productId: string };
+type Props = { productId: string; customInputs?: Record<string, string> };
 
-export function QuantityAddToCart({ productId }: Props) {
+export function QuantityAddToCart({ productId, customInputs }: Props) {
   const [quantity, setQuantity] = useState(1);
 
   return (
@@ -18,6 +18,7 @@ export function QuantityAddToCart({ productId }: Props) {
           quantity={quantity}
           variant="full"
           className="flex-1"
+          customInputs={customInputs}
         />
       </div>
     </div>

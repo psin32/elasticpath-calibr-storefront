@@ -3,12 +3,14 @@
 import { cn } from "@/lib/utils";
 import { useAddToCart } from "@/hooks/use-add-to-cart";
 import { ShoppingBag, Check, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type AddToCartProps = {
   productId: string;
   quantity?: number;
   className?: string;
   variant?: "default" | "full";
+  customInputs?: Record<string, string>;
 };
 
 export function AddToCart({
@@ -16,8 +18,10 @@ export function AddToCart({
   quantity = 1,
   className,
   variant = "default",
+  customInputs,
 }: AddToCartProps) {
-  const { add, isPending, added } = useAddToCart(productId);
+  const t = useTranslations("product");
+  const { add, isPending, added } = useAddToCart(productId, customInputs);
 
   return (
     <button
@@ -41,7 +45,7 @@ export function AddToCart({
       ) : (
         <ShoppingBag size={variant === "full" ? 18 : 14} />
       )}
-      {added ? "Added!" : "Add to cart"}
+      {added ? t("added") : t("addToCart")}
     </button>
   );
 }

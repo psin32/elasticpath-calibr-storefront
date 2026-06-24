@@ -139,6 +139,7 @@ export default async function ProductDetailPage({ params }: Props) {
               variationMatrix={product.variationMatrix}
               childSlugs={product.childSlugs}
               selectedOptionIds={product.selectedOptionIds}
+              parentId={product.parentId}
             />
 
             {product.description && (

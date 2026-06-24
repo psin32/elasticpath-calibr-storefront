@@ -78,6 +78,7 @@ export type ProductDetailData = {
   childSlugs?: Record<string, string>;
   selectedOptionIds?: string[];
   productType?: string;
+  parentId?: string;
   saleId?: string;
   isBundle?: boolean;
   components?: BundleComponent[];
@@ -366,6 +367,7 @@ export async function getProductBySlug(
       (product.relationships?.parent?.data as { id?: string } | undefined)?.id;
 
     if (parentId) {
+      formatted.parentId = parentId;
       const parentRes = await getByContextProduct({
         client,
         path: { product_id: parentId },

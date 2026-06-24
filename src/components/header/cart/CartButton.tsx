@@ -2,32 +2,37 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ShoppingBag, X, Trash2, ArrowRight, Minus, Plus } from "lucide-react";
+import { ShoppingBag, X, Trash2, ArrowRight, Minus, Plus, Eraser } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCart } from "@/context/CartContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { usePreferences } from "@/context/PreferencesContext";
 
 export function CartButton() {
   const t = useTranslations("header");
-  const { items, itemCount, cartTotal, isLoading, removeItem, updateQuantity } =
+  const { items, itemCount, cartTotal, isLoading, removeItem, updateQuantity, clearCart } =
     useCart();
+  const [confirmClear, setConfirmClear] = useState(false);
+  const { cartMode } = usePreferences();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const lang = pathname.split("/")[1] ?? "en";
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when open
+  // Lock body scroll when open; reset confirm state on close
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
+      setConfirmClear(false);
     }
     return () => {
       document.body.style.overflow = "";
@@ -63,13 +68,44 @@ export function CartButton() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            aria-label="Close cart"
-            className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {items.length > 0 && (
+              confirmClear ? (
+                <>
+                  <span className="text-xs text-gray-500">{t("clearAll")}</span>
+                  <button
+                    onClick={async () => { await clearCart(); setConfirmClear(false); }}
+                    disabled={isLoading}
+                    className="h-7 px-2.5 rounded-md bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-40 transition-colors"
+                  >
+                    {t("clearAllConfirm")}
+                  </button>
+                  <button
+                    onClick={() => setConfirmClear(false)}
+                    className="flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setConfirmClear(true)}
+                  disabled={isLoading}
+                  title={t("clearAllItems")}
+                  className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-red-400 hover:bg-gray-100 transition-colors disabled:opacity-40"
+                >
+                  <Eraser size={16} />
+                </button>
+              )
+            )}
+            <button
+              onClick={() => setIsOpen(false)}
+              aria-label="Close cart"
+              className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Items — scrollable middle section */}
@@ -105,7 +141,7 @@ export function CartButton() {
                       </p>
                       {item.sku && (
                         <p className="mt-0.5 text-xs text-gray-400">
-                          SKU: {item.sku}
+                          {t("sku")}: {item.sku}
                         </p>
                       )}
                       {item.bundleComponents && item.bundleComponents.length > 0 && (
@@ -140,7 +176,7 @@ export function CartButton() {
                         </div>
                       )}
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {item.unitPriceFormatted} each
+                        {item.unitPriceFormatted} {t("each")}
                       </p>
 
                       <div className="mt-3 flex items-center justify-between gap-2">
@@ -178,25 +214,25 @@ export function CartButton() {
         {items.length > 0 && (
           <div className="shrink-0 border-t border-gray-100 px-6 py-5 space-y-3 bg-gray-50/60">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Subtotal</span>
+              <span className="text-sm text-gray-500">{t("subtotal")}</span>
               <span className="text-lg font-bold text-gray-900">{cartTotal}</span>
             </div>
             <p className="text-xs text-gray-400">
-              Shipping and taxes calculated at checkout
+              {t("shippingNote")}
             </p>
             <Link
               href={`/${lang}/checkout`}
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all"
             >
-              Checkout
+              {t("checkout")}
               <ArrowRight size={16} />
             </Link>
             <button
               onClick={() => setIsOpen(false)}
               className="w-full py-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
             >
-              Continue shopping
+              {t("continueShopping")}
             </button>
           </div>
         )}
@@ -208,7 +244,7 @@ export function CartButton() {
     <>
       {/* Trigger button */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => cartMode === "full" ? router.push(`/${lang}/cart`) : setIsOpen(true)}
         aria-label={`${t("cart")}${itemCount > 0 ? ` (${itemCount})` : ""}`}
         className="relative flex items-center justify-center w-9 h-9 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
       >
@@ -289,20 +325,21 @@ function CartItemStepper({ itemId, quantity, disabled, updateQuantity }: CartIte
 }
 
 function EmptyCart({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("header");
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-4 py-20">
       <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
         <ShoppingBag size={28} className="text-gray-300" />
       </div>
       <div>
-        <p className="text-base font-medium text-gray-700">Your cart is empty</p>
-        <p className="mt-1 text-sm text-gray-400">Add items to get started</p>
+        <p className="text-base font-medium text-gray-700">{t("cartEmpty")}</p>
+        <p className="mt-1 text-sm text-gray-400">{t("emptyHint")}</p>
       </div>
       <button
         onClick={onClose}
         className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-brand-secondary hover:underline"
       >
-        Browse products
+        {t("browseProducts")}
         <ArrowRight size={14} />
       </button>
     </div>

@@ -1,6 +1,7 @@
 import {
   getByContextAllHierarchies,
   getByContextHierarchyChildNodes,
+  getByContextChildNodes,
   getByContextAllNodes,
 } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
@@ -21,38 +22,59 @@ export async function buildSiteNavigation(): Promise<NavItem[]> {
 
   const navItems = await Promise.all(
     hierarchies.map(async (h) => {
+      const hierarchySlug = h.attributes?.slug ?? h.id!;
+      const hierarchyHref = `/category/${hierarchySlug}`;
+
       const childRes = await getByContextHierarchyChildNodes({
         client,
         path: { hierarchy_id: h.id! },
         query: { "page[limit]": BigInt(10) },
       });
-      const children = childRes.data?.data ?? [];
+      const l2Nodes = (childRes.data?.data ?? []).slice(0, 5);
 
-      const columns = children.slice(0, 4).map((node) => ({
-        groups: [
-          {
-            heading: node.attributes?.name ?? "",
-            items: [
+      // For each L2 node, fetch its L3 children in parallel
+      const columns = await Promise.all(
+        l2Nodes.map(async (l2) => {
+          const l2Slug = l2.attributes?.slug ?? l2.id!;
+          const l2Href = `/category/${hierarchySlug}/${l2Slug}`;
+
+          const l3Res = await getByContextChildNodes({
+            client,
+            path: { node_id: l2.id! },
+            query: { "page[limit]": BigInt(8) },
+          }).catch(() => null);
+          const l3Nodes = l3Res?.data?.data ?? [];
+
+          const items = [
+            ...l3Nodes.map((l3) => ({
+              key: l3.id ?? "",
+              label: l3.attributes?.name ?? "",
+              href: `/category/${hierarchySlug}/${l2Slug}/${l3.attributes?.slug ?? l3.id}`,
+            })),
+            {
+              key: `view-all-${l2.id}`,
+              label: `View all ${l2.attributes?.name ?? ""}`,
+              href: l2Href,
+            },
+          ];
+
+          return {
+            groups: [
               {
-                key: node.id ?? "",
-                label: "View all " + (node.attributes?.name ?? ""),
-                href: `/category/${node.attributes?.slug ?? node.id}`,
+                heading: l2.attributes?.name ?? "",
+                headingHref: l2Href,
+                items,
               },
             ],
-          },
-        ],
-      }));
+          };
+        })
+      );
 
       return {
         key: h.id ?? "",
         label: h.attributes?.name ?? "",
-        href: `/category/${h.attributes?.slug ?? h.id}`,
-        megaMenu:
-          columns.length > 0
-            ? {
-                columns,
-              }
-            : undefined,
+        href: hierarchyHref,
+        megaMenu: columns.length > 0 ? { columns } : undefined,
       } satisfies NavItem;
     })
   );

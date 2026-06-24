@@ -16,6 +16,7 @@ type Props = {
   selectedOptionIds?: string[];
   navigateOnSelect?: boolean;
   onVariantResolved?: (childId: string | null) => void;
+  parentId?: string;
 };
 
 export function VariantAddToCart({
@@ -27,6 +28,7 @@ export function VariantAddToCart({
   selectedOptionIds,
   navigateOnSelect = true,
   onVariantResolved,
+  parentId,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -53,6 +55,20 @@ export function VariantAddToCart({
   const hasVariations = !!variations?.length && !!variationMatrix;
   const allSelected = hasVariations && variations!.every((v) => selectedOptions[v.id]);
   const effectiveProductId = hasVariations ? (resolvedProductId ?? productId) : productId;
+
+  const customInputs = useMemo<Record<string, string> | undefined>(() => {
+    if (!hasVariations || !allSelected) return undefined;
+    // Case 1: on child product PDP — parentId prop is the parent, productId is the child
+    // Case 2: on parent PDP / quick view — productId is the parent, resolvedProductId is the child
+    const effectiveParentId = parentId ?? productId;
+    const effectiveChildId = parentId ? productId : resolvedProductId;
+    if (!effectiveChildId || effectiveChildId === effectiveParentId) return undefined;
+    const optionNames = variations!
+      .map((v) => v.options.find((o) => o.id === selectedOptions[v.id])?.name)
+      .filter((n): n is string => !!n);
+    if (!optionNames.length) return undefined;
+    return { parent_product_id: effectiveParentId, options: optionNames.join(" / ") };
+  }, [hasVariations, allSelected, parentId, productId, resolvedProductId, variations, selectedOptions]);
 
   function handleOptionChange(variationId: string, optionId: string) {
     setSelectedOptions((prev) => ({ ...prev, [variationId]: optionId }));
@@ -82,7 +98,7 @@ export function VariantAddToCart({
 
       <div className="relative group/cart">
         <div className={hasVariations && !allSelected ? "opacity-50 pointer-events-none" : ""}>
-          <QuantityAddToCart productId={effectiveProductId} />
+          <QuantityAddToCart productId={effectiveProductId} customInputs={customInputs} />
         </div>
         {hasVariations && !allSelected && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover/cart:opacity-100 transition-opacity pointer-events-none z-10">

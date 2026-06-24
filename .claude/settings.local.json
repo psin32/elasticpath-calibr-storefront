@@ -65,7 +65,15 @@
       "Bash(mkdir -p /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/products/search /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/hierarchies/\\\\[hierarchyId\\\\]/nodes /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/catalog/products /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/components/plasmic/blocks/ProductCarousel)",
       "Bash(mkdir -p /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/\\\\[lang\\\\]/\\\\\\(checkout\\\\\\)/checkout)",
       "Bash(rm /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/\\\\[lang\\\\]/\\\\\\(app\\\\\\)/checkout/page.tsx)",
-      "Bash(rmdir /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/\\\\[lang\\\\]/\\\\\\(app\\\\\\)/checkout)"
+      "Bash(rmdir /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/\\\\[lang\\\\]/\\\\\\(app\\\\\\)/checkout)",
+      "Bash(mkdir -p /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/products/\\\\[productId\\\\]/children)",
+      "Bash(mkdir -p /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/\\\\[lang\\\\]/\\\\\\(app\\\\\\)/cart)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(xargs ls)",
+      "Bash(xargs ls -la)",
+      "Bash(mkdir -p \"/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/\\(app\\)/category/[...slug]\")",
+      "Bash(rm -rf \"/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/\\(app\\)/category/[slug]\")",
+      "Bash(grep -rn \"category/\\\\[slug\\\\]\\\\|/category/\\\\${\" /Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src --include=\"*.ts\" --include=\"*.tsx\")"
     ],
     "additionalDirectories": [
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app",
@@ -74,7 +82,9 @@
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/order-confirmation",
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/[...path]",
       "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/api/hierarchies/[hierarchyId]",
-      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(checkout)"
+      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(checkout)",
+      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/category",
+      "/Users/prashant.singh/codebase/epcc/storefronts/elasticpath-calibr/src/app/[lang]/(app)/category/[slug]"
     ]
   }
 }

@@ -5,6 +5,7 @@ import { SearchButton } from "./search/SearchButton";
 import { CartButton } from "./cart/CartButton";
 import { AccountButton } from "./AccountButton";
 import { LocaleSelector } from "./LocaleSelector";
+import { SettingsButton } from "./SettingsButton";
 import { buildSiteNavigation } from "@/lib/api/navigation";
 import { NAV_ITEMS } from "./navigation/nav-items";
 
@@ -45,6 +46,7 @@ export async function Header({ lang }: HeaderProps) {
             <SearchButton />
             <AccountButton />
             <CartButton />
+            <SettingsButton />
           </div>
         </div>
       </div>
