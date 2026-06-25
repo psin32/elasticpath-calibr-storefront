@@ -65,6 +65,7 @@ type CartContextValue = {
   items: CartLineItem[];
   itemCount: number;
   cartTotal: string;
+  cartTotalAmount: number;
   cartId: string | null;
   allCarts: CartSummary[];
   isLoading: boolean;
@@ -137,6 +138,7 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
 function parseCartResponse(response: CartsResponse): {
   items: CartLineItem[];
   cartTotal: string;
+  cartTotalAmount: number;
 } {
   const rawItems = (response.data ?? []).filter(
     (i): i is CartItemObject =>
@@ -148,7 +150,11 @@ function parseCartResponse(response: CartsResponse): {
     response.meta?.display_price?.with_tax?.formatted ??
     response.meta?.display_price?.without_tax?.formatted ??
     "";
-  return { items, cartTotal };
+  const cartTotalAmount =
+    (response.meta?.display_price?.with_tax as any)?.amount ??
+    (response.meta?.display_price?.without_tax as any)?.amount ??
+    0;
+  return { items, cartTotal, cartTotalAmount };
 }
 
 function toCartSummary(c: CartResponse): CartSummary {
@@ -170,6 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartId, setCartId] = useState<string | null>(null);
   const [items, setItems] = useState<CartLineItem[]>([]);
   const [cartTotal, setCartTotal] = useState("");
+  const [cartTotalAmount, setCartTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
 
@@ -192,10 +199,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
           (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
         );
         setItems(rawItems.map(toCartLineItem));
+        const meta = cartRes.data?.data?.meta;
         setCartTotal(
-          cartRes.data?.data?.meta?.display_price?.with_tax?.formatted ??
-            cartRes.data?.data?.meta?.display_price?.without_tax?.formatted ??
+          meta?.display_price?.with_tax?.formatted ??
+            meta?.display_price?.without_tax?.formatted ??
             ""
+        );
+        setCartTotalAmount(
+          (meta?.display_price?.with_tax as any)?.amount ??
+            (meta?.display_price?.without_tax as any)?.amount ??
+            0
         );
       })
       .catch(console.error);
@@ -280,18 +293,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
       setCartId(accountCartId);
       setItems(rawItems.map(toCartLineItem));
+      const mergedMeta = cartRes.data?.data?.meta;
       setCartTotal(
-        cartRes.data?.data?.meta?.display_price?.with_tax?.formatted ??
-          cartRes.data?.data?.meta?.display_price?.without_tax?.formatted ??
+        mergedMeta?.display_price?.with_tax?.formatted ??
+          mergedMeta?.display_price?.without_tax?.formatted ??
           ""
+      );
+      setCartTotalAmount(
+        (mergedMeta?.display_price?.with_tax as any)?.amount ??
+          (mergedMeta?.display_price?.without_tax as any)?.amount ??
+          0
       );
     })();
   }, [isAuthenticated, epClient, cartId]);
 
   const applyCartsResponse = useCallback((response: CartsResponse) => {
-    const { items: newItems, cartTotal: newTotal } = parseCartResponse(response);
+    const { items: newItems, cartTotal: newTotal, cartTotalAmount: newTotalAmount } = parseCartResponse(response);
     setItems(newItems);
     setCartTotal(newTotal);
+    setCartTotalAmount(newTotalAmount);
   }, []);
 
   const addItem = useCallback(
@@ -390,6 +410,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       setItems([]);
       setCartTotal("");
+      setCartTotalAmount(0);
     } finally {
       setIsLoading(false);
     }
@@ -407,12 +428,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const rawItems = (itemsRes.data?.data ?? []).filter(
           (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
         );
+        const switchMeta = cartRes.data?.data?.meta;
         setCartId(newCartId);
         setItems(rawItems.map(toCartLineItem));
         setCartTotal(
-          cartRes.data?.data?.meta?.display_price?.with_tax?.formatted ??
-            cartRes.data?.data?.meta?.display_price?.without_tax?.formatted ??
+          switchMeta?.display_price?.with_tax?.formatted ??
+            switchMeta?.display_price?.without_tax?.formatted ??
             ""
+        );
+        setCartTotalAmount(
+          (switchMeta?.display_price?.with_tax as any)?.amount ??
+            (switchMeta?.display_price?.without_tax as any)?.amount ??
+            0
         );
       } finally {
         setIsLoading(false);
@@ -458,6 +485,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             setCartId(null);
             setItems([]);
             setCartTotal("");
+            setCartTotalAmount(0);
           }
         }
       } finally {
@@ -481,6 +509,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (targetCartId === cartId) {
           setItems([]);
           setCartTotal("");
+          setCartTotalAmount(0);
         }
       } finally {
         setIsLoading(false);
@@ -497,6 +526,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         itemCount,
         cartTotal,
+        cartTotalAmount,
         cartId,
         allCarts,
         isLoading,
