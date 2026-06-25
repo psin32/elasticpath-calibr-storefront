@@ -8,10 +8,21 @@ import type { CartLineItem } from "@/context/CartContext";
 type Props = {
   items: CartLineItem[];
   cartTotal: string;
+  cartTotalAmount: number;
+  shippingCostCents: number;
+  shippingCurrency: string;
 };
 
-export function OrderSummary({ items, cartTotal }: Props) {
+export function OrderSummary({ items, cartTotal, cartTotalAmount, shippingCostCents, shippingCurrency }: Props) {
   const t = useTranslations("checkout");
+
+  const shippingFormatted = shippingCostCents === 0
+    ? t("free")
+    : new Intl.NumberFormat(undefined, { style: "currency", currency: shippingCurrency }).format(shippingCostCents / 100);
+
+  const orderTotal = cartTotalAmount > 0
+    ? new Intl.NumberFormat(undefined, { style: "currency", currency: shippingCurrency }).format((cartTotalAmount + shippingCostCents) / 100)
+    : cartTotal;
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-gray-50/60 overflow-hidden">
@@ -70,10 +81,10 @@ export function OrderSummary({ items, cartTotal }: Props) {
       {/* Totals */}
       <div className="px-6 py-4 border-t border-gray-100 space-y-2">
         <TotalRow label={t("subtotal")} value={cartTotal} />
-        <TotalRow label={t("shipping")} value={t("calculatedAtCheckout")} muted />
+        <TotalRow label={t("shipping")} value={shippingFormatted} />
         <TotalRow label={t("tax")} value={t("included")} muted />
         <div className="pt-2 border-t border-gray-200">
-          <TotalRow label={t("total")} value={cartTotal} bold />
+          <TotalRow label={t("total")} value={orderTotal} bold />
         </div>
       </div>
     </div>

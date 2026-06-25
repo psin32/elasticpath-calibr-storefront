@@ -42,6 +42,8 @@ export type CartLineItem = {
   sku?: string;
   name: string;
   quantity: number;
+  unitPriceAmount: number;
+  currency: string;
   unitPriceFormatted: string;
   lineTotalFormatted: string;
   imageHref?: string;
@@ -122,6 +124,8 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
     sku: item.sku ?? undefined,
     name: item.name ?? "",
     quantity: item.quantity ?? 1,
+    unitPriceAmount: (withTax as any)?.unit?.amount ?? 0,
+    currency: (withTax as any)?.unit?.currency ?? "USD",
     unitPriceFormatted: (withTax as any)?.unit?.formatted ?? "",
     lineTotalFormatted: (withTax as any)?.value?.formatted ?? "",
     imageHref: item.image?.href,

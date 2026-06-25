@@ -27,7 +27,9 @@ const items: CartLineItem[] = [
     sku: "DW-LL-001",
     quantity: 1,
     unitPriceFormatted: "£149.99",
+    unitPriceAmount: 14999,
     lineTotalFormatted: "£149.99",
+    currency: "GBP",
     imageHref: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&q=80",
   },
   {
@@ -37,7 +39,9 @@ const items: CartLineItem[] = [
     sku: "CP-15-3M",
     quantity: 3,
     unitPriceFormatted: "£8.99",
+    unitPriceAmount: 899,
     lineTotalFormatted: "£26.97",
+    currency: "GBP",
   },
 ];
 

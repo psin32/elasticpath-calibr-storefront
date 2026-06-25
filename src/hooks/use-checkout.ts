@@ -5,6 +5,8 @@ import { checkoutApi } from "@epcc-sdk/sdks-shopper";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { createEpClient } from "@/lib/api/ep-client";
+import { useAuth } from "@/context/AuthContext";
+import type { AccountAddressResponse } from "@epcc-sdk/sdks-shopper";
 
 export type AddressData = {
   line1: string;
@@ -22,16 +24,18 @@ export type CheckoutFormData = {
   lastName: string;
   phone?: string;
   company?: string;
-  shippingAddress: AddressData;
-  sameBillingAsShipping: boolean;
+  // Address fields kept so AddressFields.tsx still compiles; no longer rendered in form
+  shippingAddress?: AddressData;
+  sameBillingAsShipping?: boolean;
   billingAddress?: AddressData;
   billingFirstName?: string;
   billingLastName?: string;
   billingCompany?: string;
 };
 
-export function useCheckout(lang: string) {
+export function useCheckout(lang: string, savedAddresses: AccountAddressResponse[] = []) {
   const { cartId, clearCart } = useCart();
+  const { credentials } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,51 +53,78 @@ export function useCheckout(lang: string) {
       try {
         const client = createEpClient({ "EP-Inventories-Multi-Location": "true" });
 
-        const shipping = data.shippingAddress;
-        const billing = data.sameBillingAsShipping
-          ? data.shippingAddress
-          : data.billingAddress ?? data.shippingAddress;
+        // Derive shipping address: prefer form data, fall back to first account address
+        const primaryAddr = savedAddresses[0];
+        const fromForm = data.shippingAddress?.line1;
+
+        const shippingAddr = fromForm
+          ? {
+              first_name: data.firstName,
+              last_name: data.lastName,
+              phone_number: data.phone ?? "",
+              company_name: data.company ?? "",
+              line_1: data.shippingAddress!.line1,
+              line_2: data.shippingAddress!.line2 ?? "",
+              city: data.shippingAddress!.city,
+              postcode: data.shippingAddress!.postcode,
+              county: data.shippingAddress!.county ?? "",
+              country: data.shippingAddress!.country,
+              region: data.shippingAddress!.region ?? "",
+              instructions: "",
+            }
+          : primaryAddr
+          ? {
+              first_name: primaryAddr.first_name ?? data.firstName,
+              last_name: primaryAddr.last_name ?? data.lastName,
+              phone_number: primaryAddr.phone_number ?? data.phone ?? "",
+              company_name: primaryAddr.company_name ?? data.company ?? "",
+              line_1: primaryAddr.line_1 ?? "",
+              line_2: primaryAddr.line_2 ?? "",
+              city: primaryAddr.city ?? "",
+              postcode: primaryAddr.postcode ?? "",
+              county: primaryAddr.county ?? "",
+              country: primaryAddr.country ?? "",
+              region: primaryAddr.region ?? "",
+              instructions: "",
+            }
+          : {
+              first_name: data.firstName,
+              last_name: data.lastName,
+              phone_number: data.phone ?? "",
+              company_name: data.company ?? "",
+              line_1: "-",
+              line_2: "",
+              city: "-",
+              postcode: "-",
+              county: "",
+              country: "US",
+              region: "",
+              instructions: "",
+            };
+
+        const isAccountCheckout = !!credentials?.selected;
+        const contactOrCustomer = isAccountCheckout
+          ? { contact: { name: `${data.firstName} ${data.lastName}`, email: data.email } }
+          : { customer: { name: `${data.firstName} ${data.lastName}`, email: data.email } };
 
         const res = await checkoutApi({
           client,
           path: { cartID: cartId },
           body: {
             data: {
-              customer: {
-                email: data.email,
-                name: `${data.firstName} ${data.lastName}`,
-              },
-              shipping_address: {
-                first_name: data.firstName,
-                last_name: data.lastName,
-                phone_number: data.phone ?? "",
-                company_name: data.company ?? "",
-                line_1: shipping.line1,
-                line_2: shipping.line2 ?? "",
-                city: shipping.city,
-                postcode: shipping.postcode,
-                county: shipping.county ?? "",
-                country: shipping.country,
-                region: shipping.region,
-                instructions: "",
-              },
+              ...contactOrCustomer,
+              shipping_address: shippingAddr,
               billing_address: {
-                first_name: data.sameBillingAsShipping
-                  ? data.firstName
-                  : (data.billingFirstName ?? data.firstName),
-                last_name: data.sameBillingAsShipping
-                  ? data.lastName
-                  : (data.billingLastName ?? data.lastName),
-                company_name: data.sameBillingAsShipping
-                  ? (data.company ?? "")
-                  : (data.billingCompany ?? ""),
-                line_1: billing.line1,
-                line_2: billing.line2 ?? "",
-                city: billing.city,
-                postcode: billing.postcode,
-                county: billing.county ?? "",
-                country: billing.country,
-                region: billing.region,
+                first_name: shippingAddr.first_name,
+                last_name: shippingAddr.last_name,
+                company_name: shippingAddr.company_name,
+                line_1: shippingAddr.line_1,
+                line_2: shippingAddr.line_2,
+                city: shippingAddr.city,
+                postcode: shippingAddr.postcode,
+                county: shippingAddr.county,
+                country: shippingAddr.country,
+                region: shippingAddr.region,
               },
             },
           },
@@ -116,7 +147,7 @@ export function useCheckout(lang: string) {
         setIsLoading(false);
       }
     },
-    [cartId, clearCart, router, lang]
+    [cartId, clearCart, router, lang, savedAddresses, credentials]
   );
 
   return { submitCheckout, isLoading, error };
