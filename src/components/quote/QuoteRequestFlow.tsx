@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
-  FileText,
-  X,
   Check,
   ArrowRight,
   ArrowLeft,
@@ -12,8 +11,21 @@ import {
   Lock,
   Info,
   ShoppingBag,
+  Pencil,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useAccountAddresses, type NewAddressFields } from "@/hooks/use-account-addresses";
+import { DeliveryAddress } from "@/components/checkout/shipping/DeliveryAddress";
+import { Select } from "@/components/ui/Select";
+import { CheckoutUserInfo } from "@/components/checkout/CheckoutUserInfo";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Card, CardHeader, CardBody } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal/Modal";
+import { Combobox } from "@/components/ui/Combobox";
+import { COUNTRIES } from "@/lib/countries";
 
 type Step = "details" | "review" | "success";
 
@@ -21,9 +33,7 @@ type FormState = {
   company: string;
   contact: string;
   email: string;
-  phone: string;
   po: string;
-  ship: string;
   date: string;
   urgency: "standard" | "urgent";
   terms: "net30" | "net60" | "net90" | "prepay" | "";
@@ -32,46 +42,6 @@ type FormState = {
   notes: string;
 };
 
-const TERMS_OPTIONS = [
-  { value: "net30", label: "Net 30" },
-  { value: "net60", label: "Net 60" },
-  { value: "net90", label: "Net 90" },
-  { value: "prepay", label: "Prepay" },
-] as const;
-
-const URGENCY_OPTIONS = [
-  { value: "standard", label: "Standard", sub: "3–5 days" },
-  { value: "urgent", label: "Urgent", sub: "+fees" },
-] as const;
-
-const STEPS = [
-  { key: "details", num: "1", label: "Details" },
-  { key: "review", num: "2", label: "Review" },
-  { key: "success", num: "3", label: "Confirmed" },
-] as const;
-
-const TIMELINE = [
-  {
-    label: "Confirmation email sent",
-    sub: "Within a few minutes to your inbox",
-    done: true,
-  },
-  {
-    label: "Account team review",
-    sub: "Typically 1–2 business days",
-    done: false,
-  },
-  {
-    label: "Quoted pricing returned",
-    sub: "Volume discounts and terms confirmed",
-    done: false,
-  },
-  {
-    label: "Order on approval",
-    sub: "Place the order once you accept the quote",
-    done: false,
-  },
-];
 
 function generateRef() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -82,8 +52,37 @@ function generateRef() {
 
 export function QuoteRequestFlow({ lang }: { lang: string }) {
   const router = useRouter();
+  const t = useTranslations("quote");
+  const tAddr = useTranslations("address");
   const { items, cartTotal } = useCart();
+  const { credentials, selectedAccount } = useAuth();
+  const { addresses, isLoading: addressesLoading, addAddress } = useAccountAddresses();
   const formId = useId();
+
+  const STEPS: Array<{ key: Step; num: string; label: string }> = [
+    { key: "details", num: "1", label: t("step1Label") },
+    { key: "review",  num: "2", label: t("step2Label") },
+    { key: "success", num: "3", label: t("step3Label") },
+  ];
+
+  const TERMS_OPTIONS: Array<{ value: "net30" | "net60" | "net90" | "prepay"; label: string }> = [
+    { value: "net30",   label: t("net30") },
+    { value: "net60",   label: t("net60") },
+    { value: "net90",   label: t("net90") },
+    { value: "prepay",  label: t("prepay") },
+  ];
+
+  const URGENCY_OPTIONS: Array<{ value: "standard" | "urgent"; label: string; sub: string }> = [
+    { value: "standard", label: t("standardLabel"), sub: t("standardSub") },
+    { value: "urgent",   label: t("urgentLabel"),   sub: t("urgentSub") },
+  ];
+
+  const TIMELINE = [
+    { label: t("timeline1"), sub: t("timeline1Sub"), done: true  },
+    { label: t("timeline2"), sub: t("timeline2Sub"), done: false },
+    { label: t("timeline3"), sub: t("timeline3Sub"), done: false },
+    { label: t("timeline4"), sub: t("timeline4Sub"), done: false },
+  ];
 
   const [step, setStep] = useState<Step>("details");
   const [acked, setAcked] = useState(false);
@@ -92,13 +91,50 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
   );
 
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState<NewAddressFields>({
+    first_name: "", last_name: "", line_1: "", line_2: "", city: "", county: "", postcode: "", country: "",
+  });
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  function openAddressModal() {
+    setAddressForm({ first_name: "", last_name: "", line_1: "", line_2: "", city: "", county: "", postcode: "", country: "" });
+    setAddressError(null);
+    setIsAddressModalOpen(true);
+  }
+
+  async function handleAddAddress() {
+    if (!addressForm.first_name.trim() || !addressForm.last_name.trim() || !addressForm.line_1.trim() || !addressForm.city.trim() || !addressForm.county.trim() || !addressForm.postcode.trim() || !addressForm.country.trim()) {
+      setAddressError(tAddr("requiredFieldsError"));
+      return;
+    }
+    setAddressSaving(true);
+    setAddressError(null);
+    try {
+      const created = await addAddress(addressForm);
+      if (created?.id) {
+        setSelectedAddressId(created.id);
+        setIsAddressModalOpen(false);
+      } else {
+        setAddressError(tAddr("createFailed"));
+      }
+    } catch {
+      setAddressError("Failed to create address. Please try again.");
+    } finally {
+      setAddressSaving(false);
+    }
+  }
+
+  const setAddr = (key: keyof NewAddressFields) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setAddressForm((f) => ({ ...f, [key]: e.target.value }));
+
   const [form, setForm] = useState<FormState>({
     company: "",
     contact: "",
     email: "",
-    phone: "",
     po: "",
-    ship: "",
     date: "",
     urgency: "standard",
     terms: "net30",
@@ -107,25 +143,35 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     notes: "",
   });
 
+  useEffect(() => {
+    if (!credentials) return;
+    setForm((f) => ({
+      ...f,
+      contact: f.contact || credentials.member_name || "",
+      email: f.email || credentials.member_email || "",
+      company: f.company || selectedAccount?.account_name || "",
+    }));
+  }, [credentials, selectedAccount]);
+
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
   const lineCount = items.length;
-
   const canContinue = form.company.trim() && form.contact.trim() && form.email.trim();
+
+  const toggleLabelCls = "block text-[12px] font-semibold text-[#3D4654] mb-[7px]";
 
   /* ── Stepper ── */
   function Stepper() {
     return (
-      <div className="flex items-center justify-center flex-1">
+      <div className="flex items-center justify-center">
         {STEPS.map((st, i) => {
-          const isDone = (step === "review" && i < 1) || step === "success";
-          const isActive = st.key === step;
-          const isPast = (st.key === "details" && (step === "review" || step === "success")) ||
+          const isPast =
+            (st.key === "details" && (step === "review" || step === "success")) ||
             (st.key === "review" && step === "success");
+          const isActive = st.key === step;
           const isLast = i === STEPS.length - 1;
-
           return (
             <div key={st.key} className="flex items-center gap-2">
               <div className="flex items-center gap-2">
@@ -151,12 +197,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                 </span>
               </div>
               {!isLast && (
-                <span
-                  className={[
-                    "w-16 h-px mx-1",
-                    isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]",
-                  ].join(" ")}
-                />
+                <span className={["w-10 h-px mx-1", isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]"].join(" ")} />
               )}
             </div>
           );
@@ -165,77 +206,82 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     );
   }
 
-  /* ── Header ── */
+  /* ── Page header ── */
   const pageHeader = (
-    <header className="flex-none flex items-center gap-6 px-8 py-4 bg-white border-b border-[#DDE1E6]">
-      <div className="flex items-center gap-3 w-[260px] flex-none">
-        <span className="w-[38px] h-[38px] rounded-[10px] bg-[#0E1521] text-[#2BCC7E] flex items-center justify-center flex-none">
-          <FileText size={19} />
-        </span>
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] truncate">
-            Cart
-          </p>
-          <p className="font-bold text-[17px] tracking-tight text-[#0E1521]">Request a quote</p>
+    <header className="flex-none border-b border-gray-100 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-3 items-center">
+        <div className="flex items-center">
+          <a href={`/${lang}`} aria-label="Return to store" className="flex items-center gap-2">
+            <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="32" height="32" rx="6" fill="var(--color-brand-primary)" />
+              <path d="M8 10h16M8 16h10M8 22h13" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <span className="text-lg font-bold tracking-tight text-gray-900">Calibr</span>
+          </a>
+        </div>
+        <div className="flex justify-center">
+          <Stepper />
+        </div>
+        <div className="flex items-center justify-end">
+          <CheckoutUserInfo />
         </div>
       </div>
-
-      <Stepper />
-
-      <div className="min-w-[200px] flex justify-end">
-        {step !== "success" && (
-          <button
-            onClick={() => router.push(`/${lang}/cart`)}
-            className="w-9 h-9 rounded-full border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:bg-[#F7F8F9] transition-colors"
-            aria-label="Cancel quote request"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
     </header>
+  );
+
+  /* ── Shared edit button ── */
+  const EditButton = ({ onClick }: { onClick: () => void }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="text-[#21A765] hover:text-[#21A765] hover:bg-[#EFFCF6]"
+      leftIcon={<Pencil size={13} />}
+      onClick={onClick}
+    >
+      {t("edit")}
+    </Button>
+  );
+
+  /* ── Section mono-label ── */
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
+      {children}
+    </p>
   );
 
   /* ── Items list ── */
   function ItemsList({ editable = false }: { editable?: boolean }) {
     return (
-      <section className="bg-white border border-[#DDE1E6] rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-[22px] py-4 border-b border-[#EEF0F2]">
-          <p className="font-bold text-[15px] text-[#0E1521]">Items in this quote</p>
-          <div className="flex items-center gap-3">
-            <p className="text-[13px] text-[#5C6675]">
-              {totalUnits} unit{totalUnits !== 1 ? "s" : ""} · {lineCount} product{lineCount !== 1 ? "s" : ""}
-            </p>
-            {editable && (
-              <button
-                onClick={() => setStep("details")}
-                className="flex items-center gap-1.5 text-[#21A765] font-semibold text-[13px] bg-transparent border-none"
-              >
-                <span className="inline-flex items-center justify-center w-[14px] h-[14px]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </span>
-                Edit
-              </button>
-            )}
+      <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+        <CardHeader className="border-[#EEF0F2] py-4">
+          <div className="flex items-center justify-between">
+            <p className="font-bold text-[15px] text-[#0E1521]">{t("itemsTitle")}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-[13px] text-[#5C6675]">
+                {totalUnits} unit{totalUnits !== 1 ? "s" : ""} · {lineCount} product{lineCount !== 1 ? "s" : ""}
+              </p>
+              {editable && <EditButton onClick={() => setStep("details")} />}
+            </div>
           </div>
-        </div>
+        </CardHeader>
 
         {items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-[#8C95A3]">
+          <CardBody className="flex flex-col items-center gap-3 py-12 text-[#8C95A3]">
             <ShoppingBag size={32} />
-            <p className="text-sm">No items in cart</p>
-          </div>
+            <p className="text-sm">{t("noItemsInCart")}</p>
+          </CardBody>
         ) : (
           items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3.5 px-[22px] py-[13px] border-b border-[#EEF0F2] last:border-b-0"
+              className="flex items-center gap-3.5 px-5 py-[13px] border-b border-[#EEF0F2] last:border-b-0"
             >
-              <span className="w-[38px] h-[38px] rounded-[9px] bg-[#EEF0F2] text-[#5C6675] flex items-center justify-center flex-none">
-                <ShoppingBag size={19} />
+              <span className="w-[38px] h-[38px] rounded-[9px] bg-[#EEF0F2] flex items-center justify-center flex-none overflow-hidden">
+                {item.imageHref ? (
+                  <img src={item.imageHref} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag size={19} className="text-[#5C6675]" />
+                )}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-[14px] text-[#0E1521]">{item.name}</p>
@@ -245,327 +291,287 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
               </div>
               <div className="text-right">
                 <p className="font-bold text-[14px] text-[#0E1521]">{item.lineTotalFormatted}</p>
-                <p className="text-[11px] text-[#8C95A3]">list</p>
+                <p className="text-[11px] text-[#8C95A3]">{t("listLabel")}</p>
               </div>
             </div>
           ))
         )}
 
-        <div className="flex items-center gap-2.5 px-[22px] py-3 bg-[#EFFCF6] text-[#18804C] text-[12.5px] font-medium">
+        <div className="flex items-center gap-2.5 px-5 py-3 bg-[#EFFCF6] text-[#18804C] text-[12.5px] font-medium">
           <Info size={15} className="flex-none" />
-          Your account team confirms volume pricing on the returned quote — list prices shown for
-          reference.
+          {t("listPriceNote")}
         </div>
-      </section>
+      </Card>
     );
   }
 
   /* ── STEP 1: DETAILS ── */
-  const inputCls =
-    "w-full h-11 border border-[#DDE1E6] rounded-[10px] px-[13px] text-[14px] text-[#0E1521] outline-none bg-white focus:border-[#2BCC7E] focus:ring-1 focus:ring-[#2BCC7E] transition-colors";
-  const labelCls = "block text-[12px] font-semibold text-[#3D4654] mb-[7px]";
-
   const step1 = (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1060px] mx-auto px-10 py-8 flex gap-6 items-start">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-6 items-start">
           {/* Main column */}
           <div className="flex-1 min-w-0 flex flex-col gap-[18px]">
             <ItemsList />
 
             {/* Company & contact */}
-            <section className="bg-white border border-[#DDE1E6] rounded-2xl p-[22px]">
-              <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
-                Company & contact
-              </p>
-              <div className="flex flex-col gap-[14px]">
-                <div>
-                  <label htmlFor={`${formId}-company`} className={labelCls}>Company name</label>
-                  <input
+            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+              <CardBody>
+                <SectionLabel>{t("companySectionTitle")}</SectionLabel>
+                <div className="flex flex-col gap-[14px]">
+                  <Input
+                    label={t("companyLabel")}
                     id={`${formId}-company`}
                     value={form.company}
                     onChange={set("company")}
-                    className={inputCls}
-                    placeholder="Acme Corp"
+                    placeholder={t("companyPlaceholder")}
                   />
-                </div>
-                <div className="flex gap-[14px]">
-                  <div className="flex-1">
-                    <label htmlFor={`${formId}-contact`} className={labelCls}>Buyer name</label>
-                    <input
+                  <div className="flex gap-[14px]">
+                    <Input
+                      label={t("contactLabel")}
                       id={`${formId}-contact`}
+                      wrapperClassName="flex-1"
                       value={form.contact}
                       onChange={set("contact")}
-                      className={inputCls}
-                      placeholder="Jane Smith"
+                      placeholder={t("contactPlaceholder")}
                     />
-                  </div>
-                  <div className="flex-1">
-                    <label htmlFor={`${formId}-email`} className={labelCls}>Work email</label>
-                    <input
-                      id={`${formId}-email`}
-                      type="email"
-                      value={form.email}
-                      onChange={set("email")}
-                      className={inputCls}
-                      placeholder="jane@acme.com"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-[14px]">
-                  <div className="flex-1">
-                    <label htmlFor={`${formId}-phone`} className={labelCls}>Phone</label>
-                    <input
-                      id={`${formId}-phone`}
-                      type="tel"
-                      value={form.phone}
-                      onChange={set("phone")}
-                      className={inputCls}
-                      placeholder="+1 555 000 0000"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label htmlFor={`${formId}-po`} className={labelCls}>PO reference</label>
-                    <input
-                      id={`${formId}-po`}
-                      value={form.po}
-                      onChange={set("po")}
-                      className={`${inputCls} font-mono`}
-                      placeholder="PO-2026-001"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Delivery */}
-            <section className="bg-white border border-[#DDE1E6] rounded-2xl p-[22px]">
-              <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
-                Delivery
-              </p>
-              <div className="flex flex-col gap-[14px]">
-                <div>
-                  <label htmlFor={`${formId}-ship`} className={labelCls}>Ship-to address</label>
-                  <textarea
-                    id={`${formId}-ship`}
-                    value={form.ship}
-                    onChange={set("ship")}
-                    rows={2}
-                    className="w-full border border-[#DDE1E6] rounded-[10px] px-[13px] py-[11px] text-[14px] leading-relaxed text-[#0E1521] outline-none bg-white focus:border-[#2BCC7E] focus:ring-1 focus:ring-[#2BCC7E] resize-y transition-colors"
-                    placeholder="123 Main St, Suite 400, San Francisco CA 94105"
-                  />
-                </div>
-                <div className="flex gap-5 flex-wrap items-end">
-                  <div className="flex-1 min-w-[180px]">
-                    <label htmlFor={`${formId}-date`} className={labelCls}>Requested delivery date</label>
-                    <input
-                      id={`${formId}-date`}
-                      type="date"
-                      value={form.date}
-                      onChange={set("date")}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Handling</label>
-                    <div className="flex gap-2">
-                      {URGENCY_OPTIONS.map((u) => (
-                        <button
-                          key={u.value}
-                          type="button"
-                          onClick={() => setForm((f) => ({ ...f, urgency: u.value }))}
-                          className={[
-                            "h-11 px-4 rounded-[10px] border text-[14px] font-medium flex items-center gap-2 transition-colors",
-                            form.urgency === u.value
-                              ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521]"
-                              : "border-[#DDE1E6] bg-white text-[#5C6675] hover:border-[#C2C8D0]",
-                          ].join(" ")}
-                        >
-                          {u.label}{" "}
-                          <span className="text-[11px] text-[#5C6675] font-normal">{u.sub}</span>
-                        </button>
-                      ))}
+                    <div className="flex-1" suppressHydrationWarning>
+                      <Input
+                        label={t("emailLabel")}
+                        id={`${formId}-email`}
+                        type="email"
+                        value={form.email}
+                        onChange={set("email")}
+                        placeholder={t("emailPlaceholder")}
+                        suppressHydrationWarning
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </CardBody>
+            </Card>
+
+            {/* Delivery */}
+            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+              <CardBody>
+                <SectionLabel>{t("deliverySectionTitle")}</SectionLabel>
+                <div className="flex flex-col gap-3">
+                  <Select
+                    label={t("shipToLabel")}
+                    placeholder={t("selectAddress")}
+                    disabled={addressesLoading}
+                    value={selectedAddressId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "__new__") {
+                        openAddressModal();
+                      } else {
+                        setSelectedAddressId(val);
+                      }
+                    }}
+                    options={[
+                      ...addresses.map((addr) => ({
+                        value: addr.id ?? "",
+                        label: [
+                          [addr.first_name, addr.last_name].filter(Boolean).join(" "),
+                          [addr.line_1, addr.city].filter(Boolean).join(", "),
+                        ]
+                          .filter(Boolean)
+                          .join(" – "),
+                      })),
+                      { value: "__new__", label: t("createNewAddress") },
+                    ]}
+                  />
+                  {selectedAddressId && (() => {
+                    const addr = addresses.find((a) => a.id === selectedAddressId);
+                    return addr ? (
+                      <Card className="rounded-xl border-[#DDE1E6] shadow-none">
+                        <CardBody className="py-3">
+                          <DeliveryAddress address={addr} />
+                        </CardBody>
+                      </Card>
+                    ) : null;
+                  })()}
+                  <div className="flex gap-5 flex-wrap items-end">
+                    <Input
+                      label={t("deliveryDateLabel")}
+                      id={`${formId}-date`}
+                      type="date"
+                      wrapperClassName="flex-1 min-w-[180px]"
+                      value={form.date}
+                      onChange={set("date")}
+                    />
+                    <div>
+                      <label className={toggleLabelCls}>{t("handlingLabel")}</label>
+                      <div className="flex gap-2">
+                        {URGENCY_OPTIONS.map((u) => (
+                          <Button
+                            key={u.value}
+                            variant="outline"
+                            onClick={() => setForm((f) => ({ ...f, urgency: u.value }))}
+                            className={
+                              form.urgency === u.value
+                                ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521] hover:bg-[#EFFCF6] hover:border-[#2BCC7E] hover:opacity-100"
+                                : "hover:opacity-100"
+                            }
+                          >
+                            {u.label}{" "}
+                            <span className="text-[11px] text-[#5C6675] font-normal ml-1">{u.sub}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
 
             {/* Commercial terms */}
-            <section className="bg-white border border-[#DDE1E6] rounded-2xl p-[22px]">
-              <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
-                Commercial terms
-              </p>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <label className={labelCls}>Requested payment terms</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {TERMS_OPTIONS.map((t) => (
-                      <button
-                        key={t.value}
-                        type="button"
-                        onClick={() => setForm((f) => ({ ...f, terms: t.value }))}
-                        className={[
-                          "h-10 px-4 rounded-[10px] border text-[14px] font-medium transition-colors",
-                          form.terms === t.value
-                            ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521]"
-                            : "border-[#DDE1E6] bg-white text-[#5C6675] hover:border-[#C2C8D0]",
-                        ].join(" ")}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
+            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+              <CardBody>
+                <SectionLabel>{t("commercialSectionTitle")}</SectionLabel>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className={toggleLabelCls}>{t("paymentTermsLabel")}</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {TERMS_OPTIONS.map((t) => (
+                        <Button
+                          key={t.value}
+                          variant="outline"
+                          onClick={() => setForm((f) => ({ ...f, terms: t.value }))}
+                          className={
+                            form.terms === t.value
+                              ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521] hover:bg-[#EFFCF6] hover:border-[#2BCC7E] hover:opacity-100"
+                              : "hover:opacity-100"
+                          }
+                        >
+                          {t.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-[14px] flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
-                    <label htmlFor={`${formId}-target`} className={labelCls}>
-                      Target price / discount{" "}
-                      <span className="text-[#8C95A3] font-normal">(optional)</span>
-                    </label>
-                    <input
+                  <div className="flex gap-[14px] flex-wrap">
+                    <Input
+                      label={t("poLabel")}
+                      id={`${formId}-po`}
+                      wrapperClassName="flex-1 min-w-[200px]"
+                      value={form.po}
+                      onChange={set("po")}
+                      className="font-mono"
+                      placeholder={t("poPlaceholder")}
+                    />
+                    <Input
+                      label={t("targetLabel")}
                       id={`${formId}-target`}
+                      wrapperClassName="flex-1 min-w-[200px]"
                       value={form.target}
                       onChange={set("target")}
-                      placeholder="e.g. 15% off list"
-                      className={inputCls}
+                      placeholder={t("targetPlaceholder")}
                     />
-                  </div>
-                  <div className="flex-1 min-w-[200px]">
-                    <label htmlFor={`${formId}-volume`} className={labelCls}>
-                      Expected annual volume{" "}
-                      <span className="text-[#8C95A3] font-normal">(optional)</span>
-                    </label>
-                    <input
+                    <Input
+                      label={t("volumeLabel")}
                       id={`${formId}-volume`}
+                      wrapperClassName="flex-1 min-w-[200px]"
                       value={form.volume}
                       onChange={set("volume")}
-                      placeholder="e.g. 12,000 units / yr"
-                      className={inputCls}
+                      placeholder={t("volumePlaceholder")}
                     />
                   </div>
                 </div>
-              </div>
-            </section>
+              </CardBody>
+            </Card>
 
             {/* Notes */}
-            <section className="bg-white border border-[#DDE1E6] rounded-2xl p-[22px]">
-              <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
-                Notes for your account team{" "}
-                <span className="normal-case tracking-normal text-[#8C95A3]">(optional)</span>
-              </p>
-              <textarea
-                id={`${formId}-notes`}
-                value={form.notes}
-                onChange={set("notes")}
-                rows={3}
-                placeholder="Custom branding, decoration, split shipments, compliance requirements…"
-                className="w-full border border-[#DDE1E6] rounded-[10px] px-[13px] py-[11px] text-[14px] leading-relaxed text-[#0E1521] outline-none bg-white focus:border-[#2BCC7E] focus:ring-1 focus:ring-[#2BCC7E] resize-y transition-colors"
-              />
-            </section>
+            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+              <CardBody>
+                <SectionLabel>
+                  {t("notesSectionTitle")}{" "}
+                  <span className="normal-case tracking-normal text-[#8C95A3]">{t("notesOptional")}</span>
+                </SectionLabel>
+                <Textarea
+                  id={`${formId}-notes`}
+                  value={form.notes}
+                  onChange={set("notes")}
+                  rows={3}
+                  placeholder={t("notesPlaceholder")}
+                />
+              </CardBody>
+            </Card>
           </div>
 
           {/* Summary rail */}
-          <aside className="flex-none w-[300px] sticky top-0 bg-white border border-[#DDE1E6] rounded-2xl p-[22px]">
-            <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-4">
-              Quote summary
-            </p>
-            <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
-              <span>Products</span>
-              <span className="font-semibold text-[#0E1521]">{lineCount}</span>
-            </div>
-            <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
-              <span>Total units</span>
-              <span className="font-semibold text-[#0E1521]">{totalUnits}</span>
-            </div>
-            <div className="h-px bg-[#EEF0F2] my-2.5" />
-            <div className="flex justify-between items-baseline py-1">
-              <span className="text-[13px] text-[#5C6675]">List value</span>
-              <span className="font-serif text-[24px] text-[#0E1521]">{cartTotal}</span>
-            </div>
-            <div className="flex items-start gap-2 mt-3.5 p-3 rounded-[11px] bg-[#F7F8F9] text-[12px] text-[#5C6675] leading-relaxed">
-              <Lock size={14} className="flex-none mt-0.5 shrink-0" />
-              Final quoted pricing may be lower than list once volume terms are applied.
-            </div>
-          </aside>
+          <div className="flex-none w-[300px] sticky top-8 flex flex-col gap-3">
+            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+              <CardBody>
+                <SectionLabel>{t("summaryTitle")}</SectionLabel>
+                <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
+                  <span>{t("summaryProducts")}</span>
+                  <span className="font-semibold text-[#0E1521]">{lineCount}</span>
+                </div>
+                <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
+                  <span>{t("summaryTotalUnits")}</span>
+                  <span className="font-semibold text-[#0E1521]">{totalUnits}</span>
+                </div>
+                <div className="h-px bg-[#EEF0F2] my-2.5" />
+                <div className="flex justify-between items-baseline py-1">
+                  <span className="text-[13px] text-[#5C6675]">{t("summaryListValue")}</span>
+                  <span className="font-serif text-[24px] text-[#0E1521]">{cartTotal}</span>
+                </div>
+                <div className="flex items-start gap-2 mt-3.5 p-3 rounded-[11px] bg-[#F7F8F9] text-[12px] text-[#5C6675] leading-relaxed">
+                  <Lock size={14} className="flex-none mt-0.5 shrink-0" />
+                  {t("summaryPricingNote")}
+                </div>
+              </CardBody>
+            </Card>
+            <Button
+              fullWidth
+              size="lg"
+              disabled={!canContinue}
+              className="bg-[#0E1521] hover:opacity-90"
+              rightIcon={<ArrowRight size={16} />}
+              onClick={() => canContinue && setStep("review")}
+            >
+              {t("continueToReview")}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="flex-none flex items-center justify-between px-8 py-3.5 bg-white border-t border-[#DDE1E6]">
-        <button
-          onClick={() => router.push(`/${lang}/cart`)}
-          className="h-[46px] px-[18px] rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[14px] text-[#232C3A] hover:bg-[#F7F8F9] transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => canContinue && setStep("review")}
-          disabled={!canContinue}
-          className={[
-            "h-[46px] px-6 rounded-[11px] border-none font-semibold text-[14px] flex items-center gap-2 transition-all",
-            canContinue
-              ? "bg-[#0E1521] text-white hover:opacity-90 cursor-pointer"
-              : "bg-[#DDE1E6] text-[#8C95A3] cursor-not-allowed",
-          ].join(" ")}
-        >
-          Continue to review
-          <ArrowRight size={16} />
-        </button>
-      </footer>
     </div>
   );
 
   /* ── STEP 2: REVIEW ── */
   const reviewRow = (label: string, value: string) => (
-    <div className="bg-white px-[22px] py-[14px]">
+    <div className="bg-white px-5 py-[14px]">
       <p className="text-[11px] text-[#5C6675] mb-1">{label}</p>
       <p className="font-semibold text-[14px] text-[#0E1521]">{value || "—"}</p>
     </div>
   );
 
-  const termsLabel =
-    TERMS_OPTIONS.find((t) => t.value === form.terms)?.label ?? form.terms;
-  const urgencyLabel = form.urgency === "urgent" ? "Urgent (+fees)" : "Standard (3–5 days)";
+  const termsLabel = TERMS_OPTIONS.find((t) => t.value === form.terms)?.label ?? form.terms;
+  const urgencyLabel = form.urgency === "urgent" ? t("urgencyUrgentFull") : t("urgencyStandardFull");
   const dateLabel = form.date
-    ? new Date(form.date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+    ? new Date(form.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
     : "—";
 
   const step2 = (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[760px] mx-auto px-10 py-8 flex flex-col gap-[18px]">
-          <p className="font-serif text-[26px] tracking-tight text-[#0E1521]">
-            Review your request
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-[18px]">
+          <p className="font-serif text-[26px] tracking-tight text-[#0E1521]">{t("reviewTitle")}</p>
 
           {/* Items recap */}
-          <section className="bg-white border border-[#DDE1E6] rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-[22px] py-[15px] border-b border-[#EEF0F2]">
-              <p className="font-bold text-[14px] text-[#0E1521]">
-                Items · {totalUnits} units
-              </p>
-              <button
-                onClick={() => setStep("details")}
-                className="flex items-center gap-1.5 text-[#21A765] font-semibold text-[13px] bg-transparent border-none"
-              >
-                <span className="inline-flex items-center justify-center w-[14px] h-[14px]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </span>
-                Edit
-              </button>
-            </div>
+          <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <CardHeader className="border-[#EEF0F2]">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-[14px] text-[#0E1521]">{t("reviewItemsLabel", { units: totalUnits })}</p>
+                <EditButton onClick={() => setStep("details")} />
+              </div>
+            </CardHeader>
             {items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 px-[22px] py-[11px] border-b border-[#EEF0F2] last:border-b-0"
+                className="flex items-center justify-between gap-3 px-5 py-[11px] border-b border-[#EEF0F2] last:border-b-0"
               >
                 <div className="min-w-0">
                   <span className="font-semibold text-[14px] text-[#0E1521]">{item.name}</span>{" "}
@@ -578,48 +584,46 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                 </p>
               </div>
             ))}
-            <div className="flex items-center justify-between px-[22px] py-[13px] bg-[#F7F8F9]">
-              <span className="text-[13px] text-[#5C6675]">List value</span>
+            <div className="flex items-center justify-between px-5 py-[13px] bg-[#F7F8F9]">
+              <span className="text-[13px] text-[#5C6675]">{t("summaryListValue")}</span>
               <span className="font-serif text-[20px] text-[#0E1521]">{cartTotal}</span>
             </div>
-          </section>
+          </Card>
 
           {/* Details recap */}
-          <section className="bg-white border border-[#DDE1E6] rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-[22px] py-[15px] border-b border-[#EEF0F2]">
-              <p className="font-bold text-[14px] text-[#0E1521]">Request details</p>
-              <button
-                onClick={() => setStep("details")}
-                className="flex items-center gap-1.5 text-[#21A765] font-semibold text-[13px] bg-transparent border-none"
-              >
-                <span className="inline-flex items-center justify-center w-[14px] h-[14px]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </span>
-                Edit
-              </button>
-            </div>
+          <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <CardHeader className="border-[#EEF0F2]">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-[14px] text-[#0E1521]">{t("requestDetailsTitle")}</p>
+                <EditButton onClick={() => setStep("details")} />
+              </div>
+            </CardHeader>
             <div className="grid grid-cols-2 gap-px bg-[#EEF0F2]">
-              {reviewRow("Company", form.company)}
-              {reviewRow("Buyer", form.contact)}
-              {reviewRow("Email", form.email)}
-              {reviewRow("PO reference", form.po)}
-              {reviewRow("Requested delivery", dateLabel)}
-              {reviewRow("Handling", urgencyLabel)}
-              {reviewRow("Payment terms", termsLabel)}
-              {reviewRow("Target price", form.target || "Not specified")}
+              {reviewRow(t("reviewCompany"), form.company)}
+              {reviewRow(t("reviewBuyer"), form.contact)}
+              {reviewRow(t("reviewEmail"), form.email)}
+              {reviewRow(t("reviewPo"), form.po)}
+              {reviewRow(t("reviewDelivery"), dateLabel)}
+              {reviewRow(t("reviewHandling"), urgencyLabel)}
+              {reviewRow(t("reviewPaymentTerms"), termsLabel)}
+              {reviewRow(t("reviewTargetPrice"), form.target || t("reviewNotSpecified"))}
             </div>
+            {selectedAddressId && selectedAddressId !== "__new__" && (() => {
+              const addr = addresses.find((a) => a.id === selectedAddressId);
+              return addr ? (
+                <div className="px-5 py-[14px] border-t border-[#EEF0F2]">
+                  <p className="text-[11px] text-[#5C6675] mb-2">{t("reviewShipTo")}</p>
+                  <DeliveryAddress address={addr} />
+                </div>
+              ) : null;
+            })()}
             {form.notes && (
-              <div className="px-[22px] py-[14px] border-t border-[#EEF0F2]">
-                <p className="text-[11px] text-[#5C6675] mb-1">Notes</p>
-                <p className="text-[14px] text-[#232C3A] leading-relaxed whitespace-pre-wrap">
-                  {form.notes}
-                </p>
+              <div className="px-5 py-[14px] border-t border-[#EEF0F2]">
+                <p className="text-[11px] text-[#5C6675] mb-1">{t("reviewNotes")}</p>
+                <p className="text-[14px] text-[#232C3A] leading-relaxed whitespace-pre-wrap">{form.notes}</p>
               </div>
             )}
-          </section>
+          </Card>
 
           {/* Acknowledgement */}
           <button
@@ -630,44 +634,34 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             <span
               className={[
                 "flex-none w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-colors",
-                acked
-                  ? "bg-[#2BCC7E] border-[#2BCC7E] text-[#0E1521]"
-                  : "border-[#C2C8D0] bg-white",
+                acked ? "bg-[#2BCC7E] border-[#2BCC7E] text-[#0E1521]" : "border-[#C2C8D0] bg-white",
               ].join(" ")}
             >
               {acked && <Check size={11} strokeWidth={3} />}
             </span>
             <span className="text-[13.5px] text-[#232C3A] leading-relaxed">
-              The details above are accurate. I understand this submits a quote request — not an
-              order — and the Elastic Path account team will respond with confirmed pricing and
-              terms.
+              {t("ackText")}
             </span>
           </button>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="flex-none flex items-center justify-between px-8 py-3.5 bg-white border-t border-[#DDE1E6]">
-        <button
-          onClick={() => setStep("details")}
-          className="h-[46px] px-[18px] rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[14px] text-[#232C3A] flex items-center gap-2 hover:bg-[#F7F8F9] transition-colors"
-        >
-          <ArrowLeft size={16} />
-          Back
-        </button>
-        <button
-          onClick={() => acked && setStep("success")}
-          disabled={!acked}
-          className={[
-            "h-[46px] px-6 rounded-[11px] border-none font-semibold text-[14px] flex items-center gap-2 transition-all",
-            acked
-              ? "bg-[#2BCC7E] text-[#0E1521] hover:bg-[#21A765] hover:text-white cursor-pointer"
-              : "bg-[#DDE1E6] text-[#8C95A3] cursor-not-allowed",
-          ].join(" ")}
-        >
-          Submit quote request
-          <Send size={16} />
-        </button>
+      <footer className="flex-none bg-white border-t border-[#DDE1E6]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+          <Button variant="outline" size="lg" leftIcon={<ArrowLeft size={16} />} onClick={() => setStep("details")}>
+            {t("back")}
+          </Button>
+          <Button
+            size="lg"
+            disabled={!acked}
+            className="bg-[#2BCC7E] text-[#0E1521] hover:bg-[#21A765] hover:text-white hover:opacity-100"
+            rightIcon={<Send size={16} />}
+            onClick={() => acked && setStep("success")}
+          >
+            {t("submitButton")}
+          </Button>
+        </div>
       </footer>
     </div>
   );
@@ -676,99 +670,182 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   const step3 = (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[560px] mx-auto px-10 py-12 flex flex-col items-center text-center">
-        {/* Check circle */}
-        <div className="w-[72px] h-[72px] rounded-full bg-[#EFFCF6] border border-[#A6EBCA] flex items-center justify-center text-[#21A765] animate-pop-in">
+        <div className="w-[72px] h-[72px] rounded-full bg-[#EFFCF6] border border-[#A6EBCA] flex items-center justify-center text-[#21A765]">
           <Check size={36} />
         </div>
 
         <h2 className="font-serif font-medium text-[32px] tracking-tight text-[#0E1521] mt-6 mb-0">
-          Quote request submitted
+          {t("successTitle")}
         </h2>
         <p className="text-[15px] text-[#3D4654] leading-relaxed mt-3 max-w-[42ch]">
-          Your request is with the Elastic Path account team. You&apos;ll get a confirmation email
-          at <strong className="text-[#0E1521]">{form.email}</strong>.
+          {t("successMessagePrefix")}{" "}
+          <strong className="text-[#0E1521]">{form.email}</strong>.
         </p>
 
-        {/* Reference badge */}
         <div className="inline-flex items-center gap-2.5 mt-6 px-[18px] py-[11px] rounded-full bg-[#0E1521] text-white">
-          <span className="font-mono text-[10px] tracking-[.12em] uppercase text-[#61DEA6]">
-            Reference
-          </span>
+          <span className="font-mono text-[10px] tracking-[.12em] uppercase text-[#61DEA6]">{t("successRefLabel")}</span>
           <span className="font-mono font-bold text-[15px] tracking-[.04em]">{ref}</span>
         </div>
 
-        {/* Summary row */}
         <div className="flex w-full mt-6 border border-[#DDE1E6] rounded-[14px] overflow-hidden bg-white">
           <div className="flex-1 px-3 py-[15px] border-r border-[#EEF0F2]">
-            <p className="text-[11px] text-[#5C6675]">Submitted</p>
+            <p className="text-[11px] text-[#5C6675]">{t("successSubmitted")}</p>
             <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{submittedDate}</p>
           </div>
           <div className="flex-1 px-3 py-[15px] border-r border-[#EEF0F2]">
-            <p className="text-[11px] text-[#5C6675]">Units</p>
+            <p className="text-[11px] text-[#5C6675]">{t("successUnits")}</p>
             <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{totalUnits}</p>
           </div>
           <div className="flex-1 px-3 py-[15px]">
-            <p className="text-[11px] text-[#5C6675]">List value</p>
+            <p className="text-[11px] text-[#5C6675]">{t("successListValue")}</p>
             <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{cartTotal}</p>
           </div>
         </div>
 
-        {/* Timeline */}
-        <div className="w-full mt-6 bg-white border border-[#DDE1E6] rounded-2xl px-6 py-[22px] text-left">
-          <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-4">
-            What happens next
-          </p>
-          {TIMELINE.map((t, i) => (
-            <div key={i} className="flex gap-3.5">
-              <div className="flex flex-col items-center">
-                <span
-                  className={[
-                    "w-[26px] h-[26px] rounded-full flex items-center justify-center flex-none text-sm font-bold",
-                    t.done
-                      ? "bg-[#2BCC7E] text-[#0E1521]"
-                      : "bg-[#EEF0F2] text-[#8C95A3]",
-                  ].join(" ")}
-                >
-                  {t.done ? <Check size={13} /> : i + 1}
-                </span>
-                {i < TIMELINE.length - 1 && (
-                  <span className="w-px flex-1 bg-[#EEF0F2] my-1" />
-                )}
+        <Card className="w-full mt-6 rounded-2xl border-[#DDE1E6] shadow-none text-left">
+          <CardBody>
+            <SectionLabel>{t("whatHappensNext")}</SectionLabel>
+            {TIMELINE.map((t, i) => (
+              <div key={i} className="flex gap-3.5">
+                <div className="flex flex-col items-center">
+                  <span
+                    className={[
+                      "w-[26px] h-[26px] rounded-full flex items-center justify-center flex-none text-sm font-bold",
+                      t.done ? "bg-[#2BCC7E] text-[#0E1521]" : "bg-[#EEF0F2] text-[#8C95A3]",
+                    ].join(" ")}
+                  >
+                    {t.done ? <Check size={13} /> : i + 1}
+                  </span>
+                  {i < TIMELINE.length - 1 && <span className="w-px flex-1 bg-[#EEF0F2] my-1" />}
+                </div>
+                <div className={i < TIMELINE.length - 1 ? "pb-4" : ""}>
+                  <p className={["text-[14px] font-semibold", t.done ? "text-[#0E1521]" : "text-[#5C6675]"].join(" ")}>
+                    {t.label}
+                  </p>
+                  <p className="text-[12.5px] text-[#5C6675] mt-0.5">{t.sub}</p>
+                </div>
               </div>
-              <div className={i < TIMELINE.length - 1 ? "pb-4" : ""}>
-                <p
-                  className={[
-                    "text-[14px] font-semibold",
-                    t.done ? "text-[#0E1521]" : "text-[#5C6675]",
-                  ].join(" ")}
-                >
-                  {t.label}
-                </p>
-                <p className="text-[12.5px] text-[#5C6675] mt-0.5">{t.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </CardBody>
+        </Card>
 
         <div className="flex gap-3 mt-7">
-          <button
+          <Button
+            size="lg"
+            className="bg-[#0E1521] hover:opacity-90"
+            leftIcon={<ArrowLeft size={16} />}
             onClick={() => router.push(`/${lang}/cart`)}
-            className="h-12 px-[26px] rounded-[12px] bg-[#0E1521] text-white font-bold text-[14px] flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
-            <ArrowLeft size={16} />
-            Back to cart
-          </button>
+            {t("backToCart")}
+          </Button>
         </div>
       </div>
     </div>
   );
 
+  const addressModalFooter = (
+    <>
+      <Button variant="outline" onClick={() => setIsAddressModalOpen(false)} disabled={addressSaving}>
+        {tAddr("cancel")}
+      </Button>
+      <Button
+        className="bg-[#0E1521] hover:opacity-90"
+        onClick={handleAddAddress}
+        disabled={addressSaving}
+      >
+        {addressSaving ? tAddr("adding") : tAddr("addButton")}
+      </Button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-[#EEF0F2] flex flex-col">
+    <div className="h-screen bg-[#EEF0F2] flex flex-col">
       {pageHeader}
       {step === "details" && step1}
       {step === "review" && step2}
       {step === "success" && step3}
+
+      <Modal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        title={tAddr("createNewTitle")}
+        size="md"
+        footer={addressModalFooter}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("firstName")}
+              value={addressForm.first_name}
+              onChange={setAddr("first_name")}
+              placeholder="Jane"
+              wrapperClassName="flex-1"
+            />
+            <Input
+              label={tAddr("lastName")}
+              value={addressForm.last_name}
+              onChange={setAddr("last_name")}
+              placeholder="Smith"
+              wrapperClassName="flex-1"
+            />
+          </div>
+          <Input
+            label={tAddr("companyOptional")}
+            value={addressForm.company_name ?? ""}
+            onChange={setAddr("company_name")}
+            placeholder="Acme Corp"
+          />
+          <Input
+            label={tAddr("line1")}
+            value={addressForm.line_1}
+            onChange={setAddr("line_1")}
+            placeholder="123 Main St"
+          />
+          <Input
+            label={tAddr("line2Optional")}
+            value={addressForm.line_2 ?? ""}
+            onChange={setAddr("line_2")}
+            placeholder="Suite 100"
+          />
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("city")}
+              value={addressForm.city}
+              onChange={setAddr("city")}
+              placeholder="San Francisco"
+              wrapperClassName="flex-1"
+            />
+            <Input
+              label={tAddr("county")}
+              value={addressForm.county}
+              onChange={setAddr("county")}
+              placeholder="California"
+              wrapperClassName="flex-1"
+            />
+          </div>
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("postcode")}
+              value={addressForm.postcode}
+              onChange={setAddr("postcode")}
+              placeholder="94105"
+              wrapperClassName="flex-1"
+            />
+            <Combobox
+              label={tAddr("country")}
+              options={COUNTRIES.map((c) => ({ value: c.code, label: c.label }))}
+              value={addressForm.country}
+              onChange={(val) => setAddressForm((f) => ({ ...f, country: val }))}
+              placeholder={tAddr("selectCountry")}
+              noResultsText={tAddr("noResults")}
+              wrapperClassName="flex-1"
+            />
+          </div>
+          {addressError && (
+            <p className="text-sm text-red-600">{addressError}</p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

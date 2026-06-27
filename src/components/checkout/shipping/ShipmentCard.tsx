@@ -7,6 +7,7 @@ import { Card, CardHeader, CardBody, CardFooter } from "@/components/ui/Card";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { toCurrency, formatEstimateDate } from "./helpers";
 import type { CartItem, Group, ShippingMethod, SplitState } from "./types";
+import { DeliveryAddress } from "./DeliveryAddress";
 
 // ── Shared icons ──────────────────────────────────────────────────────────────
 
@@ -159,54 +160,32 @@ export function ShipmentCard({
         </div>
 
         {/* Deliver to */}
-        {(() => {
-          const a = activeGroup.address;
-          const name = [a.first_name, a.last_name].filter(Boolean).join(" ");
-          const street = [a.line_1, a.line_2].filter(Boolean).join(", ");
-          const region = [a.city, a.postcode, a.county, a.country].filter(Boolean).join(", ");
-          if (!name && !street) return null;
-          return (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">
-                {t("deliverTo")}
-              </p>
-              <div className="flex items-start gap-2">
+        {(activeGroup.address.line_1 || activeGroup.address.first_name) && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">
+              {t("deliverTo")}
+            </p>
+            <DeliveryAddress address={activeGroup.address} />
+            {estimate?.end && (
+              <div className="flex items-center gap-2 mt-2">
                 <svg
-                  className="flex-shrink-0 mt-0.5 text-gray-400"
+                  className="flex-shrink-0 text-gray-400"
                   width="14" height="14" viewBox="0 0 24 24"
                   fill="none" stroke="currentColor" strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round"
                 >
-                  <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/>
-                  <circle cx="12" cy="10" r="3"/>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                <div>
-                  {name && <p className="text-sm font-semibold text-gray-900 leading-snug">{name}</p>}
-                  {street && <p className="text-sm text-gray-600 leading-snug">{street}</p>}
-                  {region && <p className="text-sm text-gray-500 leading-snug">{region}</p>}
-                </div>
+                <p className="text-sm text-gray-600">
+                  {t("on")} {formatEstimateDate(estimate.end)}
+                </p>
               </div>
-              {estimate?.end && (
-                <div className="flex items-center gap-2 mt-2">
-                  <svg
-                    className="flex-shrink-0 text-gray-400"
-                    width="14" height="14" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                  <p className="text-sm text-gray-600">
-                    {t("on")} {formatEstimateDate(estimate.end)}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+            )}
+          </div>
+        )}
       </CardHeader>
 
       {/* ── Product drop zone ─────────────────────────────────────────────── */}

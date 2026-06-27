@@ -1,12 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Modal } from "@/components/ui/Modal/Modal";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Combobox } from "@/components/ui/Combobox";
 import { Package } from "lucide-react";
 import { toCurrency } from "./helpers";
+import { DeliveryAddress } from "./DeliveryAddress";
+import { COUNTRIES } from "@/lib/countries";
+import type { NewAddressFields } from "@/hooks/use-account-addresses";
 import type { Address, CartItem, ShippingMethod } from "./types";
 import type { AccountAddressResponse } from "@epcc-sdk/sdks-shopper";
 
@@ -23,6 +30,7 @@ type Props = {
   formEstimateEnd: string;
   formAddress: Address | null;
   today: string;
+  addAddress: (fields: NewAddressFields) => Promise<AccountAddressResponse | null>;
   setFormAddressId: (v: string) => void;
   setFormInlineAddr: (fn: (prev: Partial<Address>) => Partial<Address>) => void;
   setFormMethodKey: (v: string) => void;
@@ -32,20 +40,69 @@ type Props = {
   onCancel: () => void;
 };
 
-const ADDR_FIELDS: (keyof Address)[] = [
-  "first_name", "last_name", "line_1", "city", "postcode", "country",
-];
-
 export function CreateShipmentForm({
   addresses, methodList, shippingMethods, unassigned,
   pickedItems, creating, formAddressId, formInlineAddr,
   formMethodKey, formEstimateEnd, formAddress, today,
-  setFormAddressId, setFormInlineAddr, setFormMethodKey,
+  addAddress, setFormAddressId, setFormInlineAddr, setFormMethodKey,
   setFormEstimateEnd, setPickedItems, onSubmit, onCancel,
 }: Props) {
   const t = useTranslations("shipping");
+  const tAddr = useTranslations("address");
+
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState<NewAddressFields>({
+    first_name: "", last_name: "", line_1: "", line_2: "", city: "", county: "", postcode: "", country: "",
+  });
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  function openAddressModal() {
+    setAddressForm({ first_name: "", last_name: "", line_1: "", line_2: "", city: "", county: "", postcode: "", country: "" });
+    setAddressError(null);
+    setIsAddressModalOpen(true);
+  }
+
+  async function handleAddAddress() {
+    if (!addressForm.first_name.trim() || !addressForm.last_name.trim() || !addressForm.line_1.trim() || !addressForm.city.trim() || !addressForm.county.trim() || !addressForm.postcode.trim() || !addressForm.country.trim()) {
+      setAddressError(tAddr("requiredFieldsError"));
+      return;
+    }
+    setAddressSaving(true);
+    setAddressError(null);
+    try {
+      const created = await addAddress(addressForm);
+      if (created?.id) {
+        setFormAddressId(created.id);
+        setIsAddressModalOpen(false);
+      } else {
+        setAddressError(tAddr("createFailed"));
+      }
+    } catch {
+      setAddressError("Failed to create address. Please try again.");
+    } finally {
+      setAddressSaving(false);
+    }
+  }
+
+  const setAddr = (key: keyof NewAddressFields) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setAddressForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const selectedAddress = addresses.find((a) => a.id === formAddressId) ?? null;
+
+  const addressModalFooter = (
+    <>
+      <Button variant="outline" onClick={() => setIsAddressModalOpen(false)} disabled={addressSaving}>
+        {tAddr("cancel")}
+      </Button>
+      <Button onClick={handleAddAddress} disabled={addressSaving}>
+        {addressSaving ? tAddr("adding") : tAddr("addButton")}
+      </Button>
+    </>
+  );
 
   return (
+    <>
     <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-5 shadow-sm">
       <p className="text-sm font-bold text-gray-900">{t("newShipment")}</p>
 
@@ -54,44 +111,31 @@ export function CreateShipmentForm({
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
           {t("deliveryAddress")}
         </p>
-        {addresses.length > 0 && (
-          <div className="relative">
-            <select
-              value={formAddressId}
-              onChange={(e) => setFormAddressId(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-gray-300 px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            >
-              {addresses.map((a) => (
-                <option key={a.id} value={a.id ?? ""}>
-                  {[a.first_name, a.last_name].filter(Boolean).join(" ")} —{" "}
-                  {[a.line_1, a.city].filter(Boolean).join(", ")}
-                </option>
-              ))}
-              <option value="new">{t("enterNewAddress")}</option>
-            </select>
-            <ChevronDown
-              size={14}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-          </div>
-        )}
-        {(formAddressId === "new" || addresses.length === 0) && (
-          <div className="grid grid-cols-2 gap-2">
-            {ADDR_FIELDS.map((f) => (
-              <Input
-                key={f}
-                type="text"
-                placeholder={t(`addr_${f}` as any)}
-                value={(formInlineAddr[f] as string | undefined) ?? ""}
-                onChange={(e) =>
-                  setFormInlineAddr((p) => ({ ...p, [f]: e.target.value }))
-                }
-                wrapperClassName={
-                  f === "line_1" || f === "city" ? "col-span-2" : undefined
-                }
-              />
-            ))}
-          </div>
+        <Select
+          placeholder={t("selectAddress")}
+          value={formAddressId}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "__new__") { openAddressModal(); }
+            else { setFormAddressId(val); }
+          }}
+          options={[
+            ...addresses.map((a) => ({
+              value: a.id ?? "",
+              label: [
+                [a.first_name, a.last_name].filter(Boolean).join(" "),
+                [a.line_1, a.city].filter(Boolean).join(", "),
+              ].filter(Boolean).join(" – "),
+            })),
+            { value: "__new__", label: `+ ${t("enterNewAddress")}` },
+          ]}
+        />
+        {selectedAddress && (
+          <Card className="rounded-xl border-gray-200 shadow-none">
+            <CardBody className="py-3">
+              <DeliveryAddress address={selectedAddress} />
+            </CardBody>
+          </Card>
         )}
       </div>
 
@@ -247,5 +291,88 @@ export function CreateShipmentForm({
         )}
       </div>
     </div>
+
+      <Modal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        title={tAddr("createNewTitle")}
+        size="md"
+        footer={addressModalFooter}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("firstName")}
+              value={addressForm.first_name}
+              onChange={setAddr("first_name")}
+              placeholder="Jane"
+              wrapperClassName="flex-1"
+            />
+            <Input
+              label={tAddr("lastName")}
+              value={addressForm.last_name}
+              onChange={setAddr("last_name")}
+              placeholder="Smith"
+              wrapperClassName="flex-1"
+            />
+          </div>
+          <Input
+            label={tAddr("companyOptional")}
+            value={addressForm.company_name ?? ""}
+            onChange={setAddr("company_name")}
+            placeholder="Acme Corp"
+          />
+          <Input
+            label={tAddr("line1")}
+            value={addressForm.line_1}
+            onChange={setAddr("line_1")}
+            placeholder="123 Main St"
+          />
+          <Input
+            label={tAddr("line2Optional")}
+            value={addressForm.line_2 ?? ""}
+            onChange={setAddr("line_2")}
+            placeholder="Suite 100"
+          />
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("city")}
+              value={addressForm.city}
+              onChange={setAddr("city")}
+              placeholder="San Francisco"
+              wrapperClassName="flex-1"
+            />
+            <Input
+              label={tAddr("county")}
+              value={addressForm.county}
+              onChange={setAddr("county")}
+              placeholder="California"
+              wrapperClassName="flex-1"
+            />
+          </div>
+          <div className="flex gap-3">
+            <Input
+              label={tAddr("postcode")}
+              value={addressForm.postcode}
+              onChange={setAddr("postcode")}
+              placeholder="94105"
+              wrapperClassName="flex-1"
+            />
+            <Combobox
+              label={tAddr("country")}
+              options={COUNTRIES.map((c) => ({ value: c.code, label: c.label }))}
+              value={addressForm.country}
+              onChange={(val) => setAddressForm((f) => ({ ...f, country: val }))}
+              placeholder={tAddr("selectCountry")}
+              noResultsText={tAddr("noResults")}
+              wrapperClassName="flex-1"
+            />
+          </div>
+          {addressError && (
+            <p className="text-sm text-red-600">{addressError}</p>
+          )}
+        </div>
+      </Modal>
+    </>
   );
 }

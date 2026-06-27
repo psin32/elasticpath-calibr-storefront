@@ -44,7 +44,7 @@ type Props = {
 export function ShippingGroupManager({ onReadyChange, onShippingCostChange }: Props) {
   const t = useTranslations("shipping");
   const { cartId } = useCart();
-  const { addresses } = useAccountAddresses();
+  const { addresses, addAddress } = useAccountAddresses();
   const { credentials } = useAuth();
   const shippingMethods = useShippingMethods(cartId);
 
@@ -688,6 +688,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange }: Pr
           formEstimateEnd={formEstimateEnd}
           formAddress={formAddress}
           today={today}
+          addAddress={addAddress}
           setFormAddressId={setFormAddressId}
           setFormInlineAddr={setFormInlineAddr}
           setFormMethodKey={setFormMethodKey}

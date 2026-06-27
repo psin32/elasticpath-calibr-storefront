@@ -54,9 +54,6 @@ export function OrderSummary({ items, cartTotal, cartTotalAmount, shippingCostCe
                   <ShoppingBag size={18} className="text-gray-300" />
                 </div>
               )}
-              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-gray-600 text-white text-[10px] font-bold">
-                {item.quantity}
-              </span>
             </div>
 
             <div className="flex-1 min-w-0">
