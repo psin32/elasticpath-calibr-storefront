@@ -4,45 +4,45 @@ import { useState } from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { useTranslations } from "next-intl";
-import { Lock, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/Button/Button";
+import { AlertCircle } from "lucide-react";
 
 type Props = {
   onPayment: (stripe: Stripe, elements: StripeElements) => Promise<void>;
   isProcessing: boolean;
   externalError?: string | null;
+  formRef?: React.RefObject<HTMLFormElement | null>;
+  onConfirmingChange?: (isConfirming: boolean) => void;
 };
 
-export function StripePaymentForm({ onPayment, isProcessing, externalError }: Props) {
+export function StripePaymentForm({ onPayment, isProcessing, externalError, formRef, onConfirmingChange }: Props) {
   const t = useTranslations("checkout");
   const stripe = useStripe();
   const elements = useElements();
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const isLoading = isConfirming || isProcessing;
   const displayError = stripeError || externalError;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!stripe || !elements || isLoading) return;
+    if (!stripe || !elements || isConfirming || isProcessing) return;
 
     setIsConfirming(true);
+    onConfirmingChange?.(true);
     setStripeError(null);
 
     try {
       await onPayment(stripe, elements);
     } catch (err) {
-      setStripeError(
-        err instanceof Error ? err.message : t("paymentFailed")
-      );
+      setStripeError(err instanceof Error ? err.message : t("paymentFailed"));
     } finally {
       setIsConfirming(false);
+      onConfirmingChange?.(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <PaymentElement options={{ layout: "tabs" }} />
 
       {displayError && (
@@ -52,23 +52,8 @@ export function StripePaymentForm({ onPayment, isProcessing, externalError }: Pr
         </div>
       )}
 
-      <Button
-        type="submit"
-        variant="primary"
-        size="lg"
-        fullWidth
-        isLoading={isLoading}
-        disabled={!stripe || !elements || isLoading}
-        leftIcon={!isLoading ? <Lock size={16} /> : undefined}
-      >
-        {isConfirming
-          ? t("verifyingPayment")
-          : isProcessing
-            ? t("placingOrder")
-            : t("placeOrder")}
-      </Button>
-
-      <p className="text-center text-xs text-gray-400">{t("securePayment")}</p>
+      {/* Hidden submit — triggered externally via formRef.requestSubmit() */}
+      <button type="submit" className="sr-only" aria-hidden="true" tabIndex={-1} />
     </form>
   );
 }

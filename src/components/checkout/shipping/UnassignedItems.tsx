@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Package } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -66,9 +67,13 @@ export function UnassignedItems({
               } ${dragItemId === item.id ? "opacity-40" : ""}`}
             >
               <DotGrip />
-              <div className="w-9 h-9 rounded-lg border border-gray-100 bg-white flex items-center justify-center flex-shrink-0">
-                <Package size={14} className="text-gray-300" />
-              </div>
+              <span className="w-9 h-9 rounded-lg border border-gray-100 bg-white flex items-center justify-center flex-shrink-0 overflow-hidden relative text-gray-300">
+                {item.imageHref ? (
+                  <Image src={item.imageHref} alt={item.name ?? ""} fill sizes="36px" className="object-cover" />
+                ) : (
+                  <Package size={14} />
+                )}
+              </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
                 {item.sku && (

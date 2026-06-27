@@ -15,6 +15,19 @@ import { createEpClient } from "@/lib/api/ep-client";
 import { useAuth } from "@/context/AuthContext";
 import type { CheckoutFormData } from "./use-checkout";
 
+export type BillingAddr = {
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  line_1: string;
+  line_2?: string;
+  city: string;
+  postcode: string;
+  county?: string;
+  country: string;
+  region?: string;
+};
+
 export function useEpStripePayment(
   lang: string,
   savedAddresses: AccountAddressResponse[] = []
@@ -24,13 +37,15 @@ export function useEpStripePayment(
   const { credentials } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const processPayment = useCallback(
     async (
       formData: CheckoutFormData,
       stripe: Stripe,
-      elements: StripeElements
+      elements: StripeElements,
+      billingAddressOverride?: BillingAddr | null
     ) => {
       if (!cartId) {
         setError(t("noCartError"));
@@ -112,18 +127,31 @@ export function useEpStripePayment(
             data: {
               ...contactOrCustomer,
               shipping_address: shippingAddr,
-              billing_address: {
-                first_name: shippingAddr.first_name,
-                last_name: shippingAddr.last_name,
-                company_name: shippingAddr.company_name,
-                line_1: shippingAddr.line_1,
-                line_2: shippingAddr.line_2,
-                city: shippingAddr.city,
-                postcode: shippingAddr.postcode,
-                county: shippingAddr.county,
-                country: shippingAddr.country,
-                region: shippingAddr.region,
-              },
+              billing_address: billingAddressOverride
+                ? {
+                    first_name: billingAddressOverride.first_name,
+                    last_name: billingAddressOverride.last_name,
+                    company_name: billingAddressOverride.company_name ?? "",
+                    line_1: billingAddressOverride.line_1,
+                    line_2: billingAddressOverride.line_2 ?? "",
+                    city: billingAddressOverride.city,
+                    postcode: billingAddressOverride.postcode,
+                    county: billingAddressOverride.county ?? "",
+                    country: billingAddressOverride.country,
+                    region: billingAddressOverride.region ?? "",
+                  }
+                : {
+                    first_name: shippingAddr.first_name,
+                    last_name: shippingAddr.last_name,
+                    company_name: shippingAddr.company_name,
+                    line_1: shippingAddr.line_1,
+                    line_2: shippingAddr.line_2,
+                    city: shippingAddr.city,
+                    postcode: shippingAddr.postcode,
+                    county: shippingAddr.county,
+                    country: shippingAddr.country,
+                    region: shippingAddr.region,
+                  },
             },
           },
         });
@@ -153,11 +181,21 @@ export function useEpStripePayment(
           throw new Error(t("paymentSetupFailed"));
         }
 
-        // 3. Confirm payment with Stripe using the client secret from EP
+        // 3. Confirm payment with Stripe using the client secret from EP.
+        // return_url is required for automatic payment methods (Klarna, Clearpay, 3DS redirects).
+        // For standard card payments redirect:"if_required" means this URL is never visited.
+        // Redirect-based methods land on /payment-return which confirms with EP and clears the cart.
+        const returnUrl = new URL(`${window.location.origin}/${lang}/payment-return`);
+        returnUrl.searchParams.set("orderId", orderId);
+        if (transactionId) returnUrl.searchParams.set("transactionId", transactionId);
+
         const { error: stripeError } = await stripe.confirmPayment({
           elements,
           clientSecret,
           redirect: "if_required",
+          confirmParams: {
+            return_url: returnUrl.toString(),
+          },
         });
 
         if (stripeError) {
@@ -175,6 +213,7 @@ export function useEpStripePayment(
           });
         }
 
+        setIsRedirecting(true);
         router.push(`/${lang}/order-confirmation/${orderId}`);
         await clearCart();
       } catch (err) {
@@ -190,5 +229,5 @@ export function useEpStripePayment(
     [cartId, clearCart, router, lang, savedAddresses, credentials, t]
   );
 
-  return { processPayment, isLoading, error };
+  return { processPayment, isLoading, isRedirecting, error };
 }

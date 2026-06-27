@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Trash2, Package, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardBody, CardFooter } from "@/components/ui/Card";
@@ -226,9 +227,13 @@ export function ShipmentCard({
               }`}
             >
               <DotGrip />
-              <div className="w-11 h-11 rounded-lg border border-gray-200 bg-white flex items-center justify-center flex-shrink-0 text-gray-300">
-                <Package size={18} />
-              </div>
+              <span className="w-11 h-11 rounded-lg border border-gray-200 bg-white flex items-center justify-center flex-shrink-0 overflow-hidden relative text-gray-300">
+                {item.imageHref ? (
+                  <Image src={item.imageHref} alt={item.name ?? ""} fill sizes="44px" className="object-cover" />
+                ) : (
+                  <Package size={18} />
+                )}
+              </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate leading-snug">
                   {item.name}

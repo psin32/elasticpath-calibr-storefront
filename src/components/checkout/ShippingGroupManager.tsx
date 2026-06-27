@@ -39,9 +39,10 @@ type Props = {
   onReadyChange?: (allAssigned: boolean) => void;
   onShippingCostChange?: (cents: number, currency: string) => void;
   onLoadingChange?: (isLoading: boolean) => void;
+  onGroupsChange?: (groups: Group[]) => void;
 };
 
-export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLoadingChange }: Props) {
+export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLoadingChange, onGroupsChange }: Props) {
   const t = useTranslations("shipping");
   const { cartId } = useCart();
   const { addresses, addAddress } = useAccountAddresses();
@@ -105,7 +106,8 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
     if (!res) return;
     const raw = (res.data?.data ?? [])
       .filter((i): i is CartItemObject =>
-        (i as CartItemObject).type === "cart_item" || !(i as CartItemObject).type) as CartItem[];
+        (i as CartItemObject).type === "cart_item" || !(i as CartItemObject).type)
+      .map((i) => ({ ...i, imageHref: (i as any).image?.href as string | undefined })) as CartItem[];
     setCartItems(await mergeGroupDuplicates(raw, cartId, client));
   }, [cartId]);
 
@@ -133,7 +135,10 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           (i as CartItemObject).type === "cart_item" || !(i as CartItemObject).type)
         .map((i) => {
           const gid = (i as CartItemObject & { shipping_group_id?: string }).shipping_group_id;
-          return gid && !liveIds.has(gid) ? { ...i, shipping_group_id: undefined } : i;
+          const imageHref = (i as any).image?.href as string | undefined;
+          return gid && !liveIds.has(gid)
+            ? { ...i, imageHref, shipping_group_id: undefined }
+            : { ...i, imageHref };
         }) as CartItem[];
 
       setGroups(loaded);
@@ -201,6 +206,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
 
   useEffect(() => { onReadyChange?.(allAssigned); }, [allAssigned, onReadyChange]);
   useEffect(() => { onLoadingChange?.(loading); }, [loading, onLoadingChange]);
+  useEffect(() => { onGroupsChange?.(groups); }, [groups, onGroupsChange]);
 
   useEffect(() => {
     if (!openMenuId && !unassignedMenuId) return;

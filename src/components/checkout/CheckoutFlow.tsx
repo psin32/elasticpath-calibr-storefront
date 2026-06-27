@@ -1,33 +1,42 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Check, ArrowRight, ShoppingBag } from "lucide-react";
+import { Check, ArrowRight, ShoppingBag, CreditCard, FileText, Lock } from "lucide-react";
 import { Elements } from "@stripe/react-stripe-js";
-import type { StripeElementsOptions } from "@stripe/stripe-js";
+import type { StripeElementsOptions, StripeElementLocale } from "@stripe/stripe-js";
 import { CheckoutUserInfo } from "./CheckoutUserInfo";
 import { ShippingGroupManager } from "./ShippingGroupManager";
 import { OrderSummary } from "./OrderSummary";
 import { StripePaymentForm } from "./StripePaymentForm";
+import { POPaymentForm } from "./POPaymentForm";
+import { BillingAddressSection } from "./BillingAddressSection";
 import { Input } from "@/components/ui/Input/Input";
 import { Button } from "@/components/ui/Button/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { type CheckoutFormData } from "@/hooks/use-checkout";
 import { useEpStripePayment } from "@/hooks/use-ep-stripe-payment";
+import { useEpPOPayment } from "@/hooks/use-ep-po-payment";
 import { useAccountAddresses } from "@/hooks/use-account-addresses";
 import { stripePromise } from "@/lib/stripe";
+import type { BillingAddr } from "@/hooks/use-ep-stripe-payment";
+import type { Group } from "@/components/checkout/shipping/types";
 
 type Step = "shipping" | "payment";
 
 export function CheckoutFlow({ lang }: { lang: string }) {
   const t = useTranslations("checkout");
   const { items, cartTotal, cartTotalAmount, isInitializing } = useCart();
-  const { addresses } = useAccountAddresses();
-  const { processPayment, isLoading, error } = useEpStripePayment(lang, addresses);
+  const { addresses, addAddress } = useAccountAddresses();
+  const { processPayment, isLoading, isRedirecting, error } = useEpStripePayment(lang, addresses);
+  const { processPayment: processPOPayment, isLoading: isPOLoading, isRedirecting: isPORedirecting, error: poError } = useEpPOPayment(lang, addresses);
   const { isAuthenticated, credentials } = useAuth();
+
+  const stripeFormRef = useRef<HTMLFormElement>(null);
+  const poFormRef = useRef<HTMLFormElement>(null);
 
   const [step, setStep] = useState<Step>("shipping");
   const [shippingReady, setShippingReady] = useState(false);
@@ -35,6 +44,14 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const [savedFormData, setSavedFormData] = useState<CheckoutFormData | null>(null);
   const [shippingCostCents, setShippingCostCents] = useState(0);
   const [shippingCurrency, setShippingCurrency] = useState("USD");
+  const [shippingGroups, setShippingGroups] = useState<Group[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "po">("card");
+  // undefined = not yet initialized; null = "same as shipping" (valid); BillingAddr = explicit address
+  const [billingAddress, setBillingAddress] = useState<BillingAddr | null | undefined>(undefined);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [isStripeConfirming, setIsStripeConfirming] = useState(false);
+
+  const isPlacingOrder = isLoading || isPOLoading || isStripeConfirming;
 
   const handleShippingCostChange = useCallback((cents: number, currency: string) => {
     setShippingCostCents(cents);
@@ -83,10 +100,10 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const stripeElementsOptions = useMemo<StripeElementsOptions>(
     () => ({
       mode: "payment",
+      locale: lang as StripeElementLocale,
       currency: (items[0]?.currency ?? shippingCurrency).toLowerCase(),
       amount: Math.max(100, cartTotalAmount + shippingCostCents),
       capture_method: "automatic",
-      payment_method_types: ["card"],
       paymentMethodCreation: "manual",
       appearance: {
         theme: "stripe",
@@ -169,7 +186,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
     </header>
   );
 
-  if (!isInitializing && !shippingLoading && items.length === 0) {
+  if (!isInitializing && !shippingLoading && !isRedirecting && !isPORedirecting && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {pageHeader}
@@ -192,7 +209,19 @@ export function CheckoutFlow({ lang }: { lang: string }) {
 
   function handleContinueToPayment(data: CheckoutFormData) {
     setSavedFormData(data);
+    setBillingAddress(undefined);
+    setBillingError(null);
     setStep("payment");
+  }
+
+  function handlePlaceOrder() {
+    if (billingAddress === undefined) {
+      setBillingError(t("billingRequired"));
+      return;
+    }
+    setBillingError(null);
+    if (paymentMethod === "card") stripeFormRef.current?.requestSubmit();
+    else poFormRef.current?.requestSubmit();
   }
 
   const orderSummaryPanel = (
@@ -262,6 +291,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
               onReadyChange={setShippingReady}
               onShippingCostChange={handleShippingCostChange}
               onLoadingChange={setShippingLoading}
+              onGroupsChange={setShippingGroups}
             />
 
             {shippingLoading ? (
@@ -295,7 +325,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const step2 = (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-5">
           {/* Shipping summary — compact flat row */}
           <div className="flex items-center justify-between pb-5 border-b border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -319,21 +349,100 @@ export function CheckoutFlow({ lang }: { lang: string }) {
             </button>
           </div>
 
-          {/* Payment form — fills full column width, no card boxing */}
-          <div className="space-y-6">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              {t("paymentDetails")}
-            </h2>
+          {/* Billing address card */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t("billingAddress")}</h2>
+            <BillingAddressSection
+              addresses={addresses}
+              hasShippingGroups={shippingGroups.length > 0}
+              addAddress={addAddress}
+              onAddressChange={(addr) => { setBillingAddress(addr); setBillingError(null); }}
+              error={billingError}
+            />
+          </div>
 
-            <Elements stripe={stripePromise} options={stripeElementsOptions}>
-              <StripePaymentForm
-                onPayment={(stripe, elements) =>
-                  processPayment(savedFormData!, stripe, elements)
-                }
-                isProcessing={isLoading}
-                externalError={error}
-              />
-            </Elements>
+          {/* Payment method accordion card */}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t("paymentMethod")}</h2>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {/* Card */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("card")}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "card" ? "border-brand-primary" : "border-gray-300"}`}>
+                    {paymentMethod === "card" && <span className="w-2 h-2 rounded-full bg-brand-primary" />}
+                  </span>
+                  <CreditCard size={16} className={paymentMethod === "card" ? "text-brand-primary" : "text-gray-400"} />
+                  <span className={`text-sm font-medium ${paymentMethod === "card" ? "text-gray-900" : "text-gray-500"}`}>
+                    {t("payCard")}
+                  </span>
+                </button>
+                {paymentMethod === "card" && (
+                  <div className="px-5 pb-5">
+                    <Elements stripe={stripePromise} options={stripeElementsOptions}>
+                      <StripePaymentForm
+                        onPayment={(stripe, elements) =>
+                          processPayment(savedFormData!, stripe, elements, billingAddress ?? null)
+                        }
+                        isProcessing={isLoading}
+                        externalError={error}
+                        formRef={stripeFormRef}
+                        onConfirmingChange={setIsStripeConfirming}
+                      />
+                    </Elements>
+                  </div>
+                )}
+              </div>
+
+              {/* Purchase Order */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("po")}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "po" ? "border-brand-primary" : "border-gray-300"}`}>
+                    {paymentMethod === "po" && <span className="w-2 h-2 rounded-full bg-brand-primary" />}
+                  </span>
+                  <FileText size={16} className={paymentMethod === "po" ? "text-brand-primary" : "text-gray-400"} />
+                  <span className={`text-sm font-medium ${paymentMethod === "po" ? "text-gray-900" : "text-gray-500"}`}>
+                    {t("payPO")}
+                  </span>
+                </button>
+                {paymentMethod === "po" && (
+                  <div className="px-5 pb-5">
+                    <POPaymentForm
+                      onSubmit={(poNumber) => processPOPayment(savedFormData!, poNumber, billingAddress ?? null)}
+                      isProcessing={isPOLoading}
+                      externalError={poError}
+                      formRef={poFormRef}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Place Order — below both cards */}
+          <div className="space-y-3 pt-1">
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={handlePlaceOrder}
+              isLoading={isPlacingOrder}
+              disabled={isPlacingOrder}
+              leftIcon={!isPlacingOrder ? <Lock size={16} /> : undefined}
+            >
+              {isPlacingOrder ? t("placingOrder") : t("placeOrder")}
+            </Button>
+            <p className="text-center text-xs text-gray-400">{t("securePayment")}</p>
           </div>
         </div>
 

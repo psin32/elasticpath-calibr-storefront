@@ -18,6 +18,7 @@ export type CartItem = {
   name?: string;
   sku?: string;
   quantity?: number;
+  imageHref?: string;
   shipping_group_id?: string;
   custom_inputs?: Record<string, unknown>;
   meta?: {

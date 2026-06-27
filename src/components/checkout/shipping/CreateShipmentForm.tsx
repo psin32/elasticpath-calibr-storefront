@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -213,14 +214,27 @@ export function CreateShipmentForm({
       {/* Items to assign */}
       {unassigned.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-            {t("itemsToAssign")}
-            {pickedItems.length > 0 && (
-              <span className="ml-2 normal-case text-brand-primary">
-                {t("selectedCount", { count: pickedItems.length })}
-              </span>
-            )}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+              {t("itemsToAssign")}
+              {pickedItems.length > 0 && (
+                <span className="ml-2 normal-case text-brand-primary">
+                  {t("selectedCount", { count: pickedItems.length })}
+                </span>
+              )}
+            </p>
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-500 hover:text-gray-700">
+              <Checkbox
+                checked={pickedItems.length === unassigned.length}
+                onChange={(e) => {
+                  setPickedItems(() =>
+                    e.target.checked ? unassigned.map((i) => i.id ?? "") : [],
+                  );
+                }}
+              />
+              {t("selectAll")}
+            </label>
+          </div>
           <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
             {unassigned.map((item) => {
               const checked = pickedItems.includes(item.id ?? "");
@@ -240,8 +254,18 @@ export function CreateShipmentForm({
                       );
                     }}
                   />
-                  <span className="w-10 h-10 rounded-lg border border-gray-100 bg-white flex items-center justify-center flex-shrink-0">
-                    <Package size={16} className="text-gray-300" />
+                  <span className="w-10 h-10 rounded-lg border border-gray-100 bg-white flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                    {item.imageHref ? (
+                      <Image
+                        src={item.imageHref}
+                        alt={item.name ?? ""}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Package size={16} className="text-gray-300" />
+                    )}
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-semibold text-gray-900 truncate">
