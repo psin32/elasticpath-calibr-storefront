@@ -2,146 +2,135 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { User, Building2, ShoppingBag, LogOut, Check } from "lucide-react";
+import {
+  User,
+  MapPin,
+  ShoppingBag,
+  ShoppingCart,
+  FileText,
+  RefreshCw,
+  LogOut,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-type Props = { lang: string };
+type Tab =
+  | "personal"
+  | "addresses"
+  | "orders"
+  | "carts"
+  | "quotes"
+  | "subscriptions";
 
-export function AccountPageContent({ lang }: Props) {
+type Props = { lang: string; children: React.ReactNode };
+
+export function AccountPageContent({ lang, children }: Props) {
   const t = useTranslations("account");
-  const { credentials, selectedAccount, isAuthenticated, selectAccount, logout } = useAuth();
+  const { credentials, selectedAccount, isAuthenticated, isLoading, logout } =
+    useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.replace(`/${lang}`);
     }
-  }, [isAuthenticated, router, lang]);
+  }, [isLoading, isAuthenticated, router, lang]);
 
+  if (isLoading) return null;
   if (!selectedAccount || !credentials) return null;
 
   const name = selectedAccount.account_name;
   const initialsSource = credentials.member_name || name;
   const initials = initialsSource
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
 
-  const accountList = Object.values(credentials.accounts);
+  const TABS: Array<{ key: Tab; icon: React.ReactNode; label: string }> = [
+    { key: "personal", icon: <User size={15} />, label: t("tabPersonal") },
+    { key: "addresses", icon: <MapPin size={15} />, label: t("tabAddresses") },
+    { key: "orders", icon: <ShoppingBag size={15} />, label: t("tabOrders") },
+    { key: "carts", icon: <ShoppingCart size={15} />, label: t("tabCarts") },
+    { key: "quotes", icon: <FileText size={15} />, label: t("tabQuotes") },
+    {
+      key: "subscriptions",
+      icon: <RefreshCw size={15} />,
+      label: t("tabSubscriptions"),
+    },
+  ];
 
   return (
-    <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">{t("title")}</h1>
-
-      {/* Profile card */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 flex items-center gap-5">
-        <div className="w-16 h-16 rounded-full bg-brand-primary text-white text-xl font-bold flex items-center justify-center shrink-0">
-          {initials}
-        </div>
-        <div className="min-w-0">
-          {credentials.member_name && (
-            <p className="text-lg font-semibold text-gray-900 truncate">
-              {credentials.member_name}
-            </p>
-          )}
-          <p className={`truncate ${credentials.member_name ? "text-sm text-gray-500" : "text-lg font-semibold text-gray-900"}`}>
-            {name}
-          </p>
-          {credentials.member_email && (
-            <p className="text-xs text-gray-400 truncate mt-0.5">{credentials.member_email}</p>
-          )}
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Page heading */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
       </div>
 
-      {/* Account details */}
-      <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-100 mb-6">
-        <div className="flex items-center gap-3 px-6 py-4">
-          <User size={18} className="text-gray-400 shrink-0" />
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">{t("accountName")}</p>
-            <p className="text-sm text-gray-800">{name}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 px-6 py-4">
-          <Building2 size={18} className="text-gray-400 shrink-0" />
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">{t("accountId")}</p>
-            <p className="text-xs text-gray-800 font-mono">{selectedAccount.account_id}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Multiple accounts */}
-      {accountList.length > 1 && (
-        <div className="bg-white border border-gray-100 rounded-2xl mb-6">
-          <p className="px-6 pt-4 pb-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
-            {t("accounts")}
-          </p>
-          <div className="divide-y divide-gray-100">
-            {accountList.map((account) => {
-              const isActive = account.account_id === credentials.selected;
-              return (
-                <button
-                  key={account.account_id}
-                  type="button"
-                  onClick={() => !isActive && selectAccount(account.account_id)}
-                  disabled={isActive}
-                  className={`flex items-center gap-3 w-full px-6 py-3 text-left transition-colors ${
-                    isActive
-                      ? "cursor-default"
-                      : "hover:bg-gray-50 cursor-pointer"
-                  }`}
+      <div className="flex gap-6 items-start">
+        {/* Sidebar */}
+        <aside className="flex-none w-56 sticky top-6">
+          {/* Profile card */}
+          <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand-primary text-white text-sm font-bold flex items-center justify-center shrink-0 select-none">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                {credentials.member_name && (
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {credentials.member_name}
+                  </p>
+                )}
+                <p
+                  className={
+                    credentials.member_name
+                      ? "text-xs text-gray-400 truncate"
+                      : "text-sm font-semibold text-gray-900 truncate"
+                  }
                 >
-                  <Building2
-                    size={15}
-                    className={`shrink-0 ${isActive ? "text-brand-primary" : "text-gray-400"}`}
-                  />
+                  {name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav
+            className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm"
+            aria-label="Account sections"
+          >
+            {TABS.map(({ key, icon, label }) => {
+              const active = pathname.includes(`/account/${key}`);
+              return (
+                <Link
+                  key={key}
+                  href={`/${lang}/account/${key}`}
+                  className={[
+                    "flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors border-l-2",
+                    active
+                      ? "bg-brand-primary/10 text-brand-primary border-brand-primary"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent",
+                  ].join(" ")}
+                >
                   <span
-                    className={`text-sm flex-1 ${isActive ? "font-medium text-gray-900" : "text-gray-700"}`}
+                    className={active ? "text-brand-primary" : "text-gray-400"}
                   >
-                    {account.account_name}
+                    {icon}
                   </span>
-                  {isActive ? (
-                    <span className="flex items-center gap-1 text-xs bg-brand-accent/20 text-brand-secondary px-2 py-0.5 rounded-full font-medium">
-                      <Check size={11} />
-                      {t("active")}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400">{t("switchAccount")}</span>
-                  )}
-                </button>
+                  {label}
+                </Link>
               );
             })}
-          </div>
-        </div>
-      )}
+          </nav>
+        </aside>
 
-      {/* Actions */}
-      <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-100 mb-8">
-        <Link
-          href={`/${lang}`}
-          className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors"
-        >
-          <ShoppingBag size={18} className="text-gray-400 shrink-0" />
-          <span className="text-sm text-gray-700">{t("continueShopping")}</span>
-        </Link>
+        {/* Content */}
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
-
-      <button
-        type="button"
-        onClick={() => {
-          logout();
-          router.push(`/${lang}`);
-        }}
-        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 font-medium"
-      >
-        <LogOut size={16} />
-        {t("signOut")}
-      </button>
-    </main>
+    </div>
   );
 }

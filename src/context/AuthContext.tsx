@@ -62,10 +62,11 @@ function isCredentialsExpired(credentials: AccountMemberCredentials): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [credentials, setCredentials] =
     useState<AccountMemberCredentials | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Hydrate from localStorage on mount — isLoading stays true until this completes
   useEffect(() => {
     try {
       const stored = localStorage.getItem(AM_CREDENTIALS_STORAGE_KEY);
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch {}
+    setIsLoading(false);
   }, []);
 
   const persistCredentials = useCallback(

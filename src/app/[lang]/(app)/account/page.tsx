@@ -1,5 +1,4 @@
-import { Header } from "@/components/header/Header";
-import { AccountPageContent } from "@/components/account/AccountPageContent";
+import { redirect } from "next/navigation";
 
 type Props = {
   params: Promise<{ lang: string }>;
@@ -7,10 +6,5 @@ type Props = {
 
 export default async function AccountPage({ params }: Props) {
   const { lang } = await params;
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header lang={lang} />
-      <AccountPageContent lang={lang} />
-    </div>
-  );
+  redirect(`/${lang}/account/personal`);
 }

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { User, LogOut, ChevronDown, Check, Building2 } from "lucide-react";
+import { User, LogOut, ChevronDown, Check, Building2, MapPin, ShoppingBag, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 
@@ -133,14 +133,41 @@ export function AccountButton() {
           )}
 
           {/* Navigation */}
-          <Link
-            href={`/${lang}/account`}
-            onClick={() => setShowDropdown(false)}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <User size={15} />
-            {t("myAccount")}
-          </Link>
+          <div className="py-1">
+            <Link
+              href={`/${lang}/account/personal`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <User size={15} />
+              {t("myAccount")}
+            </Link>
+            <Link
+              href={`/${lang}/account/addresses`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <MapPin size={15} />
+              {tAccount("tabAddresses")}
+            </Link>
+            <Link
+              href={`/${lang}/account/orders`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ShoppingBag size={15} />
+              {tAccount("tabOrders")}
+            </Link>
+            <Link
+              href={`/${lang}/account/carts`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ShoppingCart size={15} />
+              {tAccount("tabCarts")}
+            </Link>
+          </div>
+          <div className="border-t border-gray-100" />
           <button
             type="button"
             onClick={() => {

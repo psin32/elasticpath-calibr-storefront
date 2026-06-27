@@ -17,6 +17,7 @@ import {
   getCarts,
   createACart,
   deleteACart,
+  updateACart,
   updateACartItem,
   deleteACartItem,
   deleteAllCartItems,
@@ -57,6 +58,8 @@ export type CartSummary = {
   description?: string;
   totalFormatted?: string;
   itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const CART_STORAGE_KEY = "_store_ep_cart";
@@ -70,12 +73,14 @@ type CartContextValue = {
   allCarts: CartSummary[];
   isLoading: boolean;
   addItem: (productId: string, quantity?: number, customInputs?: Record<string, string>) => Promise<void>;
+  addItems: (items: Array<{ productId: string; quantity: number }>) => Promise<void>;
   addBundleItem: (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity?: number) => Promise<void>;
   removeItem: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   switchCart: (newCartId: string) => Promise<void>;
   createCart: (name: string) => Promise<string | null>;
+  updateCart: (id: string, name: string, description?: string) => Promise<void>;
   deleteCart: (targetCartId: string) => Promise<void>;
   clearCartById: (targetCartId: string) => Promise<void>;
 };
@@ -157,7 +162,7 @@ function parseCartResponse(response: CartsResponse): {
   return { items, cartTotal, cartTotalAmount };
 }
 
-function toCartSummary(c: CartResponse): CartSummary {
+function toCartSummary(c: CartResponse, itemCountOverride?: number): CartSummary {
   return {
     id: c.id ?? "",
     name: c.name ?? c.id ?? "Cart",
@@ -166,7 +171,9 @@ function toCartSummary(c: CartResponse): CartSummary {
       (c as any).meta?.display_price?.with_tax?.formatted ??
       (c as any).meta?.display_price?.without_tax?.formatted ??
       undefined,
-    itemCount: (c as any).meta?.item_count ?? undefined,
+    itemCount: itemCountOverride ?? (c as any).meta?.item_count ?? undefined,
+    createdAt: (c as any).meta?.timestamps?.created_at ?? undefined,
+    updatedAt: ((c as any).meta?.timestamps?.updated_at as string | undefined) ?? undefined,
   };
 }
 
@@ -248,9 +255,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       const res = await getCarts({ client: epClient }).catch(() => null);
-      const allCartsRaw = res?.data?.data ?? [];
+      const allCartsRaw: any[] = res?.data?.data ?? [];
       const nonQuoteCarts = allCartsRaw.filter((c: any) => !c.is_quote);
-      setAllCarts(allCartsRaw.map(toCartSummary));
+
+      // Count cart_item refs from each cart's relationships (excludes promotions)
+      // relationships.items.data is always populated when items exist — no reverse lookup needed
+      setAllCarts(allCartsRaw.map((c: any) => {
+        const itemRefs: any[] | null = c.relationships?.items?.data ?? null;
+        const countFromRels = itemRefs !== null
+          ? itemRefs.filter((i: any) => i.type === "cart_item").length
+          : undefined;
+        return toCartSummary(c, countFromRels);
+      }));
 
       // cartId is already an account cart — nothing to merge
       if (nonQuoteCarts.some((c: any) => c.id === cartId)) {
@@ -327,6 +343,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
           client: epClient,
           path: { cartID: cartId },
           body,
+        });
+        if (res.data) applyCartsResponse(res.data);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [epClient, cartId, applyCartsResponse]
+  );
+
+  const addItems = useCallback(
+    async (items: Array<{ productId: string; quantity: number }>) => {
+      if (!epClient || !cartId || items.length === 0) return;
+      setIsLoading(true);
+      try {
+        const res = await manageCarts({
+          client: epClient,
+          path: { cartID: cartId },
+          body: {
+            data: items.map(({ productId, quantity }) => ({
+              type: "cart_item" as const,
+              id: productId,
+              quantity,
+            })),
+          },
         });
         if (res.data) applyCartsResponse(res.data);
       } finally {
@@ -496,6 +536,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [epClient, cartId, allCarts, switchCart]
   );
 
+  const updateCart = useCallback(
+    async (targetCartId: string, name: string, description?: string) => {
+      if (!epClient) return;
+      await updateACart({
+        client: epClient,
+        path: { cartID: targetCartId },
+        body: { data: { name, description } },
+      }).catch(() => null);
+      setAllCarts((prev) =>
+        prev.map((c) =>
+          c.id === targetCartId ? { ...c, name, description } : c
+        )
+      );
+    },
+    [epClient]
+  );
+
   const clearCartById = useCallback(
     async (targetCartId: string) => {
       if (!epClient) return;
@@ -532,12 +589,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         allCarts,
         isLoading,
         addItem,
+        addItems,
         addBundleItem,
         removeItem,
         updateQuantity,
         clearCart,
         switchCart,
         createCart,
+        updateCart,
         deleteCart,
         clearCartById,
       }}
