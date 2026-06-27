@@ -235,7 +235,29 @@
     "orderColumnShipping": "Livraison",
     "orderColumnTotal": "Total",
     "reorder": "Renouveler",
-    "reordering": "Ajout…"
+    "reordering": "Ajout…",
+    "backToOrders": "Retour aux commandes",
+    "orderItems": "Articles",
+    "orderItemName": "Produit",
+    "orderItemSku": "Référence",
+    "orderItemQty": "Qté",
+    "orderItemUnitPrice": "Prix unitaire",
+    "orderItemTotal": "Total",
+    "orderSubtotal": "Sous-total",
+    "orderShippingCost": "Livraison",
+    "orderTax": "Taxe",
+    "orderDiscount": "Remise",
+    "orderTotal": "Total de la commande",
+    "orderSummary": "Récapitulatif de la commande",
+    "shippingAddress": "Adresse de livraison",
+    "billingAddress": "Adresse de facturation",
+    "orderNotFound": "Commande introuvable",
+    "shippingGroup": "Expédition",
+    "noItems": "Aucun article",
+    "deliveryEstimate": "Livraison estimée",
+    "shippingCharge": "Frais de livraison",
+    "itemTax": "Taxe",
+    "itemDiscount": "Remise"
   },
   "cart": {
     "title": "Panier",
@@ -445,5 +467,19 @@
     "backToCart": "Retour au panier",
     "edit": "Modifier",
     "listLabel": "catalogue"
+  },
+  "orderConfirmation": {
+    "title": "Commande confirmée !",
+    "subtitle": "Merci pour votre commande. Nous l'avons bien reçue et nous allons la préparer et l'expédier rapidement.",
+    "detailsTitle": "Détails de la commande",
+    "orderId": "N° de commande",
+    "status": "Statut",
+    "statusProcessing": "En cours",
+    "nextTitle": "Que se passe-t-il ensuite ?",
+    "nextStep1": "Vous recevrez une confirmation par e-mail sous peu.",
+    "nextStep2": "Notre équipe va préparer et emballer vos articles.",
+    "nextStep3": "Votre commande est expédiée avec un numéro de suivi par e-mail.",
+    "continueShopping": "Continuer mes achats",
+    "backToHome": "Retour à l'accueil"
   }
 }

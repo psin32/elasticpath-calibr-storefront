@@ -2,6 +2,8 @@ import { Header } from "@/components/header/Header";
 import { CheckCircle, Package, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { OrderConfirmationDetail } from "@/components/order/OrderConfirmationDetail";
 
 type Props = {
   params: Promise<{ lang: string; orderId: string }>;
@@ -13,11 +15,12 @@ export const metadata: Metadata = {
 
 export default async function OrderConfirmationPage({ params }: Props) {
   const { lang, orderId } = await params;
+  const t = await getTranslations("orderConfirmation");
 
   return (
     <div className="min-h-screen bg-white">
       <Header lang={lang} />
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Success icon */}
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-6">
@@ -25,14 +28,8 @@ export default async function OrderConfirmationPage({ params }: Props) {
               <CheckCircle size={40} className="text-brand-secondary" />
             </div>
           </div>
-
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Order confirmed!
-          </h1>
-          <p className="text-gray-500 text-base max-w-md">
-            Thank you for your order. We&apos;ve received it and will get it
-            packed and shipped soon.
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">{t("title")}</h1>
+          <p className="text-gray-500 text-base max-w-md">{t("subtitle")}</p>
         </div>
 
         {/* Order reference card */}
@@ -40,34 +37,32 @@ export default async function OrderConfirmationPage({ params }: Props) {
           <div className="flex items-center gap-3">
             <Package size={20} className="text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Order details
+              {t("detailsTitle")}
             </h2>
           </div>
-
           <div className="space-y-2">
-            <DetailRow label="Order ID" value={orderId} mono />
-            <DetailRow label="Status" value="Processing" />
+            <DetailRow label={t("orderId")} value={orderId} mono />
+            <DetailRow label={t("status")} value={t("statusProcessing")} />
           </div>
         </div>
+
+        {/* Order items, summary, addresses */}
+        <OrderConfirmationDetail orderId={orderId} />
 
         {/* What's next */}
         <div className="mt-8 rounded-2xl border border-gray-100 px-8 py-6 space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            What happens next?
+            {t("nextTitle")}
           </h2>
           <ol className="space-y-2 text-sm text-gray-600">
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-brand-secondary text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
-              You&apos;ll receive an email confirmation shortly.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-brand-secondary text-white text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
-              Our team will pick and pack your items.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-brand-secondary text-white text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
-              Your order ships with a tracking number via email.
-            </li>
+            {(["nextStep1", "nextStep2", "nextStep3"] as const).map((key, i) => (
+              <li key={key} className="flex items-start gap-2">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-brand-secondary text-white text-[10px] font-bold flex items-center justify-center mt-0.5">
+                  {i + 1}
+                </span>
+                {t(key)}
+              </li>
+            ))}
           </ol>
         </div>
 
@@ -77,14 +72,14 @@ export default async function OrderConfirmationPage({ params }: Props) {
             href={`/${lang}`}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
           >
-            Continue shopping
+            {t("continueShopping")}
             <ArrowRight size={16} />
           </Link>
           <Link
             href={`/${lang}`}
             className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
-            Back to home
+            {t("backToHome")}
           </Link>
         </div>
       </main>
@@ -104,13 +99,7 @@ function DetailRow({
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-gray-500">{label}</span>
-      <span
-        className={
-          mono
-            ? "font-mono text-gray-800 text-xs bg-gray-100 px-2 py-0.5 rounded"
-            : "font-medium text-gray-800"
-        }
-      >
+      <span className={mono ? "font-mono text-gray-800 text-xs bg-gray-100 px-2 py-0.5 rounded" : "font-medium text-gray-800"}>
         {value}
       </span>
     </div>

@@ -235,7 +235,29 @@
     "orderColumnShipping": "Envío",
     "orderColumnTotal": "Total",
     "reorder": "Repetir pedido",
-    "reordering": "Añadiendo…"
+    "reordering": "Añadiendo…",
+    "backToOrders": "Volver a pedidos",
+    "orderItems": "Artículos",
+    "orderItemName": "Producto",
+    "orderItemSku": "SKU",
+    "orderItemQty": "Cant.",
+    "orderItemUnitPrice": "Precio unitario",
+    "orderItemTotal": "Total",
+    "orderSubtotal": "Subtotal",
+    "orderShippingCost": "Envío",
+    "orderTax": "Impuesto",
+    "orderDiscount": "Descuento",
+    "orderTotal": "Total del pedido",
+    "orderSummary": "Resumen del pedido",
+    "shippingAddress": "Dirección de envío",
+    "billingAddress": "Dirección de facturación",
+    "orderNotFound": "Pedido no encontrado",
+    "shippingGroup": "Envío",
+    "noItems": "Sin artículos",
+    "deliveryEstimate": "Entrega estimada",
+    "shippingCharge": "Coste de envío",
+    "itemTax": "Impuesto",
+    "itemDiscount": "Descuento"
   },
   "cart": {
     "title": "Carrito",
@@ -445,5 +467,19 @@
     "backToCart": "Volver al carrito",
     "edit": "Editar",
     "listLabel": "catálogo"
+  },
+  "orderConfirmation": {
+    "title": "¡Pedido confirmado!",
+    "subtitle": "Gracias por su pedido. Lo hemos recibido y lo prepararemos y enviaremos pronto.",
+    "detailsTitle": "Detalles del pedido",
+    "orderId": "N.º de pedido",
+    "status": "Estado",
+    "statusProcessing": "En proceso",
+    "nextTitle": "¿Qué ocurre a continuación?",
+    "nextStep1": "Recibirá una confirmación por correo electrónico en breve.",
+    "nextStep2": "Nuestro equipo preparará y empaquetará sus artículos.",
+    "nextStep3": "Su pedido se envía con un número de seguimiento por correo electrónico.",
+    "continueShopping": "Seguir comprando",
+    "backToHome": "Volver al inicio"
   }
 }

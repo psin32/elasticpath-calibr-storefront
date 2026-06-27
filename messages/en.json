@@ -235,7 +235,29 @@
     "orderColumnShipping": "Shipping",
     "orderColumnTotal": "Order Total",
     "reorder": "Reorder",
-    "reordering": "Adding…"
+    "reordering": "Adding…",
+    "backToOrders": "Back to Orders",
+    "orderItems": "Items",
+    "orderItemName": "Product",
+    "orderItemSku": "SKU",
+    "orderItemQty": "Qty",
+    "orderItemUnitPrice": "Unit Price",
+    "orderItemTotal": "Total",
+    "orderSubtotal": "Subtotal",
+    "orderShippingCost": "Shipping",
+    "orderTax": "Tax",
+    "orderDiscount": "Discount",
+    "orderTotal": "Order Total",
+    "orderSummary": "Order Summary",
+    "shippingAddress": "Shipping Address",
+    "billingAddress": "Billing Address",
+    "orderNotFound": "Order not found",
+    "shippingGroup": "Shipment",
+    "noItems": "No items",
+    "deliveryEstimate": "Estimated delivery",
+    "shippingCharge": "Shipping charge",
+    "itemTax": "Tax",
+    "itemDiscount": "Discount"
   },
   "cart": {
     "title": "Cart",
@@ -445,5 +467,19 @@
     "backToCart": "Back to cart",
     "edit": "Edit",
     "listLabel": "list"
+  },
+  "orderConfirmation": {
+    "title": "Order confirmed!",
+    "subtitle": "Thank you for your order. We've received it and will get it packed and shipped soon.",
+    "detailsTitle": "Order details",
+    "orderId": "Order ID",
+    "status": "Status",
+    "statusProcessing": "Processing",
+    "nextTitle": "What happens next?",
+    "nextStep1": "You'll receive an email confirmation shortly.",
+    "nextStep2": "Our team will pick and pack your items.",
+    "nextStep3": "Your order ships with a tracking number via email.",
+    "continueShopping": "Continue shopping",
+    "backToHome": "Back to home"
   }
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { getOrderItems } from "@epcc-sdk/sdks-shopper";
@@ -82,6 +84,8 @@ export function OrdersTab() {
   const t = useTranslations("account");
   const { orders, currentPage, totalPages, isLoading, setPage } = usePaginatedOrders();
   const { addItems } = useCart();
+  const pathname = usePathname();
+  const lang = pathname.split("/")[1] ?? "en";
 
   const [reorderingIds, setReorderingIds] = useState<Set<string>>(new Set());
 
@@ -172,8 +176,13 @@ export function OrdersTab() {
                   const displayId = order.orderNumber ?? order.id.slice(0, 8).toUpperCase();
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-4 text-sm font-mono font-medium text-gray-900 whitespace-nowrap">
-                        {displayId}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Link
+                          href={`/${lang}/account/orders/${order.id}`}
+                          className="text-sm font-mono font-medium text-brand-primary hover:underline"
+                        >
+                          {displayId}
+                        </Link>
                       </td>
                       <td className="px-4 py-4">
                         <DateCell iso={order.createdAt} />
