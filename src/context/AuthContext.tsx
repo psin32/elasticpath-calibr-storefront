@@ -16,6 +16,7 @@ import {
   type AccountMemberCredentials,
   type AccountMemberCredential,
 } from "@/lib/api/auth";
+import { clearSession } from "@/lib/clear-session";
 
 export const AM_CREDENTIALS_STORAGE_KEY = "ep_account_member_credentials";
 export const AM_TOKEN_COOKIE = "ep_am_token";
@@ -155,8 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem(AM_CREDENTIALS_STORAGE_KEY);
-    clearAmTokenCookie();
+    clearSession();
     setCredentials(null);
     router.refresh();
   }, [router]);

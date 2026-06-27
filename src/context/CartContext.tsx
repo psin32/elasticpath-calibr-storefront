@@ -429,6 +429,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
         );
         const switchMeta = cartRes.data?.data?.meta;
+        localStorage.setItem(CART_STORAGE_KEY, newCartId);
         setCartId(newCartId);
         setItems(rawItems.map(toCartLineItem));
         setCartTotal(

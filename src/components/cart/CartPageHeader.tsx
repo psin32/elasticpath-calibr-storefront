@@ -306,15 +306,17 @@ export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Prop
         {isAuthenticated && (
           <button
             onClick={() => router.push(`/${lang}/quote-request`)}
-            className="h-12 px-5 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[14px] text-[#3D4654] flex items-center gap-2 hover:bg-[#F7F8F9] transition-colors"
+            disabled={lineCount === 0}
+            className="h-12 px-5 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[14px] text-[#3D4654] flex items-center gap-2 hover:bg-[#F7F8F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             <FileText size={16} />
             {t("requestQuote")}
           </button>
         )}
         <Link
-          href={`/${lang}/checkout`}
-          className="h-12 px-6 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] flex items-center gap-2 hover:opacity-90 transition-opacity"
+          href={lineCount === 0 ? "#" : `/${lang}/checkout`}
+          aria-disabled={lineCount === 0}
+          className={`h-12 px-6 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] flex items-center gap-2 transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
         >
           {t("checkout")}
           <ArrowRight size={16} />
