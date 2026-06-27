@@ -50,6 +50,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
   const shippingMethods = useShippingMethods(cartId);
 
   const today = new Date().toISOString().split("T")[0];
+  const sevenDaysFromToday = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split("T")[0]; })();
 
   const methodList = useMemo(
     () => Object.entries(shippingMethods).sort(([, a], [, b]) => a.sort_order - b.sort_order),
@@ -72,7 +73,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
   const [formMethodKey, setFormMethodKey] = useState<string>("");
   const [pickedItems, setPickedItems] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
-  const [formEstimateEnd, setFormEstimateEnd] = useState("");
+  const [formEstimateEnd, setFormEstimateEnd] = useState(sevenDaysFromToday);
 
   // split
   const [split, setSplit] = useState<SplitState | null>(null);
@@ -333,7 +334,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
       setShowForm(false);
       setPickedItems([]);
       setFormInlineAddr({});
-      setFormEstimateEnd("");
+      setFormEstimateEnd(sevenDaysFromToday);
       void refreshCart();
       toast.success(t("toastCreated"));
     } catch (err) {
@@ -699,7 +700,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           onCancel={() => {
             setShowForm(false);
             setPickedItems([]);
-            setFormEstimateEnd("");
+            setFormEstimateEnd(sevenDaysFromToday);
           }}
         />
       )}

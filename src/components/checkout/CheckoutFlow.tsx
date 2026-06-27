@@ -385,6 +385,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                         externalError={error}
                         formRef={stripeFormRef}
                         onConfirmingChange={setIsStripeConfirming}
+                        email={credentials?.member_email ?? savedFormData?.email ?? ""}
                       />
                     </Elements>
                   </div>

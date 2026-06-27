@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { useStripe, useElements, PaymentElement, LinkAuthenticationElement } from "@stripe/react-stripe-js";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { useTranslations } from "next-intl";
 import { AlertCircle } from "lucide-react";
@@ -12,9 +12,10 @@ type Props = {
   externalError?: string | null;
   formRef?: React.RefObject<HTMLFormElement | null>;
   onConfirmingChange?: (isConfirming: boolean) => void;
+  email?: string;
 };
 
-export function StripePaymentForm({ onPayment, isProcessing, externalError, formRef, onConfirmingChange }: Props) {
+export function StripePaymentForm({ onPayment, isProcessing, externalError, formRef, onConfirmingChange, email }: Props) {
   const t = useTranslations("checkout");
   const stripe = useStripe();
   const elements = useElements();
@@ -43,6 +44,9 @@ export function StripePaymentForm({ onPayment, isProcessing, externalError, form
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+      <LinkAuthenticationElement
+        options={email ? { defaultValues: { email } } : undefined}
+      />
       <PaymentElement options={{ layout: "tabs" }} />
 
       {displayError && (
