@@ -9,19 +9,20 @@ type Props = {
   items: CartLineItem[];
   cartTotal: string;
   cartTotalAmount: number;
-  shippingCostCents: number;
-  shippingCurrency: string;
+  cartShipping: string;
+  cartShippingAmount: number;
 };
 
-export function OrderSummary({ items, cartTotal, cartTotalAmount, shippingCostCents, shippingCurrency }: Props) {
+export function OrderSummary({ items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount }: Props) {
   const t = useTranslations("checkout");
 
-  const shippingFormatted = shippingCostCents === 0
-    ? t("free")
-    : new Intl.NumberFormat(undefined, { style: "currency", currency: shippingCurrency }).format(shippingCostCents / 100);
+  const shippingFormatted = cartShippingAmount === 0 ? t("free") : cartShipping;
 
-  const orderTotal = cartTotalAmount > 0
-    ? new Intl.NumberFormat(undefined, { style: "currency", currency: shippingCurrency }).format((cartTotalAmount + shippingCostCents) / 100)
+  const orderTotal = cartShippingAmount > 0 && cartTotalAmount > 0
+    ? new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: items[0]?.currency ?? "USD",
+      }).format((cartTotalAmount + cartShippingAmount) / 100)
     : cartTotal;
 
   return (

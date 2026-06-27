@@ -69,6 +69,9 @@ type CartContextValue = {
   itemCount: number;
   cartTotal: string;
   cartTotalAmount: number;
+  cartShipping: string;
+  cartShippingAmount: number;
+  refreshCart: () => Promise<void>;
   cartId: string | null;
   allCarts: CartSummary[];
   isLoading: boolean;
@@ -145,6 +148,8 @@ function parseCartResponse(response: CartsResponse): {
   items: CartLineItem[];
   cartTotal: string;
   cartTotalAmount: number;
+  cartShipping: string;
+  cartShippingAmount: number;
 } {
   const rawItems = (response.data ?? []).filter(
     (i): i is CartItemObject =>
@@ -160,7 +165,9 @@ function parseCartResponse(response: CartsResponse): {
     (response.meta?.display_price?.with_tax as any)?.amount ??
     (response.meta?.display_price?.without_tax as any)?.amount ??
     0;
-  return { items, cartTotal, cartTotalAmount };
+  const cartShipping = (response.meta?.display_price as any)?.shipping?.formatted ?? "";
+  const cartShippingAmount = (response.meta?.display_price as any)?.shipping?.amount ?? 0;
+  return { items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount };
 }
 
 function toCartSummary(c: CartResponse, itemCountOverride?: number): CartSummary {
@@ -185,6 +192,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLineItem[]>([]);
   const [cartTotal, setCartTotal] = useState("");
   const [cartTotalAmount, setCartTotalAmount] = useState(0);
+  const [cartShipping, setCartShipping] = useState("");
+  const [cartShippingAmount, setCartShippingAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
@@ -219,6 +228,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             (meta?.display_price?.without_tax as any)?.amount ??
             0
         );
+        setCartShipping((meta?.display_price as any)?.shipping?.formatted ?? "");
+        setCartShippingAmount((meta?.display_price as any)?.shipping?.amount ?? 0);
         setIsInitializing(false);
       })
       .catch((err) => { console.error(err); setIsInitializing(false); });
@@ -323,14 +334,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
           (mergedMeta?.display_price?.without_tax as any)?.amount ??
           0
       );
+      setCartShipping((mergedMeta?.display_price as any)?.shipping?.formatted ?? "");
+      setCartShippingAmount((mergedMeta?.display_price as any)?.shipping?.amount ?? 0);
     })();
   }, [isAuthenticated, epClient, cartId]);
 
   const applyCartsResponse = useCallback((response: CartsResponse) => {
-    const { items: newItems, cartTotal: newTotal, cartTotalAmount: newTotalAmount } = parseCartResponse(response);
+    const { items: newItems, cartTotal: newTotal, cartTotalAmount: newTotalAmount, cartShipping: newShipping, cartShippingAmount: newShippingAmount } = parseCartResponse(response);
     setItems(newItems);
     setCartTotal(newTotal);
     setCartTotalAmount(newTotalAmount);
+    setCartShipping(newShipping);
+    setCartShippingAmount(newShippingAmount);
   }, []);
 
   const addItem = useCallback(
@@ -454,6 +469,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems([]);
       setCartTotal("");
       setCartTotalAmount(0);
+      setCartShipping("");
+      setCartShippingAmount(0);
     } finally {
       setIsLoading(false);
     }
@@ -485,6 +502,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             (switchMeta?.display_price?.without_tax as any)?.amount ??
             0
         );
+        setCartShipping((switchMeta?.display_price as any)?.shipping?.formatted ?? "");
+        setCartShippingAmount((switchMeta?.display_price as any)?.shipping?.amount ?? 0);
       } finally {
         setIsLoading(false);
       }
@@ -579,6 +598,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [epClient, cartId]
   );
 
+  const refreshCart = useCallback(async () => {
+    if (!epClient || !cartId) return;
+    try {
+      const cartRes = await getACart({ client: epClient, path: { cartID: cartId } });
+      const meta = cartRes.data?.data?.meta;
+      setCartTotal(
+        meta?.display_price?.with_tax?.formatted ??
+          meta?.display_price?.without_tax?.formatted ?? ""
+      );
+      setCartTotalAmount(
+        (meta?.display_price?.with_tax as any)?.amount ??
+          (meta?.display_price?.without_tax as any)?.amount ?? 0
+      );
+      setCartShipping((meta?.display_price as any)?.shipping?.formatted ?? "");
+      setCartShippingAmount((meta?.display_price as any)?.shipping?.amount ?? 0);
+    } catch { /* silent — stale values stay until next successful refresh */ }
+  }, [epClient, cartId]);
+
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
@@ -588,6 +625,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         itemCount,
         cartTotal,
         cartTotalAmount,
+        cartShipping,
+        cartShippingAmount,
+        refreshCart,
         cartId,
         allCarts,
         isLoading,

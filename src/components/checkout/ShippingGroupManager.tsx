@@ -44,7 +44,7 @@ type Props = {
 
 export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLoadingChange, onGroupsChange }: Props) {
   const t = useTranslations("shipping");
-  const { cartId } = useCart();
+  const { cartId, refreshCart } = useCart();
   const { addresses, addAddress } = useAccountAddresses();
   const { credentials } = useAuth();
   const shippingMethods = useShippingMethods(cartId);
@@ -334,6 +334,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
       setPickedItems([]);
       setFormInlineAddr({});
       setFormEstimateEnd("");
+      void refreshCart();
       toast.success(t("toastCreated"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("toastCreateFailed"));
@@ -389,6 +390,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
         }
         return next;
       });
+      void refreshCart();
       toast.success(t("toastDeleted"));
     } catch {
       toast.error(t("toastDeleteFailed"));
@@ -423,6 +425,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           }),
         ]);
         await syncItems();
+        void refreshCart();
       } catch {
         toast.error(t("toastMoveFailed"));
         syncItems();
@@ -440,6 +443,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           body: { data: { type: "cart_item", id: itemId, quantity: item.quantity ?? 1, shipping_group_id: groupId, custom_inputs: {} } },
         });
         await syncItems();
+        void refreshCart();
       } catch {
         toast.error(t("toastMoveFailed"));
         syncItems();
@@ -464,6 +468,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
         body: { data: { type: "cart_item", id: itemId, quantity: item.quantity ?? 1, shipping_group_id: "", custom_inputs: {} } },
       });
       await syncItems();
+      void refreshCart();
     } catch {
       toast.error(t("toastUnassignFailed"));
       syncItems();

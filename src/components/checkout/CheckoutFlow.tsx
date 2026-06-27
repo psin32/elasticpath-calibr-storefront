@@ -29,7 +29,7 @@ type Step = "shipping" | "payment";
 
 export function CheckoutFlow({ lang }: { lang: string }) {
   const t = useTranslations("checkout");
-  const { items, cartTotal, cartTotalAmount, isInitializing } = useCart();
+  const { items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount, isInitializing } = useCart();
   const { addresses, addAddress } = useAccountAddresses();
   const { processPayment, isLoading, isRedirecting, error } = useEpStripePayment(lang, addresses);
   const { processPayment: processPOPayment, isLoading: isPOLoading, isRedirecting: isPORedirecting, error: poError } = useEpPOPayment(lang, addresses);
@@ -42,8 +42,6 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const [shippingReady, setShippingReady] = useState(false);
   const [shippingLoading, setShippingLoading] = useState(true);
   const [savedFormData, setSavedFormData] = useState<CheckoutFormData | null>(null);
-  const [shippingCostCents, setShippingCostCents] = useState(0);
-  const [shippingCurrency, setShippingCurrency] = useState("USD");
   const [shippingGroups, setShippingGroups] = useState<Group[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "po">("card");
   // undefined = not yet initialized; null = "same as shipping" (valid); BillingAddr = explicit address
@@ -52,11 +50,6 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const [isStripeConfirming, setIsStripeConfirming] = useState(false);
 
   const isPlacingOrder = isLoading || isPOLoading || isStripeConfirming;
-
-  const handleShippingCostChange = useCallback((cents: number, currency: string) => {
-    setShippingCostCents(cents);
-    setShippingCurrency(currency);
-  }, []);
 
   const {
     register,
@@ -101,8 +94,8 @@ export function CheckoutFlow({ lang }: { lang: string }) {
     () => ({
       mode: "payment",
       locale: lang as StripeElementLocale,
-      currency: (items[0]?.currency ?? shippingCurrency).toLowerCase(),
-      amount: Math.max(100, cartTotalAmount + shippingCostCents),
+      currency: (items[0]?.currency ?? "USD").toLowerCase(),
+      amount: Math.max(100, cartTotalAmount + cartShippingAmount),
       capture_method: "automatic",
       paymentMethodCreation: "manual",
       appearance: {
@@ -230,8 +223,8 @@ export function CheckoutFlow({ lang }: { lang: string }) {
         items={aggregatedItems}
         cartTotal={cartTotal}
         cartTotalAmount={cartTotalAmount}
-        shippingCostCents={shippingCostCents}
-        shippingCurrency={shippingCurrency}
+        cartShipping={cartShipping}
+        cartShippingAmount={cartShippingAmount}
       />
     </div>
   );
@@ -289,7 +282,6 @@ export function CheckoutFlow({ lang }: { lang: string }) {
 
             <ShippingGroupManager
               onReadyChange={setShippingReady}
-              onShippingCostChange={handleShippingCostChange}
               onLoadingChange={setShippingLoading}
               onGroupsChange={setShippingGroups}
             />

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ShoppingBag } from "lucide-react";
@@ -14,17 +13,9 @@ type Props = { lang: string };
 
 export function CheckoutPageContent({ lang }: Props) {
   const t = useTranslations("checkout");
-  const { items, cartTotal, cartTotalAmount } = useCart();
+  const { items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount } = useCart();
   const { addresses } = useAccountAddresses();
   const { submitCheckout, isLoading, error } = useCheckout(lang, addresses);
-
-  const [shippingCostCents, setShippingCostCents] = useState(0);
-  const [shippingCurrency, setShippingCurrency] = useState("USD");
-
-  const handleShippingCostChange = useCallback((cents: number, currency: string) => {
-    setShippingCostCents(cents);
-    setShippingCurrency(currency);
-  }, []);
 
   // Aggregate split-shipment duplicate lines into one row per product so the
   // Order Summary is not altered by shipment split operations.
@@ -75,15 +66,14 @@ export function CheckoutPageContent({ lang }: Props) {
           isLoading={isLoading}
           error={error}
           savedAddresses={addresses}
-          onShippingCostChange={handleShippingCostChange}
         />
         <div className="lg:sticky lg:top-8">
           <OrderSummary
             items={aggregatedItems}
             cartTotal={cartTotal}
             cartTotalAmount={cartTotalAmount}
-            shippingCostCents={shippingCostCents}
-            shippingCurrency={shippingCurrency}
+            cartShipping={cartShipping}
+            cartShippingAmount={cartShippingAmount}
           />
         </div>
       </div>
