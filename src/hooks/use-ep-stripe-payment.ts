@@ -1,0 +1,194 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import {
+  checkoutApi,
+  paymentSetup,
+  confirmPayment,
+} from "@epcc-sdk/sdks-shopper";
+import type { AccountAddressResponse } from "@epcc-sdk/sdks-shopper";
+import type { Stripe, StripeElements } from "@stripe/stripe-js";
+import { useTranslations } from "next-intl";
+import { useCart } from "@/context/CartContext";
+import { useRouter } from "next/navigation";
+import { createEpClient } from "@/lib/api/ep-client";
+import { useAuth } from "@/context/AuthContext";
+import type { CheckoutFormData } from "./use-checkout";
+
+export function useEpStripePayment(
+  lang: string,
+  savedAddresses: AccountAddressResponse[] = []
+) {
+  const t = useTranslations("checkout");
+  const { cartId, clearCart } = useCart();
+  const { credentials } = useAuth();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const processPayment = useCallback(
+    async (
+      formData: CheckoutFormData,
+      stripe: Stripe,
+      elements: StripeElements
+    ) => {
+      if (!cartId) {
+        setError(t("noCartError"));
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Validate Stripe Elements before starting any server calls
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+          setError(submitError.message ?? t("paymentValidationFailed"));
+          return;
+        }
+
+        const client = createEpClient({ "EP-Inventories-Multi-Location": "true" });
+
+        // Derive shipping address: prefer form data, fall back to first account address
+        const primaryAddr = savedAddresses[0];
+        const fromForm = formData.shippingAddress?.line1;
+
+        const shippingAddr = fromForm
+          ? {
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              phone_number: formData.phone ?? "",
+              company_name: formData.company ?? "",
+              line_1: formData.shippingAddress!.line1,
+              line_2: formData.shippingAddress!.line2 ?? "",
+              city: formData.shippingAddress!.city,
+              postcode: formData.shippingAddress!.postcode,
+              county: formData.shippingAddress!.county ?? "",
+              country: formData.shippingAddress!.country,
+              region: formData.shippingAddress!.region ?? "",
+              instructions: "",
+            }
+          : primaryAddr
+          ? {
+              first_name: primaryAddr.first_name ?? formData.firstName,
+              last_name: primaryAddr.last_name ?? formData.lastName,
+              phone_number: primaryAddr.phone_number ?? formData.phone ?? "",
+              company_name: primaryAddr.company_name ?? formData.company ?? "",
+              line_1: primaryAddr.line_1 ?? "",
+              line_2: primaryAddr.line_2 ?? "",
+              city: primaryAddr.city ?? "",
+              postcode: primaryAddr.postcode ?? "",
+              county: primaryAddr.county ?? "",
+              country: primaryAddr.country ?? "",
+              region: primaryAddr.region ?? "",
+              instructions: "",
+            }
+          : {
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              phone_number: formData.phone ?? "",
+              company_name: formData.company ?? "",
+              line_1: "-",
+              line_2: "",
+              city: "-",
+              postcode: "-",
+              county: "",
+              country: "US",
+              region: "",
+              instructions: "",
+            };
+
+        const isAccountCheckout = !!credentials?.selected;
+        const contactOrCustomer = isAccountCheckout
+          ? { contact: { name: `${formData.firstName} ${formData.lastName}`, email: formData.email } }
+          : { customer: { name: `${formData.firstName} ${formData.lastName}`, email: formData.email } };
+
+        // 1. Convert cart to order
+        const orderRes = await checkoutApi({
+          client,
+          path: { cartID: cartId },
+          body: {
+            data: {
+              ...contactOrCustomer,
+              shipping_address: shippingAddr,
+              billing_address: {
+                first_name: shippingAddr.first_name,
+                last_name: shippingAddr.last_name,
+                company_name: shippingAddr.company_name,
+                line_1: shippingAddr.line_1,
+                line_2: shippingAddr.line_2,
+                city: shippingAddr.city,
+                postcode: shippingAddr.postcode,
+                county: shippingAddr.county,
+                country: shippingAddr.country,
+                region: shippingAddr.region,
+              },
+            },
+          },
+        });
+
+        const orderId = orderRes.data?.data?.id;
+        if (!orderId) throw new Error(t("orderCreationFailed"));
+
+        // 2. Initiate payment via EP's Stripe gateway — EP creates the PaymentIntent
+        // Cast needed: SDK types model ElasticPathPaymentsPoweredByStripePayment with a nested
+        // `data` wrapper, but the actual API (and other gateway types) expect a flat DataPaymentObject.
+        const paymentRes = await paymentSetup({
+          client,
+          path: { orderID: orderId },
+          body: {
+            data: {
+              gateway: "elastic_path_payments_stripe",
+              method: "purchase",
+            } as any,
+          },
+        });
+
+        const transactionId = paymentRes.data?.data?.id;
+        const clientSecret = (paymentRes.data?.data as any)?.payment_intent
+          ?.client_secret as string | undefined;
+
+        if (!clientSecret) {
+          throw new Error(t("paymentSetupFailed"));
+        }
+
+        // 3. Confirm payment with Stripe using the client secret from EP
+        const { error: stripeError } = await stripe.confirmPayment({
+          elements,
+          clientSecret,
+          redirect: "if_required",
+        });
+
+        if (stripeError) {
+          throw new Error(stripeError.message ?? t("paymentConfirmFailed"));
+        }
+
+        // 4. Confirm the transaction with EP to sync payment status
+        if (transactionId) {
+          await confirmPayment({
+            client,
+            path: { orderID: orderId, transactionID: transactionId },
+            body: { data: {} },
+          }).catch(() => {
+            // Non-fatal: EP will reconcile via Stripe webhook
+          });
+        }
+
+        router.push(`/${lang}/order-confirmation/${orderId}`);
+        await clearCart();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : t("paymentFailed")
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [cartId, clearCart, router, lang, savedAddresses, credentials, t]
+  );
+
+  return { processPayment, isLoading, error };
+}

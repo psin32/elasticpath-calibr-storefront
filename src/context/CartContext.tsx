@@ -72,6 +72,7 @@ type CartContextValue = {
   cartId: string | null;
   allCarts: CartSummary[];
   isLoading: boolean;
+  isInitializing: boolean;
   addItem: (productId: string, quantity?: number, customInputs?: Record<string, string>) => Promise<void>;
   addItems: (items: Array<{ productId: string; quantity: number }>) => Promise<void>;
   addBundleItem: (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity?: number) => Promise<void>;
@@ -185,6 +186,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartTotal, setCartTotal] = useState("");
   const [cartTotalAmount, setCartTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
 
   const prevIsAuthRef = useRef<boolean | null>(null);
@@ -217,8 +219,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
             (meta?.display_price?.without_tax as any)?.amount ??
             0
         );
+        setIsInitializing(false);
       })
-      .catch(console.error);
+      .catch((err) => { console.error(err); setIsInitializing(false); });
   }, []);
 
   // On login: load account carts and merge the guest cart if needed.
@@ -588,6 +591,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cartId,
         allCarts,
         isLoading,
+        isInitializing,
         addItem,
         addItems,
         addBundleItem,

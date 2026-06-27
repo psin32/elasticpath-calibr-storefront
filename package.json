@@ -13,6 +13,8 @@
     "@epcc-sdk/sdks-nextjs": "^0.0.11",
     "@epcc-sdk/sdks-shopper": "^0.1.0",
     "@plasmicapp/loader-nextjs": "^2.0.7",
+    "@stripe/react-stripe-js": "^6.6.0",
+    "@stripe/stripe-js": "^9.8.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",
     "next": "16.2.1",
@@ -21,6 +23,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.79.0",
     "sonner": "^2.0.7",
+    "stripe": "^22.3.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

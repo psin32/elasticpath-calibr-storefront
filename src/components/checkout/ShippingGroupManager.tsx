@@ -19,7 +19,6 @@ import { createEpClient } from "@/lib/api/ep-client";
 import { useCart } from "@/context/CartContext";
 import { useAccountAddresses } from "@/hooks/use-account-addresses";
 import { useAuth } from "@/context/AuthContext";
-import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
@@ -39,9 +38,10 @@ import type { Address, Group, CartItem, SplitState } from "./shipping/types";
 type Props = {
   onReadyChange?: (allAssigned: boolean) => void;
   onShippingCostChange?: (cents: number, currency: string) => void;
+  onLoadingChange?: (isLoading: boolean) => void;
 };
 
-export function ShippingGroupManager({ onReadyChange, onShippingCostChange }: Props) {
+export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLoadingChange }: Props) {
   const t = useTranslations("shipping");
   const { cartId } = useCart();
   const { addresses, addAddress } = useAccountAddresses();
@@ -200,6 +200,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange }: Pr
   const allAssigned = cartItems.length > 0 && groups.length > 0 && unassigned.length === 0;
 
   useEffect(() => { onReadyChange?.(allAssigned); }, [allAssigned, onReadyChange]);
+  useEffect(() => { onLoadingChange?.(loading); }, [loading, onLoadingChange]);
 
   useEffect(() => {
     if (!openMenuId && !unassignedMenuId) return;
@@ -631,18 +632,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange }: Pr
   // Render
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2">
-          {t("sectionTitle")}
-        </h2>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <Spinner size="xs" /> {t("loading")}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   const activeGroup = groups.find((g) => g.id === activeTab) ?? null;
   const activeItems = activeGroup ? itemsInGroup(activeGroup.id) : [];

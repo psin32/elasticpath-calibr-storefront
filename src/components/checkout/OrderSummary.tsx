@@ -25,7 +25,7 @@ export function OrderSummary({ items, cartTotal, cartTotalAmount, shippingCostCe
     : cartTotal;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50/60 overflow-hidden">
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100">
         <h2 className="text-sm font-semibold text-gray-900">
