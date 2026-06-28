@@ -523,6 +523,7 @@
     "noResults": "No se encontraron productos.",
     "noResultsHint": "Prueba con otras palabras clave o explora nuestras categorías.",
     "viewResults": "Ver resultados",
+    "viewAllResults": "Ver todos los resultados de \"{query}\"",
     "metaTitle": "Todos los productos",
     "metaTitleQuery": "Búsqueda: {query}"
   },

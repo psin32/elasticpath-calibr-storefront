@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect, type ReactNode } from "react";
 import {
   InstantSearch,
-  Configure,
   useHits,
   useInstantSearch,
   usePagination,
@@ -417,9 +416,6 @@ export function SearchPageClient({
         preserveSharedStateOnUnmount: true,
       }}
     >
-      <Configure
-        attributesToSnippet={["attributes.name:7", "attributes.description:15"]}
-      />
       <SearchInner lang={lang} />
     </InstantSearch>
   );
