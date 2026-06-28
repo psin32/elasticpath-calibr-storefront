@@ -32,8 +32,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const ids = searchParams.get("ids")?.trim();
   const nodeId = searchParams.get("nodeId")?.trim();
+  const skus = searchParams.get("skus")?.trim();
 
-  if (!ids && !nodeId) return NextResponse.json({ data: [] });
+  if (!ids && !nodeId && !skus) return NextResponse.json({ data: [] });
 
   try {
     const client = await createElasticPathClient();
@@ -43,6 +44,22 @@ export async function GET(request: NextRequest) {
         client,
         path: { node_id: nodeId },
         query: { include: ["main_image"], "page[limit]": BigInt(24) },
+      });
+      const data = (response.data?.data ?? []).map((p) =>
+        formatCard(p, response.data?.included),
+      );
+      return NextResponse.json({ data });
+    }
+
+    // skus mode
+    if (skus) {
+      const response = await getByContextAllProducts({
+        client,
+        query: {
+          filter: `in(sku,${skus})`,
+          include: ["main_image"],
+          "page[limit]": BigInt(50),
+        },
       });
       const data = (response.data?.data ?? []).map((p) =>
         formatCard(p, response.data?.included),

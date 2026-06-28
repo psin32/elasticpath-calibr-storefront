@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ShoppingBag, X, Trash2, ArrowRight, Minus, Plus, Eraser } from "lucide-react";
+import { PromoTooltip } from "@/components/cart/PromoTooltip";
 import { useTranslations } from "next-intl";
 import { useCart } from "@/context/CartContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -12,7 +13,7 @@ import { usePreferences } from "@/context/PreferencesContext";
 
 export function CartButton() {
   const t = useTranslations("header");
-  const { items, itemCount, cartTotal, isLoading, removeItem, updateQuantity, clearCart } =
+  const { items, itemCount, cartTotal, cartSubtotal, cartDiscount, cartDiscountAmount, isLoading, removeItem, updateQuantity, clearCart } =
     useCart();
   const [confirmClear, setConfirmClear] = useState(false);
   const { cartMode } = usePreferences();
@@ -100,7 +101,7 @@ export function CartButton() {
             )}
             <button
               onClick={() => setIsOpen(false)}
-              aria-label="Close cart"
+              aria-label={t("close")}
               className="flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
             >
               <X size={18} />
@@ -179,6 +180,15 @@ export function CartButton() {
                         {item.unitPriceFormatted} {t("each")}
                       </p>
 
+                      {item.discounts?.map((d) => (
+                        <PromoTooltip
+                          key={d.promotionId}
+                          discount={d}
+                          label={d.promotionName ?? t("promotion")}
+                          className="mt-1 text-[11px] text-green-700"
+                        />
+                      ))}
+
                       <div className="mt-3 flex items-center justify-between gap-2">
                         <CartItemStepper
                           itemId={item.id}
@@ -189,6 +199,11 @@ export function CartButton() {
 
                         {/* Line total */}
                         <span className="text-sm font-semibold text-gray-900">
+                          {item.lineTotalOriginalFormatted && (
+                            <span className="line-through mr-1.5 text-xs font-normal text-gray-400">
+                              {item.lineTotalOriginalFormatted}
+                            </span>
+                          )}
                           {item.lineTotalFormatted}
                         </span>
                       </div>
@@ -198,7 +213,7 @@ export function CartButton() {
                     <button
                       onClick={() => removeItem(item.id)}
                       disabled={isLoading}
-                      aria-label={`Remove ${item.name}`}
+                      aria-label={t("removeItem", { name: item.name })}
                       className="p-1 rounded text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40"
                     >
                       <Trash2 size={15} />
@@ -213,13 +228,28 @@ export function CartButton() {
         {/* Footer */}
         {items.length > 0 && (
           <div className="shrink-0 border-t border-gray-100 px-6 py-5 space-y-3 bg-gray-50/60">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">{t("subtotal")}</span>
-              <span className="text-lg font-bold text-gray-900">{cartTotal}</span>
-            </div>
-            <p className="text-xs text-gray-400">
-              {t("shippingNote")}
-            </p>
+            {cartDiscountAmount < 0 && cartSubtotal ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{t("subtotal")}</span>
+                  <span className="text-sm text-gray-500">{cartSubtotal}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-green-600">{t("discount")}</span>
+                  <span className="text-sm font-semibold text-green-600">{cartDiscount}</span>
+                </div>
+                <div className="h-px bg-gray-200" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">{t("total")}</span>
+                  <span className="text-lg font-bold text-gray-900">{cartTotal}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">{t("subtotal")}</span>
+                <span className="text-lg font-bold text-gray-900">{cartTotal}</span>
+              </div>
+            )}
             <Link
               href={`/${lang}/checkout`}
               onClick={() => setIsOpen(false)}
@@ -228,12 +258,9 @@ export function CartButton() {
               {t("checkout")}
               <ArrowRight size={16} />
             </Link>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-full py-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              {t("continueShopping")}
-            </button>
+            <p className="text-xs text-gray-400 text-center">
+              {t("shippingNote")}
+            </p>
           </div>
         )}
       </div>
@@ -273,6 +300,7 @@ type CartItemStepperProps = {
 };
 
 function CartItemStepper({ itemId, quantity, disabled, updateQuantity }: CartItemStepperProps) {
+  const t = useTranslations("header");
   const [draft, setDraft] = useState(String(quantity));
 
   useEffect(() => {
@@ -293,7 +321,7 @@ function CartItemStepper({ itemId, quantity, disabled, updateQuantity }: CartIte
       <button
         onClick={() => updateQuantity(itemId, quantity - 1)}
         disabled={disabled}
-        aria-label="Decrease quantity"
+        aria-label={t("decreaseQuantity")}
         className="flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"
       >
         <Minus size={12} />
@@ -309,13 +337,13 @@ function CartItemStepper({ itemId, quantity, disabled, updateQuantity }: CartIte
         onKeyDown={(e) => {
           if (e.key === "Enter") commit((e.target as HTMLInputElement).value);
         }}
-        aria-label="Quantity"
+        aria-label={t("quantity")}
         className="w-8 h-7 text-center text-sm font-medium text-gray-900 bg-transparent border-x border-gray-200 focus:outline-none disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
       <button
         onClick={() => updateQuantity(itemId, quantity + 1)}
         disabled={disabled}
-        aria-label="Increase quantity"
+        aria-label={t("increaseQuantity")}
         className="flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"
       >
         <Plus size={12} />

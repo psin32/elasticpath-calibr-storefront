@@ -17,13 +17,20 @@
     "emptyHint": "Add items to get started",
     "browseProducts": "Browse products",
     "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
     "shippingNote": "Shipping and taxes calculated at checkout",
     "continueShopping": "Continue shopping",
     "clearAll": "Clear all?",
     "clearAllConfirm": "Yes",
     "clearAllItems": "Clear all items",
     "sku": "SKU",
-    "each": "each"
+    "each": "each",
+    "promotion": "Promotion",
+    "removeItem": "Remove {name}",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "quantity": "Quantity"
   },
   "nav": {
     "home": "Home",
@@ -316,6 +323,7 @@
     "yourCart": "Your cart",
     "units": "{count, plural, one {# unit} other {# units}}",
     "products": "{count, plural, one {# product} other {# products}}",
+    "items": "{count, plural, one {# item} other {# items}}",
     "clearAllItems": "Clear all items",
     "deleteCart": "Delete cart",
     "noCartsFound": "No carts found",
@@ -325,6 +333,8 @@
     "fill": "Fill {qty}",
     "clearMatrix": "Clear",
     "noVariants": "No variants found for this product.",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
     "total": "Total",
     "perSize": "Per size",
     "bundle": "Bundle",
@@ -332,7 +342,11 @@
     "kits": "{count, plural, one {# kit} other {# kits}}",
     "whatsIncluded": "What's included",
     "kitsToOrder": "Kits to order",
-    "lineTotal": "Line total"
+    "lineTotal": "Line total",
+    "promotionModalTitle": "Promotion available",
+    "promotionModalDismiss": "No thanks",
+    "promotionModalNoProducts": "Products not found.",
+    "promotion": "Promotion"
   },
   "product": {
     "quickView": "Quick view",

@@ -24,7 +24,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Prop
   const t = useTranslations("cart");
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { cartId, allCarts, switchCart, createCart, deleteCart, clearCartById, clearCart, isLoading } = useCart();
+  const { cartId, allCarts, switchCart, createCart, deleteCart, clearCartById, clearCart, isLoading, cartSubtotal, cartDiscount, cartDiscountAmount } = useCart();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -184,7 +184,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Prop
                             <span className="block font-semibold text-[14px] text-[#0E1521] truncate">{c.name}</span>
                             <span className="block text-[12px] text-[#5C6675]">
                               {c.totalFormatted ?? "—"}
-                              {c.itemCount != null ? ` · ${c.itemCount} items` : ""}
+                              {c.itemCount != null ? ` · ${t("items", { count: c.itemCount })}` : ""}
                             </span>
                           </span>
                           {isActive && <Check size={16} className="text-[#21A765] flex-none" />}
@@ -301,7 +301,22 @@ export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Prop
           <p className="text-[12px] text-[#5C6675] mb-1 whitespace-nowrap">
             {t("units", { count: totalUnits })} · {t("products", { count: lineCount })}
           </p>
-          <p className="font-serif text-[30px] leading-none text-[#0E1521]">{grandTotal}</p>
+          {cartDiscountAmount < 0 && cartSubtotal ? (
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="flex items-center gap-6">
+                <span className="text-[12px] text-[#5C6675]">{t("subtotal")}</span>
+                <span className="text-[14px] text-[#5C6675]">{cartSubtotal}</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="text-[12px] text-[#21A765]">{t("discount")}</span>
+                <span className="text-[14px] font-semibold text-[#21A765]">{cartDiscount}</span>
+              </div>
+              <div className="h-px w-full bg-[#DDE1E6] my-0.5" />
+              <p className="font-serif text-[30px] leading-none text-[#0E1521]">{grandTotal}</p>
+            </div>
+          ) : (
+            <p className="font-serif text-[30px] leading-none text-[#0E1521]">{grandTotal}</p>
+          )}
         </div>
         {isAuthenticated && (
           <button

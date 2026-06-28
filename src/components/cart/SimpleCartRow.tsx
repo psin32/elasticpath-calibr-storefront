@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import type { CartItemDiscount } from "@/context/CartContext";
+import { PromoTooltip } from "./PromoTooltip";
 
 type Props = {
   cartItemId: string;
@@ -12,7 +14,9 @@ type Props = {
   quantity: number;
   unitPrice: string;
   lineTotal: string;
+  lineTotalOriginal?: string;
   imageUrl?: string;
+  discounts?: CartItemDiscount[];
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
@@ -25,7 +29,9 @@ export function SimpleCartRow({
   quantity,
   unitPrice,
   lineTotal,
+  lineTotalOriginal,
   imageUrl,
+  discounts,
   onQuantityChange,
   onRemove,
   disabled,
@@ -49,10 +55,25 @@ export function SimpleCartRow({
       <div className="flex items-center gap-3 px-[18px] py-[13px] bg-[#F7F8F9] border-b border-[#DDE1E6] flex-wrap">
         <span className="font-bold text-[15px] text-[#0E1521]">{name}</span>
         {sku && <span className="font-mono text-[11px] text-[#5C6675]">{sku}</span>}
-        {unitPrice && <span className="text-[12px] text-[#5C6675]">· {unitPrice}{t("perUnit")}</span>}
+        {unitPrice && (
+          <span className="text-[12px] text-[#5C6675]">· {unitPrice}{t("perUnit")}</span>
+        )}
         <div className="flex-1" />
-        <span className="font-extrabold text-[15px] text-[#0E1521]">{lineTotal}</span>
+        <span className="font-extrabold text-[15px] text-[#0E1521]">
+          {lineTotalOriginal && (
+            <span className="line-through mr-1.5 text-[13px] font-normal text-[#9BA3AF]">{lineTotalOriginal}</span>
+          )}
+          {lineTotal}
+        </span>
       </div>
+      {discounts?.map((d) => (
+        <PromoTooltip
+          key={d.promotionId}
+          discount={d}
+          label={d.promotionName ?? t("promotion")}
+          className="px-[18px] py-1.5 bg-green-50 border-b border-green-100 text-[12px] text-green-700"
+        />
+      ))}
 
       <div className="flex items-center gap-4 px-[18px] py-3.5 flex-wrap">
         {/* Thumbnail */}

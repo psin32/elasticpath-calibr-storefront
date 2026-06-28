@@ -84,7 +84,9 @@ export function B2BCartContent({ lang }: Props) {
           quantity: item.quantity,
           unitPrice: item.unitPriceFormatted,
           lineTotal: item.lineTotalFormatted,
+          lineTotalOriginal: item.lineTotalOriginalFormatted,
           imageUrl: item.imageHref,
+          discounts: item.discounts,
         };
       });
       setGroups(lineGroups);
@@ -212,7 +214,9 @@ export function B2BCartContent({ lang }: Props) {
         quantity: item.quantity,
         unitPrice: item.unitPriceFormatted,
         lineTotal: item.lineTotalFormatted,
+        lineTotalOriginal: item.lineTotalOriginalFormatted,
         imageUrl: item.imageHref,
+        discounts: item.discounts,
       });
     }
 

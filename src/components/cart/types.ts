@@ -57,7 +57,9 @@ export type LineGroup =
       quantity: number;
       unitPrice: string;
       lineTotal: string;
+      lineTotalOriginal?: string;
       imageUrl?: string;
+      discounts?: import("@/context/CartContext").CartItemDiscount[];
     };
 
 export function buildMatrix(children: ChildProduct[]): {

@@ -13,7 +13,6 @@ import {
   initializeCart,
   manageCarts,
   getCartItems,
-  getACart,
   getCarts,
   createACart,
   deleteACart,
@@ -29,12 +28,30 @@ import type { Client } from "@hey-api/client-fetch";
 import { createEpClient } from "@/lib/api/ep-client";
 import { useAuth } from "@/context/AuthContext";
 
+export type PromotionSuggestion = {
+  promotion_id: string;
+  code: string;
+  info: string;
+  targets: Array<{
+    skus: string[];
+    quantity: number;
+  }>;
+};
+
 export type BundleComponentItem = {
   componentName: string;
   productName: string;
   quantity: number;
   unitPriceFormatted?: string;
   lineTotalFormatted?: string;
+};
+
+export type CartItemDiscount = {
+  promotionId: string;
+  promotionName?: string;
+  promotionDescription?: string;
+  code: string;
+  amountFormatted: string;
 };
 
 export type CartLineItem = {
@@ -47,9 +64,11 @@ export type CartLineItem = {
   currency: string;
   unitPriceFormatted: string;
   lineTotalFormatted: string;
+  lineTotalOriginalFormatted?: string;
   imageHref?: string;
   bundleComponents?: BundleComponentItem[];
   customInputs?: Record<string, string>;
+  discounts?: CartItemDiscount[];
 };
 
 export type CartSummary = {
@@ -69,6 +88,9 @@ type CartContextValue = {
   itemCount: number;
   cartTotal: string;
   cartTotalAmount: number;
+  cartSubtotal: string;
+  cartDiscount: string;
+  cartDiscountAmount: number;
   cartShipping: string;
   cartShippingAmount: number;
   refreshCart: () => Promise<void>;
@@ -76,9 +98,19 @@ type CartContextValue = {
   allCarts: CartSummary[];
   isLoading: boolean;
   isInitializing: boolean;
-  addItem: (productId: string, quantity?: number, customInputs?: Record<string, string>) => Promise<void>;
-  addItems: (items: Array<{ productId: string; quantity: number }>) => Promise<void>;
-  addBundleItem: (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity?: number) => Promise<void>;
+  addItem: (
+    productId: string,
+    quantity?: number,
+    customInputs?: Record<string, string>,
+  ) => Promise<PromotionSuggestion[] | undefined>;
+  addItems: (
+    items: Array<{ productId: string; quantity: number }>,
+  ) => Promise<PromotionSuggestion[] | undefined>;
+  addBundleItem: (
+    productId: string,
+    selectedOptions: Record<string, Record<string, number>>,
+    quantity?: number,
+  ) => Promise<PromotionSuggestion[] | undefined>;
   removeItem: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -87,11 +119,16 @@ type CartContextValue = {
   updateCart: (id: string, name: string, description?: string) => Promise<void>;
   deleteCart: (targetCartId: string) => Promise<void>;
   clearCartById: (targetCartId: string) => Promise<void>;
+  promotionSuggestions: PromotionSuggestion[] | null;
+  clearPromotionSuggestions: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function toCartLineItem(item: CartItemObject): CartLineItem {
+function toCartLineItem(
+  item: CartItemObject,
+  promotionsById?: Map<string, { name: string; description?: string }>,
+): CartLineItem {
   const withTax = item.meta?.display_price?.with_tax;
   const raw = item as any;
 
@@ -116,7 +153,13 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
           dp?.with_tax?.formatted ?? dp?.without_tax?.formatted;
         const lineTotalFormatted =
           dpx?.with_tax?.value?.formatted ?? dpx?.without_tax?.value?.formatted;
-        result.push({ componentName, productName, quantity, unitPriceFormatted, lineTotalFormatted });
+        result.push({
+          componentName,
+          productName,
+          quantity,
+          unitPriceFormatted,
+          lineTotalFormatted,
+        });
       }
     }
 
@@ -124,9 +167,44 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
   }
 
   const customInputs =
-    raw.custom_inputs && typeof raw.custom_inputs === "object" && Object.keys(raw.custom_inputs).length > 0
+    raw.custom_inputs &&
+    typeof raw.custom_inputs === "object" &&
+    Object.keys(raw.custom_inputs).length > 0
       ? (raw.custom_inputs as Record<string, string>)
       : undefined;
+
+  // Applied discounts from rule promotions
+  const rawDiscounts:
+    | Array<{
+        id: string;
+        code: string;
+        promotion_source?: string;
+        amount: { amount: number; currency: string };
+      }>
+    | undefined = Array.isArray(raw.discounts) ? raw.discounts : undefined;
+
+  // Formatted discount amounts live in meta.display_price.discounts keyed by discount code
+  const dpDiscounts: Record<string, { formatted?: string }> =
+    raw.meta?.display_price?.discounts ?? {};
+
+  const discounts: CartItemDiscount[] | undefined = rawDiscounts?.length
+    ? rawDiscounts.map((d) => {
+        const promo = promotionsById?.get(d.id);
+        return {
+          promotionId: d.id,
+          promotionName: promo?.name,
+          promotionDescription: promo?.description,
+          code: d.code,
+          amountFormatted:
+            dpDiscounts[d.code]?.formatted ?? `${d.amount.amount}`,
+        };
+      })
+    : undefined;
+
+  const dp = raw.meta?.display_price;
+  const lineTotalOriginalFormatted: string | undefined = discounts?.length
+    ? (dp?.without_discount?.value?.formatted ?? undefined)
+    : undefined;
 
   return {
     id: item.id ?? "",
@@ -138,9 +216,11 @@ function toCartLineItem(item: CartItemObject): CartLineItem {
     currency: (withTax as any)?.unit?.currency ?? "USD",
     unitPriceFormatted: (withTax as any)?.unit?.formatted ?? "",
     lineTotalFormatted: (withTax as any)?.value?.formatted ?? "",
+    lineTotalOriginalFormatted,
     imageHref: item.image?.href,
     bundleComponents,
     customInputs,
+    discounts,
   };
 }
 
@@ -148,15 +228,34 @@ function parseCartResponse(response: CartsResponse): {
   items: CartLineItem[];
   cartTotal: string;
   cartTotalAmount: number;
+  cartSubtotal: string;
+  cartDiscount: string;
+  cartDiscountAmount: number;
   cartShipping: string;
   cartShippingAmount: number;
 } {
+  // Build promotion name lookup from included.promotions (present when include=promotions was passed)
+  const promotionsById = new Map<
+    string,
+    { name: string; description?: string }
+  >();
+  const includedPromos = (response as any)?.included?.promotions;
+  if (Array.isArray(includedPromos)) {
+    includedPromos.forEach((p: any) => {
+      if (p?.id && p?.name)
+        promotionsById.set(p.id, {
+          name: p.name,
+          description: p.description ?? undefined,
+        });
+    });
+  }
+
   const rawItems = (response.data ?? []).filter(
     (i): i is CartItemObject =>
       (i as CartItemObject).type === "cart_item" ||
-      (i as CartItemObject).type === undefined
+      (i as CartItemObject).type === undefined,
   );
-  const items = rawItems.map(toCartLineItem);
+  const items = rawItems.map((item) => toCartLineItem(item, promotionsById));
   const cartTotal =
     response.meta?.display_price?.with_tax?.formatted ??
     response.meta?.display_price?.without_tax?.formatted ??
@@ -165,12 +264,32 @@ function parseCartResponse(response: CartsResponse): {
     (response.meta?.display_price?.with_tax as any)?.amount ??
     (response.meta?.display_price?.without_tax as any)?.amount ??
     0;
-  const cartShipping = (response.meta?.display_price as any)?.shipping?.formatted ?? "";
-  const cartShippingAmount = (response.meta?.display_price as any)?.shipping?.amount ?? 0;
-  return { items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount };
+  const cartSubtotal =
+    (response.meta?.display_price as any)?.without_discount?.formatted ?? "";
+  const cartDiscount =
+    (response.meta?.display_price as any)?.discount?.formatted ?? "";
+  const cartDiscountAmount =
+    (response.meta?.display_price as any)?.discount?.amount ?? 0;
+  const cartShipping =
+    (response.meta?.display_price as any)?.shipping?.formatted ?? "";
+  const cartShippingAmount =
+    (response.meta?.display_price as any)?.shipping?.amount ?? 0;
+  return {
+    items,
+    cartTotal,
+    cartTotalAmount,
+    cartSubtotal,
+    cartDiscount,
+    cartDiscountAmount,
+    cartShipping,
+    cartShippingAmount,
+  };
 }
 
-function toCartSummary(c: CartResponse, itemCountOverride?: number): CartSummary {
+function toCartSummary(
+  c: CartResponse,
+  itemCountOverride?: number,
+): CartSummary {
   return {
     id: c.id ?? "",
     name: c.name ?? c.id ?? "Cart",
@@ -181,7 +300,9 @@ function toCartSummary(c: CartResponse, itemCountOverride?: number): CartSummary
       undefined,
     itemCount: itemCountOverride ?? (c as any).meta?.item_count ?? undefined,
     createdAt: (c as any).meta?.timestamps?.created_at ?? undefined,
-    updatedAt: ((c as any).meta?.timestamps?.updated_at as string | undefined) ?? undefined,
+    updatedAt:
+      ((c as any).meta?.timestamps?.updated_at as string | undefined) ??
+      undefined,
   };
 }
 
@@ -192,11 +313,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLineItem[]>([]);
   const [cartTotal, setCartTotal] = useState("");
   const [cartTotalAmount, setCartTotalAmount] = useState(0);
+  const [cartSubtotal, setCartSubtotal] = useState("");
+  const [cartDiscount, setCartDiscount] = useState("");
+  const [cartDiscountAmount, setCartDiscountAmount] = useState(0);
   const [cartShipping, setCartShipping] = useState("");
   const [cartShippingAmount, setCartShippingAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
+  const [promotionSuggestions, setPromotionSuggestions] = useState<
+    PromotionSuggestion[] | null
+  >(null);
+  const clearPromotionSuggestions = useCallback(
+    () => setPromotionSuggestions(null),
+    [],
+  );
 
   const prevIsAuthRef = useRef<boolean | null>(null);
   const mergedInSessionRef = useRef(false);
@@ -209,30 +340,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     initializeCart()
       .then(async (id) => {
         setCartId(id);
-        const [itemsRes, cartRes] = await Promise.all([
-          getCartItems({ client, path: { cartID: id } }),
-          getACart({ client, path: { cartID: id } }),
-        ]);
-        const rawItems = (itemsRes.data?.data ?? []).filter(
-          (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
-        );
-        setItems(rawItems.map(toCartLineItem));
-        const meta = cartRes.data?.data?.meta;
-        setCartTotal(
-          meta?.display_price?.with_tax?.formatted ??
-            meta?.display_price?.without_tax?.formatted ??
-            ""
-        );
-        setCartTotalAmount(
-          (meta?.display_price?.with_tax as any)?.amount ??
-            (meta?.display_price?.without_tax as any)?.amount ??
-            0
-        );
-        setCartShipping((meta?.display_price as any)?.shipping?.formatted ?? "");
-        setCartShippingAmount((meta?.display_price as any)?.shipping?.amount ?? 0);
+        const itemsRes = await getCartItems({
+          client,
+          path: { cartID: id },
+          query: { include: ["promotions", "custom_discounts"] } as any,
+        });
+        if (itemsRes.data) {
+          const parsed = parseCartResponse(itemsRes.data as any);
+          setItems(parsed.items);
+          setCartTotal(parsed.cartTotal);
+          setCartTotalAmount(parsed.cartTotalAmount);
+          setCartSubtotal(parsed.cartSubtotal);
+          setCartDiscount(parsed.cartDiscount);
+          setCartDiscountAmount(parsed.cartDiscountAmount);
+          setCartShipping(parsed.cartShipping);
+          setCartShippingAmount(parsed.cartShippingAmount);
+        }
         setIsInitializing(false);
       })
-      .catch((err) => { console.error(err); setIsInitializing(false); });
+      .catch((err) => {
+        console.error(err);
+        setIsInitializing(false);
+      });
   }, []);
 
   // On login: load account carts and merge the guest cart if needed.
@@ -249,7 +378,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // On actual logout (not just initial render), create a fresh guest cart
       // so the user doesn't continue operating on their account cart.
       if (wasAuth === true) {
-        createACart({ client: epClient, body: { data: { name: "Storefront cart" } } as any })
+        createACart({
+          client: epClient,
+          body: { data: { name: "Cart" } } as any,
+        })
           .then((res) => {
             const newId = res.data?.data?.id;
             if (newId) {
@@ -274,13 +406,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Count cart_item refs from each cart's relationships (excludes promotions)
       // relationships.items.data is always populated when items exist — no reverse lookup needed
-      setAllCarts(allCartsRaw.map((c: any) => {
-        const itemRefs: any[] | null = c.relationships?.items?.data ?? null;
-        const countFromRels = itemRefs !== null
-          ? itemRefs.filter((i: any) => i.type === "cart_item").length
-          : undefined;
-        return toCartSummary(c, countFromRels);
-      }));
+      setAllCarts(
+        allCartsRaw.map((c: any) => {
+          const itemRefs: any[] | null = c.relationships?.items?.data ?? null;
+          const countFromRels =
+            itemRefs !== null
+              ? itemRefs.filter((i: any) => i.type === "cart_item").length
+              : undefined;
+          return toCartSummary(c, countFromRels);
+        }),
+      );
 
       // cartId is already an account cart — nothing to merge
       if (nonQuoteCarts.some((c: any) => c.id === cartId)) {
@@ -298,7 +433,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }).catch(() => null);
         accountCartId = createRes?.data?.data?.id;
         if (!accountCartId) return;
-        setAllCarts((prev) => [...prev, toCartSummary(createRes!.data!.data! as CartResponse)]);
+        setAllCarts((prev) => [
+          ...prev,
+          toCartSummary(createRes!.data!.data! as CartResponse),
+        ]);
       }
 
       await manageCarts({
@@ -313,47 +451,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(CART_STORAGE_KEY, accountCartId);
       mergedInSessionRef.current = true;
 
-      // Load the merged account cart items
-      const [itemsRes, cartRes] = await Promise.all([
-        getCartItems({ client: epClient, path: { cartID: accountCartId } }),
-        getACart({ client: epClient, path: { cartID: accountCartId } }),
-      ]);
-      const rawItems = (itemsRes.data?.data ?? []).filter(
-        (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
-      );
+      // Load the merged account cart items with promotion details
+      const mergedItemsRes = await getCartItems({
+        client: epClient,
+        path: { cartID: accountCartId },
+        query: { include: ["promotions"] } as any,
+      });
       setCartId(accountCartId);
-      setItems(rawItems.map(toCartLineItem));
-      const mergedMeta = cartRes.data?.data?.meta;
-      setCartTotal(
-        mergedMeta?.display_price?.with_tax?.formatted ??
-          mergedMeta?.display_price?.without_tax?.formatted ??
-          ""
-      );
-      setCartTotalAmount(
-        (mergedMeta?.display_price?.with_tax as any)?.amount ??
-          (mergedMeta?.display_price?.without_tax as any)?.amount ??
-          0
-      );
-      setCartShipping((mergedMeta?.display_price as any)?.shipping?.formatted ?? "");
-      setCartShippingAmount((mergedMeta?.display_price as any)?.shipping?.amount ?? 0);
+      if (mergedItemsRes.data) {
+        const parsed = parseCartResponse(mergedItemsRes.data as any);
+        setItems(parsed.items);
+        setCartTotal(parsed.cartTotal);
+        setCartTotalAmount(parsed.cartTotalAmount);
+        setCartSubtotal(parsed.cartSubtotal);
+        setCartDiscount(parsed.cartDiscount);
+        setCartDiscountAmount(parsed.cartDiscountAmount);
+        setCartShipping(parsed.cartShipping);
+        setCartShippingAmount(parsed.cartShippingAmount);
+      }
     })();
   }, [isAuthenticated, epClient, cartId]);
 
-  const applyCartsResponse = useCallback((response: CartsResponse) => {
-    const { items: newItems, cartTotal: newTotal, cartTotalAmount: newTotalAmount, cartShipping: newShipping, cartShippingAmount: newShippingAmount } = parseCartResponse(response);
-    setItems(newItems);
-    setCartTotal(newTotal);
-    setCartTotalAmount(newTotalAmount);
-    setCartShipping(newShipping);
-    setCartShippingAmount(newShippingAmount);
-  }, []);
+  const loadItems = useCallback(async () => {
+    if (!epClient || !cartId) return;
+    const itemsRes = await getCartItems({
+      client: epClient,
+      path: { cartID: cartId },
+      query: { include: ["promotions"] } as any,
+    });
+    if (itemsRes.data) {
+      const parsed = parseCartResponse(itemsRes.data as any);
+      setItems(parsed.items);
+      setCartTotal(parsed.cartTotal);
+      setCartTotalAmount(parsed.cartTotalAmount);
+      setCartSubtotal(parsed.cartSubtotal);
+      setCartDiscount(parsed.cartDiscount);
+      setCartDiscountAmount(parsed.cartDiscountAmount);
+      setCartShipping(parsed.cartShipping);
+      setCartShippingAmount(parsed.cartShippingAmount);
+    }
+  }, [epClient, cartId]);
 
   const addItem = useCallback(
-    async (productId: string, quantity = 1, customInputs?: Record<string, string>) => {
-      if (!epClient || !cartId) return;
+    async (
+      productId: string,
+      quantity = 1,
+      customInputs?: Record<string, string>,
+    ): Promise<PromotionSuggestion[] | undefined> => {
+      if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
-        const body: any = { data: { type: "cart_item", id: productId, quantity } };
+        const body: any = {
+          data: { type: "cart_item", id: productId, quantity },
+        };
         if (customInputs && Object.keys(customInputs).length > 0) {
           body.data.custom_inputs = customInputs;
         }
@@ -362,17 +512,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
           path: { cartID: cartId },
           body,
         });
-        if (res.data) applyCartsResponse(res.data);
+        const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+          | PromotionSuggestion[]
+          | undefined;
+        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        await loadItems();
+        return suggestions?.length ? suggestions : undefined;
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, applyCartsResponse]
+    [epClient, cartId, loadItems],
   );
 
   const addItems = useCallback(
-    async (items: Array<{ productId: string; quantity: number }>) => {
-      if (!epClient || !cartId || items.length === 0) return;
+    async (
+      items: Array<{ productId: string; quantity: number }>,
+    ): Promise<PromotionSuggestion[] | undefined> => {
+      if (!epClient || !cartId || items.length === 0) return undefined;
       setIsLoading(true);
       try {
         const res = await manageCarts({
@@ -386,17 +543,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
             })),
           },
         });
-        if (res.data) applyCartsResponse(res.data);
+        const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+          | PromotionSuggestion[]
+          | undefined;
+        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        await loadItems();
+        return suggestions?.length ? suggestions : undefined;
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, applyCartsResponse]
+    [epClient, cartId, loadItems],
   );
 
   const addBundleItem = useCallback(
-    async (productId: string, selectedOptions: Record<string, Record<string, number>>, quantity = 1) => {
-      if (!epClient || !cartId) return;
+    async (
+      productId: string,
+      selectedOptions: Record<string, Record<string, number>>,
+      quantity = 1,
+    ): Promise<PromotionSuggestion[] | undefined> => {
+      if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
         const res = await manageCarts({
@@ -411,12 +577,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
             },
           } as any,
         });
-        if (res.data) applyCartsResponse(res.data);
+        const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+          | PromotionSuggestion[]
+          | undefined;
+        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        await loadItems();
+        return suggestions?.length ? suggestions : undefined;
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, applyCartsResponse]
+    [epClient, cartId, loadItems],
   );
 
   const removeItem = useCallback(
@@ -424,16 +595,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId) return;
       setIsLoading(true);
       try {
-        const res = await deleteACartItem({
+        await deleteACartItem({
           client: epClient,
           path: { cartID: cartId, cartitemID: cartItemId },
         });
-        if (res.data) applyCartsResponse(res.data);
+        await loadItems();
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, applyCartsResponse]
+    [epClient, cartId, loadItems],
   );
 
   const updateQuantity = useCallback(
@@ -445,17 +616,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(true);
       try {
-        const res = await updateACartItem({
+        await updateACartItem({
           client: epClient,
           path: { cartID: cartId, cartitemID: cartItemId },
           body: { data: { type: "cart_item", quantity } },
         });
-        if (res.data) applyCartsResponse(res.data);
+        await loadItems();
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, removeItem, applyCartsResponse]
+    [epClient, cartId, removeItem, loadItems],
   );
 
   const clearCart = useCallback(async () => {
@@ -481,34 +652,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || newCartId === cartId) return;
       setIsLoading(true);
       try {
-        const [itemsRes, cartRes] = await Promise.all([
-          getCartItems({ client: epClient, path: { cartID: newCartId } }),
-          getACart({ client: epClient, path: { cartID: newCartId } }),
-        ]);
-        const rawItems = (itemsRes.data?.data ?? []).filter(
-          (i): i is CartItemObject => (i as CartItemObject).type === "cart_item"
-        );
-        const switchMeta = cartRes.data?.data?.meta;
+        const itemsRes = await getCartItems({
+          client: epClient,
+          path: { cartID: newCartId },
+          query: { include: ["promotions"] } as any,
+        });
         localStorage.setItem(CART_STORAGE_KEY, newCartId);
         setCartId(newCartId);
-        setItems(rawItems.map(toCartLineItem));
-        setCartTotal(
-          switchMeta?.display_price?.with_tax?.formatted ??
-            switchMeta?.display_price?.without_tax?.formatted ??
-            ""
-        );
-        setCartTotalAmount(
-          (switchMeta?.display_price?.with_tax as any)?.amount ??
-            (switchMeta?.display_price?.without_tax as any)?.amount ??
-            0
-        );
-        setCartShipping((switchMeta?.display_price as any)?.shipping?.formatted ?? "");
-        setCartShippingAmount((switchMeta?.display_price as any)?.shipping?.amount ?? 0);
+        if (itemsRes.data) {
+          const parsed = parseCartResponse(itemsRes.data as any);
+          setItems(parsed.items);
+          setCartTotal(parsed.cartTotal);
+          setCartTotalAmount(parsed.cartTotalAmount);
+          setCartSubtotal(parsed.cartSubtotal);
+          setCartDiscount(parsed.cartDiscount);
+          setCartDiscountAmount(parsed.cartDiscountAmount);
+          setCartShipping(parsed.cartShipping);
+          setCartShippingAmount(parsed.cartShippingAmount);
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId]
+    [epClient, cartId],
   );
 
   const createCart = useCallback(
@@ -529,7 +695,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [epClient, switchCart]
+    [epClient, switchCart],
   );
 
   const deleteCart = useCallback(
@@ -555,7 +721,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, allCarts, switchCart]
+    [epClient, cartId, allCarts, switchCart],
   );
 
   const updateCart = useCallback(
@@ -568,11 +734,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }).catch(() => null);
       setAllCarts((prev) =>
         prev.map((c) =>
-          c.id === targetCartId ? { ...c, name, description } : c
-        )
+          c.id === targetCartId ? { ...c, name, description } : c,
+        ),
       );
     },
-    [epClient]
+    [epClient],
   );
 
   const clearCartById = useCallback(
@@ -580,11 +746,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient) return;
       setIsLoading(true);
       try {
-        await deleteAllCartItems({ client: epClient, path: { cartID: targetCartId } });
+        await deleteAllCartItems({
+          client: epClient,
+          path: { cartID: targetCartId },
+        });
         setAllCarts((prev) =>
           prev.map((c) =>
-            c.id === targetCartId ? { ...c, itemCount: 0, totalFormatted: undefined } : c
-          )
+            c.id === targetCartId
+              ? { ...c, itemCount: 0, totalFormatted: undefined }
+              : c,
+          ),
         );
         if (targetCartId === cartId) {
           setItems([]);
@@ -595,26 +766,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [epClient, cartId]
+    [epClient, cartId],
   );
 
   const refreshCart = useCallback(async () => {
-    if (!epClient || !cartId) return;
     try {
-      const cartRes = await getACart({ client: epClient, path: { cartID: cartId } });
-      const meta = cartRes.data?.data?.meta;
-      setCartTotal(
-        meta?.display_price?.with_tax?.formatted ??
-          meta?.display_price?.without_tax?.formatted ?? ""
-      );
-      setCartTotalAmount(
-        (meta?.display_price?.with_tax as any)?.amount ??
-          (meta?.display_price?.without_tax as any)?.amount ?? 0
-      );
-      setCartShipping((meta?.display_price as any)?.shipping?.formatted ?? "");
-      setCartShippingAmount((meta?.display_price as any)?.shipping?.amount ?? 0);
-    } catch { /* silent — stale values stay until next successful refresh */ }
-  }, [epClient, cartId]);
+      await loadItems();
+    } catch {
+      /* silent — stale values stay until next successful refresh */
+    }
+  }, [loadItems]);
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -625,6 +786,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         itemCount,
         cartTotal,
         cartTotalAmount,
+        cartSubtotal,
+        cartDiscount,
+        cartDiscountAmount,
         cartShipping,
         cartShippingAmount,
         refreshCart,
@@ -643,6 +807,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateCart,
         deleteCart,
         clearCartById,
+        promotionSuggestions,
+        clearPromotionSuggestions,
       }}
     >
       {children}
