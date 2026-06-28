@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   InstantSearch,
-  Configure,
   useSearchBox,
   useHits,
   useInstantSearch,
@@ -245,7 +244,6 @@ export function SearchButton({ lang }: SearchButtonProps) {
               searchClient={searchClient}
               future={{ preserveSharedStateOnUnmount: true }}
             >
-              <Configure hitsPerPage={6} />
               <SearchModal lang={lang} onClose={() => setIsOpen(false)} />
             </InstantSearch>
           </div>
