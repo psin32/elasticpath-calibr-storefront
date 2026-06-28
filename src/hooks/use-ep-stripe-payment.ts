@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { createEpClient } from "@/lib/api/ep-client";
 import { useAuth } from "@/context/AuthContext";
+import { STRIPE_GATEWAY } from "@/lib/stripe";
 import type { CheckoutFormData } from "./use-checkout";
 
 export type BillingAddr = {
@@ -159,23 +160,26 @@ export function useEpStripePayment(
         const orderId = orderRes.data?.data?.id;
         if (!orderId) throw new Error(t("orderCreationFailed"));
 
-        // 2. Initiate payment via EP's Stripe gateway — EP creates the PaymentIntent
-        // Cast needed: SDK types model ElasticPathPaymentsPoweredByStripePayment with a nested
-        // `data` wrapper, but the actual API (and other gateway types) expect a flat DataPaymentObject.
+        // 2. Initiate payment via EP — EP creates the PaymentIntent server-side.
+        // Gateway is determined by env: elastic_path_payments_stripe (EP Payments, needs account ID)
+        // or stripe_payment (merchant's own Stripe account).
         const paymentRes = await paymentSetup({
           client,
           path: { orderID: orderId },
           body: {
             data: {
-              gateway: "elastic_path_payments_stripe",
+              gateway: STRIPE_GATEWAY,
               method: "purchase",
             } as any,
           },
         });
 
         const transactionId = paymentRes.data?.data?.id;
-        const clientSecret = (paymentRes.data?.data as any)?.payment_intent
-          ?.client_secret as string | undefined;
+        // EP Payments returns client_secret nested under payment_intent;
+        // standard stripe_payment gateway may return it at the top level.
+        const paymentData = paymentRes.data?.data as any;
+        const clientSecret = (paymentData?.payment_intent?.client_secret ??
+          paymentData?.client_secret) as string | undefined;
 
         if (!clientSecret) {
           throw new Error(t("paymentSetupFailed"));

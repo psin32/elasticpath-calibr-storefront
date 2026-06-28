@@ -4,9 +4,19 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Check, ArrowRight, ShoppingBag, CreditCard, FileText, Lock } from "lucide-react";
+import {
+  Check,
+  ArrowRight,
+  ShoppingBag,
+  CreditCard,
+  FileText,
+  Lock,
+} from "lucide-react";
 import { Elements } from "@stripe/react-stripe-js";
-import type { StripeElementsOptions, StripeElementLocale } from "@stripe/stripe-js";
+import type {
+  StripeElementsOptions,
+  StripeElementLocale,
+} from "@stripe/stripe-js";
 import { CheckoutUserInfo } from "./CheckoutUserInfo";
 import { ShippingGroupManager } from "./ShippingGroupManager";
 import { OrderSummary } from "./OrderSummary";
@@ -21,7 +31,7 @@ import { type CheckoutFormData } from "@/hooks/use-checkout";
 import { useEpStripePayment } from "@/hooks/use-ep-stripe-payment";
 import { useEpPOPayment } from "@/hooks/use-ep-po-payment";
 import { useAccountAddresses } from "@/hooks/use-account-addresses";
-import { stripePromise } from "@/lib/stripe";
+import { stripePromise, STRIPE_GATEWAY } from "@/lib/stripe";
 import type { BillingAddr } from "@/hooks/use-ep-stripe-payment";
 import type { Group } from "@/components/checkout/shipping/types";
 
@@ -29,10 +39,23 @@ type Step = "shipping" | "payment";
 
 export function CheckoutFlow({ lang }: { lang: string }) {
   const t = useTranslations("checkout");
-  const { items, cartTotal, cartTotalAmount, cartShipping, cartShippingAmount, isInitializing } = useCart();
+  const {
+    items,
+    cartTotal,
+    cartTotalAmount,
+    cartShipping,
+    cartShippingAmount,
+    isInitializing,
+  } = useCart();
   const { addresses, addAddress } = useAccountAddresses();
-  const { processPayment, isLoading, isRedirecting, error } = useEpStripePayment(lang, addresses);
-  const { processPayment: processPOPayment, isLoading: isPOLoading, isRedirecting: isPORedirecting, error: poError } = useEpPOPayment(lang, addresses);
+  const { processPayment, isLoading, isRedirecting, error } =
+    useEpStripePayment(lang, addresses);
+  const {
+    processPayment: processPOPayment,
+    isLoading: isPOLoading,
+    isRedirecting: isPORedirecting,
+    error: poError,
+  } = useEpPOPayment(lang, addresses);
   const { isAuthenticated, credentials } = useAuth();
 
   const stripeFormRef = useRef<HTMLFormElement>(null);
@@ -41,11 +64,15 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   const [step, setStep] = useState<Step>("shipping");
   const [shippingReady, setShippingReady] = useState(false);
   const [shippingLoading, setShippingLoading] = useState(true);
-  const [savedFormData, setSavedFormData] = useState<CheckoutFormData | null>(null);
+  const [savedFormData, setSavedFormData] = useState<CheckoutFormData | null>(
+    null,
+  );
   const [shippingGroups, setShippingGroups] = useState<Group[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "po">("card");
   // undefined = not yet initialized; null = "same as shipping" (valid); BillingAddr = explicit address
-  const [billingAddress, setBillingAddress] = useState<BillingAddr | null | undefined>(undefined);
+  const [billingAddress, setBillingAddress] = useState<
+    BillingAddr | null | undefined
+  >(undefined);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [isStripeConfirming, setIsStripeConfirming] = useState(false);
 
@@ -68,7 +95,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
   }, [credentials, setValue]);
 
   const aggregatedItems = Object.values(
-    items.reduce<Record<string, typeof items[0]>>((acc, item) => {
+    items.reduce<Record<string, (typeof items)[0]>>((acc, item) => {
       if (acc[item.productId]) {
         const existing = acc[item.productId];
         const totalQty = existing.quantity + item.quantity;
@@ -85,7 +112,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
         acc[item.productId] = { ...item };
       }
       return acc;
-    }, {})
+    }, {}),
   );
 
   // Deferred intent mode: Elements collects card details without a PaymentIntent upfront.
@@ -108,7 +135,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
     }),
     // Only recalculate when step changes to payment (amount is locked at that point)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step]
+    [step],
   );
 
   const STEPS: Array<{ key: Step; num: string; label: string }> = [
@@ -141,14 +168,23 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                 <span
                   className={[
                     "text-sm font-medium",
-                    isActive ? "text-[#0E1521]" : isPast ? "text-[#2BCC7E]" : "text-[#8C95A3]",
+                    isActive
+                      ? "text-[#0E1521]"
+                      : isPast
+                        ? "text-[#2BCC7E]"
+                        : "text-[#8C95A3]",
                   ].join(" ")}
                 >
                   {st.label}
                 </span>
               </div>
               {!isLast && (
-                <span className={["w-10 h-px mx-1", isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]"].join(" ")} />
+                <span
+                  className={[
+                    "w-10 h-px mx-1",
+                    isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]",
+                  ].join(" ")}
+                />
               )}
             </div>
           );
@@ -161,12 +197,35 @@ export function CheckoutFlow({ lang }: { lang: string }) {
     <header className="flex-none border-b border-gray-100 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-3 items-center">
         <div className="flex items-center">
-          <Link href={`/${lang}`} aria-label={t("returnToStore")} className="flex items-center gap-2">
-            <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="32" height="32" rx="6" fill="var(--color-brand-primary)" />
-              <path d="M8 10h16M8 16h10M8 22h13" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          <Link
+            href={`/${lang}`}
+            aria-label={t("returnToStore")}
+            className="flex items-center gap-2"
+          >
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <rect
+                width="32"
+                height="32"
+                rx="6"
+                fill="var(--color-brand-primary)"
+              />
+              <path
+                d="M8 10h16M8 16h10M8 22h13"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
             </svg>
-            <span className="text-lg font-bold tracking-tight text-gray-900">Calibr</span>
+            <span className="text-lg font-bold tracking-tight text-gray-900">
+              Calibr
+            </span>
           </Link>
         </div>
         <div className="flex justify-center">
@@ -179,7 +238,13 @@ export function CheckoutFlow({ lang }: { lang: string }) {
     </header>
   );
 
-  if (!isInitializing && !shippingLoading && !isRedirecting && !isPORedirecting && items.length === 0) {
+  if (
+    !isInitializing &&
+    !shippingLoading &&
+    !isRedirecting &&
+    !isPORedirecting &&
+    items.length === 0
+  ) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {pageHeader}
@@ -187,7 +252,9 @@ export function CheckoutFlow({ lang }: { lang: string }) {
           <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-6">
             <ShoppingBag size={28} className="text-gray-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t("emptyCart")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {t("emptyCart")}
+          </h1>
           <p className="text-gray-500 mb-8">{t("emptyCartSubtitle")}</p>
           <Link
             href={`/${lang}`}
@@ -241,7 +308,9 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                   placeholder={t("firstNamePlaceholder")}
                   required
                   error={errors.firstName?.message}
-                  {...register("firstName", { required: t("firstNameRequired") })}
+                  {...register("firstName", {
+                    required: t("firstNameRequired"),
+                  })}
                 />
                 <Input
                   label={t("lastName")}
@@ -302,7 +371,9 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                 </Button>
 
                 {!shippingReady && (
-                  <p className="text-center text-xs text-amber-600">{t("shippingNotReady")}</p>
+                  <p className="text-center text-xs text-amber-600">
+                    {t("shippingNotReady")}
+                  </p>
                 )}
               </>
             )}
@@ -324,12 +395,17 @@ export function CheckoutFlow({ lang }: { lang: string }) {
               <span className="w-5 h-5 rounded-full bg-[#2BCC7E] flex items-center justify-center flex-none">
                 <Check size={12} className="text-[#0E1521]" strokeWidth={3} />
               </span>
-              <span className="font-medium text-gray-800">{t("reviewShipping")}</span>
+              <span className="font-medium text-gray-800">
+                {t("reviewShipping")}
+              </span>
               {savedFormData && !isAuthenticated && (
                 <span className="text-gray-400 mx-1">·</span>
               )}
               {savedFormData && !isAuthenticated && (
-                <span>{savedFormData.firstName} {savedFormData.lastName} · {savedFormData.email}</span>
+                <span>
+                  {savedFormData.firstName} {savedFormData.lastName} ·{" "}
+                  {savedFormData.email}
+                </span>
               )}
             </div>
             <button
@@ -343,12 +419,17 @@ export function CheckoutFlow({ lang }: { lang: string }) {
 
           {/* Billing address card */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t("billingAddress")}</h2>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              {t("billingAddress")}
+            </h2>
             <BillingAddressSection
               addresses={addresses}
               hasShippingGroups={shippingGroups.length > 0}
               addAddress={addAddress}
-              onAddressChange={(addr) => { setBillingAddress(addr); setBillingError(null); }}
+              onAddressChange={(addr) => {
+                setBillingAddress(addr);
+                setBillingError(null);
+              }}
               error={billingError}
             />
           </div>
@@ -356,7 +437,9 @@ export function CheckoutFlow({ lang }: { lang: string }) {
           {/* Payment method accordion card */}
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t("paymentMethod")}</h2>
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                {t("paymentMethod")}
+              </h2>
             </div>
             <div className="divide-y divide-gray-100">
               {/* Card */}
@@ -366,26 +449,51 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                   onClick={() => setPaymentMethod("card")}
                   className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "card" ? "border-brand-primary" : "border-gray-300"}`}>
-                    {paymentMethod === "card" && <span className="w-2 h-2 rounded-full bg-brand-primary" />}
+                  <span
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "card" ? "border-brand-primary" : "border-gray-300"}`}
+                  >
+                    {paymentMethod === "card" && (
+                      <span className="w-2 h-2 rounded-full bg-brand-primary" />
+                    )}
                   </span>
-                  <CreditCard size={16} className={paymentMethod === "card" ? "text-brand-primary" : "text-gray-400"} />
-                  <span className={`text-sm font-medium ${paymentMethod === "card" ? "text-gray-900" : "text-gray-500"}`}>
+                  <CreditCard
+                    size={16}
+                    className={
+                      paymentMethod === "card"
+                        ? "text-brand-primary"
+                        : "text-gray-400"
+                    }
+                  />
+                  <span
+                    className={`text-sm font-medium ${paymentMethod === "card" ? "text-gray-900" : "text-gray-500"}`}
+                  >
                     {t("payCard")}
                   </span>
                 </button>
                 {paymentMethod === "card" && (
                   <div className="px-5 pb-5">
-                    <Elements stripe={stripePromise} options={stripeElementsOptions}>
+                    <Elements
+                      stripe={stripePromise}
+                      options={stripeElementsOptions}
+                    >
                       <StripePaymentForm
                         onPayment={(stripe, elements) =>
-                          processPayment(savedFormData!, stripe, elements, billingAddress ?? null)
+                          processPayment(
+                            savedFormData!,
+                            stripe,
+                            elements,
+                            billingAddress ?? null,
+                          )
                         }
                         isProcessing={isLoading}
                         externalError={error}
                         formRef={stripeFormRef}
                         onConfirmingChange={setIsStripeConfirming}
-                        email={credentials?.member_email ?? savedFormData?.email ?? ""}
+                        email={
+                          credentials?.member_email ??
+                          savedFormData?.email ??
+                          ""
+                        }
                       />
                     </Elements>
                   </div>
@@ -399,18 +507,37 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                   onClick={() => setPaymentMethod("po")}
                   className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "po" ? "border-brand-primary" : "border-gray-300"}`}>
-                    {paymentMethod === "po" && <span className="w-2 h-2 rounded-full bg-brand-primary" />}
+                  <span
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "po" ? "border-brand-primary" : "border-gray-300"}`}
+                  >
+                    {paymentMethod === "po" && (
+                      <span className="w-2 h-2 rounded-full bg-brand-primary" />
+                    )}
                   </span>
-                  <FileText size={16} className={paymentMethod === "po" ? "text-brand-primary" : "text-gray-400"} />
-                  <span className={`text-sm font-medium ${paymentMethod === "po" ? "text-gray-900" : "text-gray-500"}`}>
+                  <FileText
+                    size={16}
+                    className={
+                      paymentMethod === "po"
+                        ? "text-brand-primary"
+                        : "text-gray-400"
+                    }
+                  />
+                  <span
+                    className={`text-sm font-medium ${paymentMethod === "po" ? "text-gray-900" : "text-gray-500"}`}
+                  >
                     {t("payPO")}
                   </span>
                 </button>
                 {paymentMethod === "po" && (
                   <div className="px-5 pb-5">
                     <POPaymentForm
-                      onSubmit={(poNumber) => processPOPayment(savedFormData!, poNumber, billingAddress ?? null)}
+                      onSubmit={(poNumber) =>
+                        processPOPayment(
+                          savedFormData!,
+                          poNumber,
+                          billingAddress ?? null,
+                        )
+                      }
                       isProcessing={isPOLoading}
                       externalError={poError}
                       formRef={poFormRef}
@@ -435,7 +562,9 @@ export function CheckoutFlow({ lang }: { lang: string }) {
             >
               {isPlacingOrder ? t("placingOrder") : t("placeOrder")}
             </Button>
-            <p className="text-center text-xs text-gray-400">{t("securePayment")}</p>
+            <p className="text-center text-xs text-gray-400">
+              {t("securePayment")}
+            </p>
           </div>
         </div>
 
@@ -468,7 +597,10 @@ export function CheckoutFlow({ lang }: { lang: string }) {
             <div className={`${pulse} h-4 w-1/2`} />
           </div>
           {[0, 1].map((i) => (
-            <div key={i} className="flex gap-4 px-6 py-4 border-b border-gray-100">
+            <div
+              key={i}
+              className="flex gap-4 px-6 py-4 border-b border-gray-100"
+            >
               <div className={`${pulse} w-16 h-16 shrink-0`} />
               <div className="flex-1 space-y-2 py-1">
                 <div className={`${pulse} h-3.5 w-4/5`} />
