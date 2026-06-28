@@ -15,24 +15,30 @@ import {
 import CatalogSearchInstantSearchAdapter from "@elasticpath/catalog-search-instantsearch-adapter";
 import { useEpClient } from "@/components/ClientProvider";
 import { SEARCH_INDEX_NAME } from "@/lib/instantsearch-routing";
+import { Price } from "@/components/product/Price";
 
 type HitResult = {
   id: string;
   name: string;
   slug: string;
   price: string;
+  originalPrice: string | undefined;
   imageUrl: string | undefined;
 };
 
 function hitToResult(hit: Record<string, unknown>): HitResult {
   const attrs = (hit.attributes as Record<string, any>) ?? {};
-  const dp = (hit.meta as Record<string, any>)?.display_price ?? {};
+  const meta = (hit.meta as Record<string, any>) ?? {};
+  const dp = meta.display_price ?? {};
+  const odp = meta.original_display_price ?? {};
   const mainImage = hit.main_image as { link?: { href?: string } } | undefined;
   return {
     id: (hit.objectID as string) ?? (hit.id as string) ?? "",
     name: attrs.name ?? "",
     slug: attrs.slug ?? "",
     price: dp.with_tax?.formatted ?? dp.without_tax?.formatted ?? "",
+    originalPrice:
+      odp.without_tax?.formatted ?? odp.with_tax?.formatted ?? undefined,
     imageUrl: mainImage?.link?.href,
   };
 }
@@ -141,9 +147,11 @@ function SearchModal({
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {result.name}
                     </p>
-                    {result.price && (
-                      <p className="text-xs text-gray-500">{result.price}</p>
-                    )}
+                    <Price
+                      formatted={result.price}
+                      originalFormatted={result.originalPrice}
+                      className="text-xs"
+                    />
                   </div>
                   <ArrowRight size={14} className="text-gray-300 flex-shrink-0" />
                 </Link>

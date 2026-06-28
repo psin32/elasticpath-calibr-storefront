@@ -38,7 +38,9 @@ const HIERARCHICAL_ATTRIBUTES = [
 // hit.main_image.link.href  (merged by adapter when include:["main_image"])
 function hitToCard(hit: Record<string, unknown>): ProductCardData {
   const attrs = (hit.attributes as Record<string, any>) ?? {};
-  const dp = (hit.meta as Record<string, any>)?.display_price ?? {};
+  const meta = (hit.meta as Record<string, any>) ?? {};
+  const dp = meta.display_price ?? {};
+  const odp = meta.original_display_price ?? {};
   const mainImage = hit.main_image as { link?: { href?: string } } | undefined;
 
   return {
@@ -47,6 +49,8 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
     slug: attrs.slug ?? "",
     description: attrs.description as string | undefined,
     priceFormatted: dp.with_tax?.formatted ?? dp.without_tax?.formatted ?? "",
+    originalPriceFormatted:
+      odp.without_tax?.formatted ?? odp.with_tax?.formatted ?? undefined,
     imageUrl: mainImage?.link?.href,
     hasVariations: Boolean(attrs.base_product),
     hasBulkBuy: false,
