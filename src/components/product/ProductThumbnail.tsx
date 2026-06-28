@@ -18,7 +18,7 @@ export function ProductThumbnail({
     <div
       className={cn(
         "relative aspect-square bg-gray-50 overflow-hidden",
-        className
+        className,
       )}
     >
       {imageUrl ? (
@@ -29,6 +29,7 @@ export function ProductThumbnail({
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-300"
           priority={priority}
+          unoptimized={imageUrl.startsWith("http")}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">

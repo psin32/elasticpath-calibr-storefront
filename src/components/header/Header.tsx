@@ -43,7 +43,7 @@ export async function Header({ lang }: HeaderProps) {
           {/* Right: locale + search + account + cart */}
           <div className="flex items-center gap-1">
             <LocaleSelector currentLocale={lang} />
-            <SearchButton />
+            {process.env.NEXT_PUBLIC_SEARCH_ENABLED === "true" && <SearchButton />}
             <AccountButton />
             <CartButton />
             <SettingsButton />

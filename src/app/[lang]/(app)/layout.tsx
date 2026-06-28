@@ -4,6 +4,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { PreferencesProvider } from "@/context/PreferencesContext";
 import { FooterSection } from "@/components/footer/FooterSection";
+import { ClientProvider } from "@/components/ClientProvider";
 
 export default async function AppLayout({
   children,
@@ -16,14 +17,16 @@ export default async function AppLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <PreferencesProvider>
-        <AuthProvider>
-          <CartProvider>
+      <ClientProvider>
+        <PreferencesProvider>
+          <AuthProvider>
+            <CartProvider>
             {children}
             <FooterSection lang={lang} />
-          </CartProvider>
-        </AuthProvider>
-      </PreferencesProvider>
+            </CartProvider>
+          </AuthProvider>
+        </PreferencesProvider>
+      </ClientProvider>
     </NextIntlClientProvider>
   );
 }
