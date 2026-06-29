@@ -72,11 +72,11 @@ function FlatCarousel({
   if (!items.length) return null;
 
   return (
-    <div className="relative group">
+    <div className="relative group/carousel">
       <button
         onClick={() => scroll("left")}
         aria-label={t("promotionPrev")}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover:opacity-100"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover/carousel:opacity-100"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
@@ -100,7 +100,7 @@ function FlatCarousel({
       <button
         onClick={() => scroll("right")}
         aria-label={t("promotionNext")}
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover:opacity-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover/carousel:opacity-100"
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
@@ -135,11 +135,11 @@ function PromoRow({ suggestion, products, lang, t }: RowProps) {
       {products.length === 0 ? (
         <p className="text-sm text-gray-400">{t("promotionModalNoProducts")}</p>
       ) : (
-        <div className="relative group">
+        <div className="relative group/carousel">
           <button
             onClick={() => scroll("left")}
             aria-label={t("promotionPrev")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all opacity-0 group-hover:opacity-100"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all opacity-0 group-hover/carousel:opacity-100"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -161,7 +161,7 @@ function PromoRow({ suggestion, products, lang, t }: RowProps) {
           <button
             onClick={() => scroll("right")}
             aria-label={t("promotionNext")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all opacity-0 group-hover:opacity-100"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all opacity-0 group-hover/carousel:opacity-100"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
