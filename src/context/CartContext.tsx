@@ -334,6 +334,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [promotionSuggestions, setPromotionSuggestionsRaw] = useState<
     PromotionSuggestion[] | null
   >(null);
+  const promotionSuggestionsRef = useRef<PromotionSuggestion[] | null>(null);
 
   // Restore from sessionStorage on mount (GET endpoint does not return promotion_suggestions)
   useEffect(() => {
@@ -341,13 +342,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const stored = sessionStorage.getItem("ep_promo_suggestions");
       if (stored) {
         const parsed = JSON.parse(stored) as PromotionSuggestion[];
-        if (parsed.length) setPromotionSuggestionsRaw(parsed);
+        if (parsed.length) {
+          setPromotionSuggestionsRaw(parsed);
+          promotionSuggestionsRef.current = parsed;
+        }
       }
     } catch {}
   }, []);
 
   const setPromotionSuggestions = useCallback(
     (suggestions: PromotionSuggestion[] | null) => {
+      promotionSuggestionsRef.current = suggestions;
       setPromotionSuggestionsRaw(suggestions);
       try {
         if (suggestions && suggestions.length) {
@@ -552,6 +557,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (customInputs && Object.keys(customInputs).length > 0) {
           body.data.custom_inputs = customInputs;
         }
+        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -562,7 +568,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-      if (relevant.length) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -579,6 +585,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId || items.length === 0) return undefined;
       setIsLoading(true);
       try {
+        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -595,7 +602,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-      if (relevant.length) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -614,6 +621,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
+        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -631,7 +639,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-      if (relevant.length) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -682,7 +690,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-      if (relevant.length) setShowPromotionModal(true);
         await loadItems();
       } finally {
         setIsLoading(false);
