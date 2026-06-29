@@ -368,6 +368,7 @@
     "pricePerItem": "Precio por artículo",
     "bulkBuyTag": "Compra al por mayor",
     "variationTag": "Variación",
+    "bundleTag": "Paquete",
     "detailsLabel": "Detalles del producto",
     "notFoundTitle": "Producto no encontrado",
     "notFoundMessage": "El producto que buscas no existe o puede haber sido eliminado.",
@@ -565,5 +566,8 @@
     "nextStep3": "Su pedido se envía con un número de seguimiento por correo electrónico.",
     "continueShopping": "Seguir comprando",
     "backToHome": "Volver al inicio"
+  },
+  "common": {
+    "close": "Cerrar"
   }
 }

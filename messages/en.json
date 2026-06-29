@@ -368,6 +368,7 @@
     "pricePerItem": "Price Per Item",
     "bulkBuyTag": "Bulk Buy",
     "variationTag": "Variation",
+    "bundleTag": "Bundle",
     "detailsLabel": "Product Details",
     "notFoundTitle": "Product Not Found",
     "notFoundMessage": "The product you're looking for doesn't exist or may have been removed.",
@@ -565,5 +566,8 @@
     "nextStep3": "Your order ships with a tracking number via email.",
     "continueShopping": "Continue shopping",
     "backToHome": "Back to home"
+  },
+  "common": {
+    "close": "Close"
   }
 }

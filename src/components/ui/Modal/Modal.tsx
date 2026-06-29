@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
@@ -38,6 +39,7 @@ export function Modal({
   closeOnBackdrop = true,
   className,
 }: ModalProps) {
+  const t = useTranslations("common");
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -89,7 +91,7 @@ export function Modal({
         )}
       >
         {/* Header */}
-        {(title || description) && (
+        {(title || description) ? (
           <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-gray-100">
             <div>
               {title && (
@@ -105,12 +107,20 @@ export function Modal({
             </div>
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("close")}
               className="ml-4 shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             >
               <X size={18} />
             </button>
           </div>
+        ) : (
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-3 right-3 z-10 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <X size={18} />
+          </button>
         )}
 
         {/* Body */}

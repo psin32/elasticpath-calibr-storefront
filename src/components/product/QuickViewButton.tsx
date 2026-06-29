@@ -8,6 +8,7 @@ import { ProductThumbnail } from "./ProductThumbnail";
 import { ProductName } from "./ProductName";
 import { Price } from "./Price";
 import { VariantAddToCart } from "./VariantAddToCart";
+import { BundleConfigurator } from "./BundleConfigurator";
 import { getProductBySlugAction, getProductByIdAction } from "@/lib/actions/product";
 import type { ProductCardData, ProductDetailData } from "@/lib/api/products";
 
@@ -96,11 +97,39 @@ export function QuickViewButton({ product, lang }: Props) {
         isOpen={isOpen}
         onClose={handleClose}
         size="full"
-        className="max-w-3xl"
+        className="max-w-5xl"
       >
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 rounded-full border-2 border-brand-primary border-t-transparent animate-spin" />
+          </div>
+        ) : detail?.isBundle && detail.components?.length ? (
+          <div className="flex flex-col overflow-y-auto overflow-x-hidden max-h-[75vh]">
+            {/* Top: image + name/description */}
+            <div className="flex gap-6 shrink-0 mb-4">
+              <div className="w-40 h-40 shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                <ProductThumbnail
+                  imageUrl={detail.imageUrl}
+                  name={detail.name}
+                  className="w-full h-full"
+                  priority
+                />
+              </div>
+              <div className="flex flex-col gap-1 justify-center">
+                <ProductName name={detail.name} as="h2" className="text-xl" />
+                {detail.description && (
+                  <p className="text-sm text-gray-600 line-clamp-3">{detail.description}</p>
+                )}
+              </div>
+            </div>
+            {/* Full-width configurator with sticky footer */}
+            <BundleConfigurator
+              productId={detail.id}
+              components={detail.components}
+              initialPrice={detail.priceFormatted}
+              initialOriginalPrice={detail.originalPriceFormatted}
+              stickyFooter
+            />
           </div>
         ) : detail ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">

@@ -23,6 +23,7 @@ export type ProductCardData = {
   description?: string;
   hasVariations?: boolean;
   hasBulkBuy?: boolean;
+  isBundle?: boolean;
 };
 
 export type ProductVariationOption = {
@@ -139,6 +140,12 @@ function formatProduct(
     | Record<string, unknown>
     | undefined;
   const tiersAttr = (product.attributes as Record<string, unknown>)?.tiers;
+  const isBundle =
+    !!product.meta?.product_types?.includes("bundle") ||
+    !!(
+      product.attributes?.components &&
+      Object.keys(product.attributes.components).length > 0
+    );
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -149,6 +156,7 @@ function formatProduct(
     imageUrl: image?.link?.href,
     hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
     hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    isBundle,
   };
 }
 

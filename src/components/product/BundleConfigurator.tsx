@@ -27,6 +27,7 @@ type Props = {
   initialPrice?: string;
   initialOriginalPrice?: string;
   className?: string;
+  stickyFooter?: boolean;
 };
 
 function buildInitialSelections(components: BundleComponent[]): SelectionState {
@@ -53,6 +54,7 @@ export function BundleConfigurator({
   initialPrice,
   initialOriginalPrice,
   className,
+  stickyFooter = false,
 }: Props) {
   const t = useTranslations("bundle");
 
@@ -403,11 +405,11 @@ export function BundleConfigurator({
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-gray-900 break-words">
                           {option.name}
                         </p>
                         {option.sku && (
-                          <p className="text-xs text-gray-400 truncate">
+                          <p className="text-xs text-gray-400 break-all">
                             {t("sku", { sku: option.sku })}
                           </p>
                         )}
@@ -519,7 +521,7 @@ export function BundleConfigurator({
       </div>
 
       {/* Overall bundle quantity + add to cart */}
-      <div className="flex items-center gap-4">
+      <div className={`flex items-center gap-4 ${stickyFooter ? "sticky bottom-0 bg-white border-t border-gray-100 pt-3 pb-1 -mx-4 px-4" : ""}`}>
         <QuantitySelector value={quantity} onChange={setQuantity} min={1} />
         <Button
           variant="primary"

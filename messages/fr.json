@@ -368,6 +368,7 @@
     "pricePerItem": "Prix par article",
     "bulkBuyTag": "Achat en gros",
     "variationTag": "Variation",
+    "bundleTag": "Bundle",
     "detailsLabel": "Détails du produit",
     "notFoundTitle": "Produit introuvable",
     "notFoundMessage": "Le produit que vous recherchez n'existe pas ou a peut-être été supprimé.",
@@ -565,5 +566,8 @@
     "nextStep3": "Votre commande est expédiée avec un numéro de suivi par e-mail.",
     "continueShopping": "Continuer mes achats",
     "backToHome": "Retour à l'accueil"
+  },
+  "common": {
+    "close": "Fermer"
   }
 }
