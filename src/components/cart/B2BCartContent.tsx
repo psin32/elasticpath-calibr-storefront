@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCart } from "@/context/CartContext";
 import { CartPageHeader } from "./CartPageHeader";
+import { CartSummaryPanel } from "./CartSummaryPanel";
 import { BundleCartRow } from "./BundleCartRow";
 import { MatrixCartRow } from "./MatrixCartRow";
 import { SimpleCartRow } from "./SimpleCartRow";
+import { SimpleCartRowList } from "./SimpleCartRowList";
 import type {
   LineGroup,
   ProductInfo,
@@ -36,8 +38,7 @@ type Props = { lang: string };
 
 export function B2BCartContent({ lang }: Props) {
   const t = useTranslations("cart");
-  const { items, cartTotal, isLoading, addItem, updateQuantity, removeItem } =
-    useCart();
+  const { items, isLoading, addItem, updateQuantity, removeItem } = useCart();
 
   const productInfoCache = useRef<Map<string, ProductInfo>>(new Map());
   const childrenCache = useRef<Map<string, ChildProduct[]>>(new Map());
@@ -274,7 +275,7 @@ export function B2BCartContent({ lang }: Props) {
         lang={lang}
         totalUnits={totalUnits}
         lineCount={lineCount}
-        grandTotal={cartTotal}
+        showActions={viewMode === "grid"}
       />
 
       <div className="h-px bg-[#DDE1E6] my-7" />
@@ -301,7 +302,7 @@ export function B2BCartContent({ lang }: Props) {
 
       {!isEmpty && (
         <>
-          {/* View toggle toolbar */}
+          {/* View toggle toolbar — always full width */}
           <div className="flex items-center justify-between mb-4">
             <p className="text-[13px] text-[#5C6675]">
               {t("units", { count: totalUnits })} ·{" "}
@@ -337,51 +338,108 @@ export function B2BCartContent({ lang }: Props) {
             </div>
           </div>
 
-          {(isLoading || groupsLoading) && groups.length === 0 ? (
-            <div className="flex flex-col gap-4">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse"
-                />
-              ))}
+          {/* List view: two-column layout with summary sidebar */}
+          {viewMode === "list" ? (
+            <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+              {/* Left: items */}
+              <div>
+                {(isLoading || groupsLoading) && groups.length === 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {groups.map((group, idx) => {
+                      if (group.kind === "bundle") {
+                        return (
+                          <BundleCartRow
+                            key={group.cartItemId}
+                            {...group}
+                            onQuantityChange={handleSimpleQtyChange}
+                            onRemove={removeItem}
+                            disabled={isLoading}
+                          />
+                        );
+                      }
+                      if (group.kind === "matrix") {
+                        return (
+                          <MatrixCartRow
+                            key={group.matrixGroup.parentId}
+                            matrixGroup={group.matrixGroup}
+                            cartItemsByProductId={group.cartItemsByProductId}
+                            onQuantityChange={handleMatrixQtyChange}
+                            disabled={isLoading}
+                          />
+                        );
+                      }
+                      return (
+                        <SimpleCartRowList
+                          key={group.cartItemId + idx}
+                          {...group}
+                          onQuantityChange={handleSimpleQtyChange}
+                          onRemove={removeItem}
+                          disabled={isLoading}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right: sticky order summary */}
+              <div className="mt-6 lg:mt-0 lg:sticky lg:top-24">
+                <CartSummaryPanel lang={lang} lineCount={lineCount} totalUnits={totalUnits} />
+              </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {groups.map((group, idx) => {
-                if (group.kind === "bundle") {
-                  return (
-                    <BundleCartRow
-                      key={group.cartItemId}
-                      {...group}
-                      onQuantityChange={handleSimpleQtyChange}
-                      onRemove={removeItem}
-                      disabled={isLoading}
-                    />
-                  );
-                }
-                if (group.kind === "matrix") {
-                  return (
-                    <MatrixCartRow
-                      key={group.matrixGroup.parentId}
-                      matrixGroup={group.matrixGroup}
-                      cartItemsByProductId={group.cartItemsByProductId}
-                      onQuantityChange={handleMatrixQtyChange}
-                      disabled={isLoading}
-                    />
-                  );
-                }
-                return (
-                  <SimpleCartRow
-                    key={group.cartItemId + idx}
-                    {...group}
-                    onQuantityChange={handleSimpleQtyChange}
-                    onRemove={removeItem}
-                    disabled={isLoading}
-                  />
-                );
-              })}
-            </div>
+            /* Grid view: full-width single-column, totals shown in header */
+            <>
+              {(isLoading || groupsLoading) && groups.length === 0 ? (
+                <div className="flex flex-col gap-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {groups.map((group, idx) => {
+                    if (group.kind === "bundle") {
+                      return (
+                        <BundleCartRow
+                          key={group.cartItemId}
+                          {...group}
+                          onQuantityChange={handleSimpleQtyChange}
+                          onRemove={removeItem}
+                          disabled={isLoading}
+                        />
+                      );
+                    }
+                    if (group.kind === "matrix") {
+                      return (
+                        <MatrixCartRow
+                          key={group.matrixGroup.parentId}
+                          matrixGroup={group.matrixGroup}
+                          cartItemsByProductId={group.cartItemsByProductId}
+                          onQuantityChange={handleMatrixQtyChange}
+                          disabled={isLoading}
+                        />
+                      );
+                    }
+                    return (
+                      <SimpleCartRow
+                        key={group.cartItemId + idx}
+                        {...group}
+                        onQuantityChange={handleSimpleQtyChange}
+                        onRemove={removeItem}
+                        disabled={isLoading}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </>
       )}

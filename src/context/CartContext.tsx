@@ -343,7 +343,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const itemsRes = await getCartItems({
           client,
           path: { cartID: id },
-          query: { include: ["promotions", "custom_discounts"] } as any,
+          query: { include: "promotions" } as any,
         });
         if (itemsRes.data) {
           const parsed = parseCartResponse(itemsRes.data as any);
@@ -455,7 +455,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const mergedItemsRes = await getCartItems({
         client: epClient,
         path: { cartID: accountCartId },
-        query: { include: ["promotions"] } as any,
+        query: { include: "promotions" } as any,
       });
       setCartId(accountCartId);
       if (mergedItemsRes.data) {
@@ -477,7 +477,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const itemsRes = await getCartItems({
       client: epClient,
       path: { cartID: cartId },
-      query: { include: ["promotions"] } as any,
+      query: { include: "promotions" } as any,
     });
     if (itemsRes.data) {
       const parsed = parseCartResponse(itemsRes.data as any);
@@ -655,7 +655,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const itemsRes = await getCartItems({
           client: epClient,
           path: { cartID: newCartId },
-          query: { include: ["promotions"] } as any,
+          query: { include: "promotions" } as any,
         });
         localStorage.setItem(CART_STORAGE_KEY, newCartId);
         setCartId(newCartId);

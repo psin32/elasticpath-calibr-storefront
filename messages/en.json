@@ -346,7 +346,13 @@
     "promotionModalTitle": "Promotion available",
     "promotionModalDismiss": "No thanks",
     "promotionModalNoProducts": "Products not found.",
-    "promotion": "Promotion"
+    "promotion": "Promotion",
+    "orderSummary": "Order Summary",
+    "shippingNote": "Shipping and taxes calculated at checkout",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "quantity": "Quantity",
+    "sku": "SKU"
   },
   "product": {
     "quickView": "Quick view",

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ArrowRight, FileText, ClipboardList, ChevronsUpDown,
-  Check, Plus, ShoppingCart, Trash2, Eraser, X,
+  ClipboardList, ChevronsUpDown,
+  Check, Plus, ShoppingCart, Trash2, Eraser, X, ArrowRight, FileText, Tag,
 } from "lucide-react";
+import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslations } from "next-intl";
@@ -15,16 +14,15 @@ type Props = {
   lang: string;
   totalUnits: number;
   lineCount: number;
-  grandTotal: string;
+  showActions?: boolean;
 };
 
 type Confirm = { id: string; action: "clear" | "delete" };
 
-export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Props) {
+export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Props) {
   const t = useTranslations("cart");
-  const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { cartId, allCarts, switchCart, createCart, deleteCart, clearCartById, clearCart, isLoading, cartSubtotal, cartDiscount, cartDiscountAmount } = useCart();
+  const { cartId, allCarts, switchCart, createCart, deleteCart, clearCartById, clearCart, isLoading, cartTotal, cartSubtotal, cartDiscount, cartDiscountAmount } = useCart();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -295,48 +293,55 @@ export function CartPageHeader({ lang, totalUnits, lineCount, grandTotal }: Prop
         </div>
       )}
 
-      {/* Right: totals + actions */}
-      <div className="flex items-center gap-6">
-        <div className="text-right">
-          <p className="text-[12px] text-[#5C6675] mb-1 whitespace-nowrap">
-            {t("units", { count: totalUnits })} · {t("products", { count: lineCount })}
-          </p>
-          {cartDiscountAmount < 0 && cartSubtotal ? (
-            <div className="flex flex-col items-end gap-0.5">
-              <div className="flex items-center gap-6">
-                <span className="text-[12px] text-[#5C6675]">{t("subtotal")}</span>
-                <span className="text-[14px] text-[#5C6675]">{cartSubtotal}</span>
-              </div>
-              <div className="flex items-center gap-6">
-                <span className="text-[12px] text-[#21A765]">{t("discount")}</span>
-                <span className="text-[14px] font-semibold text-[#21A765]">{cartDiscount}</span>
-              </div>
-              <div className="h-px w-full bg-[#DDE1E6] my-0.5" />
-              <p className="font-serif text-[30px] leading-none text-[#0E1521]">{grandTotal}</p>
+      {/* Right: order total + actions (grid view only) */}
+      {showActions && (
+        <div className="flex flex-col items-end gap-3 flex-shrink-0">
+          {/* Totals */}
+          <div className="flex items-center gap-4 flex-wrap justify-end">
+            {cartDiscountAmount < 0 && cartSubtotal ? (
+              <>
+                <div className="flex items-center gap-1.5 text-[13px] text-[#5C6675]">
+                  <span>{t("subtotal")}</span>
+                  <span>{cartSubtotal}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[13px] text-[#21A765]">
+                  <Tag size={12} />
+                  <span>{t("discount")}</span>
+                  <span className="font-semibold">{cartDiscount}</span>
+                </div>
+                <div className="w-px h-4 bg-[#DDE1E6]" />
+              </>
+            ) : null}
+            <div className="flex items-baseline gap-2">
+              <span className="text-[13px] font-semibold text-[#5C6675]">{t("total")}</span>
+              <span className="text-[24px] font-bold text-[#0E1521] leading-none">{cartTotal}</span>
             </div>
-          ) : (
-            <p className="font-serif text-[30px] leading-none text-[#0E1521]">{grandTotal}</p>
-          )}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <Link
+                href={lineCount === 0 ? "#" : `/${lang}/quote-request`}
+                aria-disabled={lineCount === 0}
+                className={`flex items-center gap-2 h-11 px-5 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[13px] text-[#3D4654] transition-colors${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:bg-[#F7F8F9]"}`}
+              >
+                <FileText size={15} />
+                {t("requestQuote")}
+              </Link>
+            )}
+            <Link
+              href={lineCount === 0 ? "#" : `/${lang}/checkout`}
+              aria-disabled={lineCount === 0}
+              className={`flex items-center gap-2 h-11 px-6 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
+            >
+              {t("checkout")}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
-        {isAuthenticated && (
-          <button
-            onClick={() => router.push(`/${lang}/quote-request`)}
-            disabled={lineCount === 0}
-            className="h-12 px-5 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[14px] text-[#3D4654] flex items-center gap-2 hover:bg-[#F7F8F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-          >
-            <FileText size={16} />
-            {t("requestQuote")}
-          </button>
-        )}
-        <Link
-          href={lineCount === 0 ? "#" : `/${lang}/checkout`}
-          aria-disabled={lineCount === 0}
-          className={`h-12 px-6 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] flex items-center gap-2 transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
-        >
-          {t("checkout")}
-          <ArrowRight size={16} />
-        </Link>
-      </div>
+      )}
+
     </div>
   );
 }
