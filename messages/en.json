@@ -352,7 +352,12 @@
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
     "quantity": "Quantity",
-    "sku": "SKU"
+    "sku": "SKU",
+    "promotionPrev": "Previous promotion",
+    "promotionNext": "Next promotion",
+    "promotionGoToSlide": "Go to promotion {index}",
+    "offersForYou": "Offers for you",
+    "offersEmpty": "Add qualifying items to your cart and promotions will be applied automatically."
   },
   "product": {
     "quickView": "Quick view",

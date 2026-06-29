@@ -7,7 +7,6 @@ import { FooterSection } from "@/components/footer/FooterSection";
 import { ClientProvider } from "@/components/ClientProvider";
 import { Toaster } from "sonner";
 import { PromotionSuggestionsModal } from "@/components/cart/PromotionSuggestionsModal";
-
 export default async function AppLayout({
   children,
   params,

@@ -121,6 +121,8 @@ type CartContextValue = {
   clearCartById: (targetCartId: string) => Promise<void>;
   promotionSuggestions: PromotionSuggestion[] | null;
   clearPromotionSuggestions: () => void;
+  showPromotionModal: boolean;
+  dismissPromotionModal: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -224,6 +226,14 @@ function toCartLineItem(
   };
 }
 
+function filterSuggestions(
+  raw: PromotionSuggestion[] | undefined,
+): PromotionSuggestion[] {
+  return (raw ?? []).filter((s) =>
+    s.targets.some((t) => Array.isArray(t.skus) && t.skus.length > 0),
+  );
+}
+
 function parseCartResponse(response: CartsResponse): {
   items: CartLineItem[];
   cartTotal: string;
@@ -321,13 +331,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
-  const [promotionSuggestions, setPromotionSuggestions] = useState<
+  const [promotionSuggestions, setPromotionSuggestionsRaw] = useState<
     PromotionSuggestion[] | null
   >(null);
-  const clearPromotionSuggestions = useCallback(
-    () => setPromotionSuggestions(null),
+
+  // Restore from sessionStorage on mount (GET endpoint does not return promotion_suggestions)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("ep_promo_suggestions");
+      if (stored) {
+        const parsed = JSON.parse(stored) as PromotionSuggestion[];
+        if (parsed.length) setPromotionSuggestionsRaw(parsed);
+      }
+    } catch {}
+  }, []);
+
+  const setPromotionSuggestions = useCallback(
+    (suggestions: PromotionSuggestion[] | null) => {
+      setPromotionSuggestionsRaw(suggestions);
+      try {
+        if (suggestions && suggestions.length) {
+          sessionStorage.setItem("ep_promo_suggestions", JSON.stringify(suggestions));
+        } else {
+          sessionStorage.removeItem("ep_promo_suggestions");
+        }
+      } catch {}
+    },
     [],
   );
+
+  const clearPromotionSuggestions = useCallback(
+    () => setPromotionSuggestions(null),
+    [setPromotionSuggestions],
+  );
+
+  const [showPromotionModal, setShowPromotionModal] = useState(false);
+  const dismissPromotionModal = useCallback(() => setShowPromotionModal(false), []);
 
   const prevIsAuthRef = useRef<boolean | null>(null);
   const mergedInSessionRef = useRef(false);
@@ -489,6 +528,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCartDiscountAmount(parsed.cartDiscountAmount);
       setCartShipping(parsed.cartShipping);
       setCartShippingAmount(parsed.cartShippingAmount);
+
+      const suggestions = (itemsRes.data as any)?.meta?.promotion_suggestions as
+        | PromotionSuggestion[]
+        | undefined;
+      const relevant = filterSuggestions(suggestions);
+      if (relevant.length) setPromotionSuggestions(relevant);
     }
   }, [epClient, cartId]);
 
@@ -515,9 +560,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
           | PromotionSuggestion[]
           | undefined;
-        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        const relevant = filterSuggestions(suggestions);
+        setPromotionSuggestions(relevant.length ? relevant : null);
+      if (relevant.length) setShowPromotionModal(true);
         await loadItems();
-        return suggestions?.length ? suggestions : undefined;
+        return relevant.length ? relevant : undefined;
       } finally {
         setIsLoading(false);
       }
@@ -546,9 +593,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
           | PromotionSuggestion[]
           | undefined;
-        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        const relevant = filterSuggestions(suggestions);
+        setPromotionSuggestions(relevant.length ? relevant : null);
+      if (relevant.length) setShowPromotionModal(true);
         await loadItems();
-        return suggestions?.length ? suggestions : undefined;
+        return relevant.length ? relevant : undefined;
       } finally {
         setIsLoading(false);
       }
@@ -580,9 +629,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
           | PromotionSuggestion[]
           | undefined;
-        if (suggestions?.length) setPromotionSuggestions(suggestions);
+        const relevant = filterSuggestions(suggestions);
+        setPromotionSuggestions(relevant.length ? relevant : null);
+      if (relevant.length) setShowPromotionModal(true);
         await loadItems();
-        return suggestions?.length ? suggestions : undefined;
+        return relevant.length ? relevant : undefined;
       } finally {
         setIsLoading(false);
       }
@@ -595,16 +646,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId) return;
       setIsLoading(true);
       try {
-        await deleteACartItem({
+        const res = await deleteACartItem({
           client: epClient,
           path: { cartID: cartId, cartitemID: cartItemId },
         });
+        const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+          | PromotionSuggestion[]
+          | undefined;
+        const relevant = filterSuggestions(suggestions);
+        setPromotionSuggestions(relevant.length ? relevant : null);
         await loadItems();
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, loadItems],
+    [epClient, cartId, loadItems, setPromotionSuggestions],
   );
 
   const updateQuantity = useCallback(
@@ -616,24 +672,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(true);
       try {
-        await updateACartItem({
+        const res = await updateACartItem({
           client: epClient,
           path: { cartID: cartId, cartitemID: cartItemId },
           body: { data: { type: "cart_item", quantity } },
         });
+        const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+          | PromotionSuggestion[]
+          | undefined;
+        const relevant = filterSuggestions(suggestions);
+        setPromotionSuggestions(relevant.length ? relevant : null);
+      if (relevant.length) setShowPromotionModal(true);
         await loadItems();
       } finally {
         setIsLoading(false);
       }
     },
-    [epClient, cartId, removeItem, loadItems],
+    [epClient, cartId, removeItem, loadItems, setPromotionSuggestions],
   );
 
   const clearCart = useCallback(async () => {
     if (!epClient || !cartId) return;
     setIsLoading(true);
     try {
-      await deleteAllCartItems({
+      const res = await deleteAllCartItems({
         client: epClient,
         path: { cartID: cartId },
       });
@@ -642,10 +704,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCartTotalAmount(0);
       setCartShipping("");
       setCartShippingAmount(0);
+      const suggestions = (res.data as any)?.meta?.promotion_suggestions as
+        | PromotionSuggestion[]
+        | undefined;
+      const relevant = filterSuggestions(suggestions);
+      setPromotionSuggestions(relevant.length ? relevant : null);
     } finally {
       setIsLoading(false);
     }
-  }, [epClient, cartId]);
+  }, [epClient, cartId, setPromotionSuggestions]);
 
   const switchCart = useCallback(
     async (newCartId: string) => {
@@ -809,6 +876,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCartById,
         promotionSuggestions,
         clearPromotionSuggestions,
+        showPromotionModal,
+        dismissPromotionModal,
       }}
     >
       {children}

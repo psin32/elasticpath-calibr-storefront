@@ -12,12 +12,38 @@ import { BundleCartRowList } from "./BundleCartRowList";
 import { MatrixCartRow } from "./MatrixCartRow";
 import { SimpleCartRow } from "./SimpleCartRow";
 import { SimpleCartRowList } from "./SimpleCartRowList";
+import { PromotionCarousel } from "./PromotionCarousel";
 import type {
   LineGroup,
   ProductInfo,
   ChildProduct,
   CartItemEntry,
 } from "./types";
+import type { PromotionSuggestion } from "@/context/CartContext";
+import { Tag } from "lucide-react";
+
+function OffersSection({
+  promotionSuggestions,
+  lang,
+  t,
+}: {
+  promotionSuggestions: PromotionSuggestion[] | null;
+  lang: string;
+  t: (key: string) => string;
+}) {
+  if (!promotionSuggestions?.length) return null;
+
+  return (
+    <div className="bg-white border border-[#DDE1E6] rounded-[16px] p-4 flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Tag size={15} className="text-[#18804C] flex-none" />
+        <h3 className="text-[14px] font-semibold text-[#0E1521]">{t("offersForYou")}</h3>
+      </div>
+      <p className="text-[12px] text-[#5C6675]">{t("offersEmpty")}</p>
+      <PromotionCarousel suggestions={promotionSuggestions} lang={lang} flat />
+    </div>
+  );
+}
 
 const COOKIE_KEY = "cart_view_mode";
 const ENV_DEFAULT =
@@ -39,7 +65,7 @@ type Props = { lang: string };
 
 export function B2BCartContent({ lang }: Props) {
   const t = useTranslations("cart");
-  const { items, isLoading, addItem, updateQuantity, removeItem } = useCart();
+  const { items, isLoading, addItem, updateQuantity, removeItem, promotionSuggestions } = useCart();
 
   const productInfoCache = useRef<Map<string, ProductInfo>>(new Map());
   const childrenCache = useRef<Map<string, ChildProduct[]>>(new Map());
@@ -341,7 +367,7 @@ export function B2BCartContent({ lang }: Props) {
 
           {/* List view: two-column layout with summary sidebar */}
           {viewMode === "list" ? (
-            <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+            <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-8 lg:items-start">
               {/* Left: items */}
               <div>
                 {(isLoading || groupsLoading) && groups.length === 0 ? (
@@ -389,9 +415,10 @@ export function B2BCartContent({ lang }: Props) {
                 )}
               </div>
 
-              {/* Right: sticky order summary */}
-              <div className="mt-6 lg:mt-0 lg:sticky lg:top-24">
+              {/* Right: sticky order summary + offers section */}
+              <div className="mt-6 lg:mt-0 lg:sticky lg:top-24 flex flex-col gap-4">
                 <CartSummaryPanel lang={lang} lineCount={lineCount} totalUnits={totalUnits} />
+                <OffersSection promotionSuggestions={promotionSuggestions} lang={lang} t={t} />
               </div>
             </div>
           ) : (
@@ -440,8 +467,12 @@ export function B2BCartContent({ lang }: Props) {
                   })}
                 </div>
               )}
+              <div className="mt-6">
+                <OffersSection promotionSuggestions={promotionSuggestions} lang={lang} t={t} />
+              </div>
             </>
           )}
+
         </>
       )}
     </div>

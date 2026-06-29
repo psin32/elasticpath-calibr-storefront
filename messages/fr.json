@@ -352,7 +352,12 @@
     "decreaseQuantity": "Diminuer la quantité",
     "increaseQuantity": "Augmenter la quantité",
     "quantity": "Quantité",
-    "sku": "SKU"
+    "sku": "SKU",
+    "promotionPrev": "Promotion précédente",
+    "promotionNext": "Promotion suivante",
+    "promotionGoToSlide": "Aller à la promotion {index}",
+    "offersForYou": "Offres pour vous",
+    "offersEmpty": "Ajoutez des articles éligibles à votre panier et les promotions seront appliquées automatiquement."
   },
   "product": {
     "quickView": "Aperçu rapide",

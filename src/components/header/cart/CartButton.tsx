@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ShoppingBag, X, Trash2, ArrowRight, Minus, Plus, Eraser } from "lucide-react";
+import { ShoppingBag, X, Trash2, ArrowRight, Minus, Plus, Eraser, Tag } from "lucide-react";
 import { PromoTooltip } from "@/components/cart/PromoTooltip";
+import { PromotionCarousel } from "@/components/cart/PromotionCarousel";
 import { useTranslations } from "next-intl";
 import { useCart } from "@/context/CartContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,7 +14,8 @@ import { usePreferences } from "@/context/PreferencesContext";
 
 export function CartButton() {
   const t = useTranslations("header");
-  const { items, itemCount, cartTotal, cartSubtotal, cartDiscount, cartDiscountAmount, isLoading, removeItem, updateQuantity, clearCart } =
+  const tCart = useTranslations("cart");
+  const { items, itemCount, cartTotal, cartSubtotal, cartDiscount, cartDiscountAmount, isLoading, removeItem, updateQuantity, clearCart, promotionSuggestions } =
     useCart();
   const [confirmClear, setConfirmClear] = useState(false);
   const { cartMode } = usePreferences();
@@ -114,7 +116,8 @@ export function CartButton() {
           {items.length === 0 ? (
             <EmptyCart onClose={() => setIsOpen(false)} />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <>
+              <ul className="divide-y divide-gray-100">
               {items.map((item) => (
                 <li key={item.id} className="px-6 py-5">
                   <div className="flex gap-4 items-start">
@@ -222,6 +225,17 @@ export function CartButton() {
                 </li>
               ))}
             </ul>
+            {promotionSuggestions && promotionSuggestions.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Tag size={14} className="text-[#18804C] flex-none" />
+                  <h3 className="text-[13px] font-semibold text-[#0E1521]">{tCart("offersForYou")}</h3>
+                </div>
+                <p className="text-[11px] text-[#5C6675] mb-3">{tCart("offersEmpty")}</p>
+                <PromotionCarousel suggestions={promotionSuggestions} lang={lang} flat />
+              </div>
+            )}
+            </>
           )}
         </div>
 
