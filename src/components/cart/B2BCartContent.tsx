@@ -8,6 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { CartPageHeader } from "./CartPageHeader";
 import { CartSummaryPanel } from "./CartSummaryPanel";
 import { BundleCartRow } from "./BundleCartRow";
+import { BundleCartRowList } from "./BundleCartRowList";
 import { MatrixCartRow } from "./MatrixCartRow";
 import { SimpleCartRow } from "./SimpleCartRow";
 import { SimpleCartRowList } from "./SimpleCartRowList";
@@ -354,7 +355,7 @@ export function B2BCartContent({ lang }: Props) {
                     {groups.map((group, idx) => {
                       if (group.kind === "bundle") {
                         return (
-                          <BundleCartRow
+                          <BundleCartRowList
                             key={group.cartItemId}
                             {...group}
                             onQuantityChange={handleSimpleQtyChange}
