@@ -151,9 +151,9 @@ function PromoRow({ suggestion, products, lang, t }: RowProps) {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="flex-none w-[calc(100%-0.75rem)] sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]"
+                className="flex-none w-[calc(100%-0.75rem)] sm:w-[calc(50%-0.375rem)] lg:w-[calc(25%-0.5625rem)]"
               >
-                <ProductCard product={product} lang={lang} />
+                <ProductCard product={product} lang={lang} stackedPrice />
               </div>
             ))}
           </div>

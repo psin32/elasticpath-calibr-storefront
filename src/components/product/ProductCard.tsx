@@ -17,6 +17,7 @@ type ProductCardProps = {
   variant?: "default" | "flat";
   /** Promotion label shown as a badge — only rendered in flat variant */
   promoInfo?: string;
+  stackedPrice?: boolean;
 };
 
 export function ProductCard({
@@ -25,6 +26,7 @@ export function ProductCard({
   priority = false,
   variant = "default",
   promoInfo,
+  stackedPrice = false,
 }: ProductCardProps) {
   const t = useTranslations("product");
 
@@ -44,6 +46,7 @@ export function ProductCard({
             formatted={product.priceFormatted}
             originalFormatted={product.originalPriceFormatted}
             className="text-sm"
+            stacked={stackedPrice}
           />
 
           {promoInfo && (
@@ -95,7 +98,7 @@ export function ProductCard({
         )}
 
         <div className="flex items-center justify-between mt-auto pt-2">
-          <Price formatted={product.priceFormatted} originalFormatted={product.originalPriceFormatted} className="text-base" />
+          <Price formatted={product.priceFormatted} originalFormatted={product.originalPriceFormatted} className="text-base" stacked={stackedPrice} />
           {product.hasVariations ? (
             <QuickViewButton product={product} lang={lang} />
           ) : (
