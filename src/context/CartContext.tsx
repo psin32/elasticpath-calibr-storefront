@@ -23,10 +23,18 @@ import {
   type CartItemObject,
   type CartsResponse,
   type CartResponse,
+  deleteAPromotionViaPromotionCode,
 } from "@epcc-sdk/sdks-shopper";
 import type { Client } from "@hey-api/client-fetch";
 import { createEpClient } from "@/lib/api/ep-client";
 import { useAuth } from "@/context/AuthContext";
+
+export type AppliedPromoCode = {
+  id: string;
+  code: string;
+  name?: string;
+  discountFormatted?: string;
+};
 
 export type PromotionSuggestion = {
   promotion_id: string;
@@ -123,6 +131,11 @@ type CartContextValue = {
   clearPromotionSuggestions: () => void;
   showPromotionModal: boolean;
   dismissPromotionModal: () => void;
+  appliedPromoCodes: AppliedPromoCode[];
+  applyPromoCode: (
+    code: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  removePromoCode: (code: string) => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -224,6 +237,44 @@ function toCartLineItem(
     customInputs,
     discounts,
   };
+}
+
+function extractAppliedPromoCodes(responseData: any): AppliedPromoCode[] {
+  const seen = new Map<string, AppliedPromoCode>();
+
+  // Cart-level promotion_items (explicit promo code entry)
+  ((responseData?.data ?? []) as any[])
+    .filter((i) => i.type === "promotion_item")
+    .forEach((i) => {
+      const code = (i.code ?? i.sku) as string;
+      if (code && !seen.has(code)) {
+        seen.set(code, {
+          id: i.id as string,
+          code,
+          name: i.name as string | undefined,
+          discountFormatted: i.meta?.display_price?.with_tax?.value
+            ?.formatted as string | undefined,
+        });
+      }
+    });
+
+  // Line-item discounts whose code doesn't start with auto_ (manual promo codes)
+  ((responseData?.data ?? []) as any[])
+    .filter((i) => i.type === "cart_item" && Array.isArray(i.discounts))
+    .forEach((item) => {
+      (item.discounts as any[])
+        .filter((d) => d.code && !String(d.code).startsWith("auto_"))
+        .forEach((d) => {
+          if (!seen.has(d.code)) {
+            seen.set(d.code, {
+              id: d.id as string,
+              code: d.code as string,
+            });
+          }
+        });
+    });
+
+  return Array.from(seen.values());
 }
 
 function filterSuggestions(
@@ -331,6 +382,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [allCarts, setAllCarts] = useState<CartSummary[]>([]);
+  const [appliedPromoCodes, setAppliedPromoCodes] = useState<
+    AppliedPromoCode[]
+  >([]);
   const [promotionSuggestions, setPromotionSuggestionsRaw] = useState<
     PromotionSuggestion[] | null
   >(null);
@@ -356,7 +410,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setPromotionSuggestionsRaw(suggestions);
       try {
         if (suggestions && suggestions.length) {
-          sessionStorage.setItem("ep_promo_suggestions", JSON.stringify(suggestions));
+          sessionStorage.setItem(
+            "ep_promo_suggestions",
+            JSON.stringify(suggestions),
+          );
         } else {
           sessionStorage.removeItem("ep_promo_suggestions");
         }
@@ -371,7 +428,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const [showPromotionModal, setShowPromotionModal] = useState(false);
-  const dismissPromotionModal = useCallback(() => setShowPromotionModal(false), []);
+  const dismissPromotionModal = useCallback(
+    () => setShowPromotionModal(false),
+    [],
+  );
 
   const prevIsAuthRef = useRef<boolean | null>(null);
   const mergedInSessionRef = useRef(false);
@@ -399,6 +459,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           setCartDiscountAmount(parsed.cartDiscountAmount);
           setCartShipping(parsed.cartShipping);
           setCartShippingAmount(parsed.cartShippingAmount);
+          setAppliedPromoCodes(extractAppliedPromoCodes(itemsRes.data));
         }
         setIsInitializing(false);
       })
@@ -512,6 +573,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCartDiscountAmount(parsed.cartDiscountAmount);
         setCartShipping(parsed.cartShipping);
         setCartShippingAmount(parsed.cartShippingAmount);
+        setAppliedPromoCodes(extractAppliedPromoCodes(mergedItemsRes.data));
       }
     })();
   }, [isAuthenticated, epClient, cartId]);
@@ -534,11 +596,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCartShipping(parsed.cartShipping);
       setCartShippingAmount(parsed.cartShippingAmount);
 
-      const suggestions = (itemsRes.data as any)?.meta?.promotion_suggestions as
-        | PromotionSuggestion[]
-        | undefined;
+      const suggestions = (itemsRes.data as any)?.meta
+        ?.promotion_suggestions as PromotionSuggestion[] | undefined;
       const relevant = filterSuggestions(suggestions);
       if (relevant.length) setPromotionSuggestions(relevant);
+
+      setAppliedPromoCodes(extractAppliedPromoCodes(itemsRes.data));
     }
   }, [epClient, cartId]);
 
@@ -557,7 +620,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (customInputs && Object.keys(customInputs).length > 0) {
           body.data.custom_inputs = customInputs;
         }
-        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
+        const prevIds = new Set(
+          promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? [],
+        );
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -568,7 +633,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id)))
+          setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -585,7 +651,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId || items.length === 0) return undefined;
       setIsLoading(true);
       try {
-        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
+        const prevIds = new Set(
+          promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? [],
+        );
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -602,7 +670,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id)))
+          setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -621,7 +690,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
-        const prevIds = new Set(promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? []);
+        const prevIds = new Set(
+          promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? [],
+        );
         const res = await manageCarts({
           client: epClient,
           path: { cartID: cartId },
@@ -639,7 +710,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           | undefined;
         const relevant = filterSuggestions(suggestions);
         setPromotionSuggestions(relevant.length ? relevant : null);
-        if (relevant.some((s) => !prevIds.has(s.promotion_id))) setShowPromotionModal(true);
+        if (relevant.some((s) => !prevIds.has(s.promotion_id)))
+          setShowPromotionModal(true);
         await loadItems();
         return relevant.length ? relevant : undefined;
       } finally {
@@ -843,6 +915,54 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [epClient, cartId],
   );
 
+  const applyPromoCode = useCallback(
+    async (code: string): Promise<{ success: boolean; error?: string }> => {
+      if (!epClient || !cartId) return { success: false };
+      setIsLoading(true);
+      try {
+        const res = await manageCarts({
+          client: epClient,
+          path: { cartID: cartId },
+          body: { data: { type: "promotion_item", code } } as any,
+        });
+        if (res.error) {
+          const detail =
+            (res.error as any)?.errors?.[0]?.detail ??
+            (res.error as any)?.errors?.[0]?.title ??
+            "Invalid promotion code";
+          return { success: false, error: detail };
+        }
+        await loadItems();
+        return { success: true };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: err?.message ?? "Failed to apply promotion code",
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [epClient, cartId, loadItems],
+  );
+
+  const removePromoCode = useCallback(
+    async (code: string): Promise<void> => {
+      if (!epClient || !cartId) return;
+      setIsLoading(true);
+      try {
+        await deleteAPromotionViaPromotionCode({
+          client: epClient,
+          path: { cartID: cartId, promoCode: code },
+        });
+        await loadItems();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [epClient, cartId, loadItems],
+  );
+
   const refreshCart = useCallback(async () => {
     try {
       await loadItems();
@@ -885,6 +1005,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearPromotionSuggestions,
         showPromotionModal,
         dismissPromotionModal,
+        appliedPromoCodes,
+        applyPromoCode,
+        removePromoCode,
       }}
     >
       {children}

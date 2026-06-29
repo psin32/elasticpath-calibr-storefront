@@ -357,7 +357,13 @@
     "promotionNext": "Next promotion",
     "promotionGoToSlide": "Go to promotion {index}",
     "offersForYou": "Offers for you",
-    "offersEmpty": "Add qualifying items to your cart and promotions will be applied automatically."
+    "offersEmpty": "Add qualifying items to your cart and promotions will be applied automatically.",
+    "promoCodeLabel": "Promo code",
+    "promoPlaceholder": "Enter promo code",
+    "promoApply": "Apply",
+    "promoRemove": "Remove",
+    "promoInvalid": "Invalid promotion code",
+    "promoHaveCode": "Do you have a promo code?"
   },
   "product": {
     "quickView": "Quick view",

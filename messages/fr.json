@@ -357,7 +357,13 @@
     "promotionNext": "Promotion suivante",
     "promotionGoToSlide": "Aller à la promotion {index}",
     "offersForYou": "Offres pour vous",
-    "offersEmpty": "Ajoutez des articles éligibles à votre panier et les promotions seront appliquées automatiquement."
+    "offersEmpty": "Ajoutez des articles éligibles à votre panier et les promotions seront appliquées automatiquement.",
+    "promoCodeLabel": "Code promo",
+    "promoPlaceholder": "Entrez un code promo",
+    "promoApply": "Appliquer",
+    "promoRemove": "Supprimer",
+    "promoInvalid": "Code de promotion invalide",
+    "promoHaveCode": "Avez-vous un code promo ?"
   },
   "product": {
     "quickView": "Aperçu rapide",
