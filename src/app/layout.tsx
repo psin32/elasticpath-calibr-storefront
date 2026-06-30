@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-function buildThemeStyle(): string {
+function buildThemeVars(): React.CSSProperties {
   const e = process.env;
   const norm = (v: string | undefined) =>
     v ? (v.startsWith("#") ? v : `#${v}`) : null;
@@ -44,11 +44,9 @@ function buildThemeStyle(): string {
     ["--color-warning-600", e.NEXT_PUBLIC_COLOR_WARNING_600, "#b26a00"],
   ];
 
-  const overrides = vars
-    .map(([prop, envVal, def]) => `${prop}:${norm(envVal) ?? def}`)
-    .join(";");
-
-  return `:root{${overrides}}`;
+  return Object.fromEntries(
+    vars.map(([prop, envVal, def]) => [prop, norm(envVal) ?? def]),
+  ) as React.CSSProperties;
 }
 
 export default function RootLayout({
@@ -57,10 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning>
-      <head>
-        <style dangerouslySetInnerHTML={{ __html: buildThemeStyle() }} />
-      </head>
+    <html suppressHydrationWarning style={buildThemeVars()}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

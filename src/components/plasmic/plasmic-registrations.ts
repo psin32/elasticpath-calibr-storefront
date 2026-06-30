@@ -1,5 +1,8 @@
 import { PLASMIC } from "./plasmic-loader";
 
+// Header
+import { StorefrontLogo } from "@/components/header/StorefrontLogo";
+
 // UI primitives
 import { Button } from "@/components/ui/Button/Button";
 import { Badge } from "@/components/ui/Badge/Badge";
@@ -52,6 +55,42 @@ const PRODUCT_FIELDS = {
 };
 
 if (PLASMIC) {
+  // ─── StorefrontLogo ───────────────────────────────────────────────────────
+  PLASMIC.registerComponent(StorefrontLogo, {
+    name: "StorefrontLogo",
+    description: "Brand logo with a configurable image and link. Defaults to /logo.png.",
+    classNameProp: "className",
+    props: {
+      href: {
+        type: "string",
+        defaultValue: "/",
+        description: "URL the logo links to",
+      },
+      imageUrl: {
+        type: "imageUrl",
+        defaultValue: "/logo.png",
+        description: "Logo image — defaults to /logo.png in the public folder",
+      },
+      alt: {
+        type: "string",
+        defaultValue: "Logo",
+        description: "Alt text for the logo image",
+      },
+      width: {
+        type: "number",
+        defaultValue: 140,
+        description: "Intrinsic width of the logo image in px",
+      },
+      height: {
+        type: "number",
+        defaultValue: 40,
+        description: "Rendered height of the logo in px",
+      },
+    },
+    importPath: "@/components/header/StorefrontLogo",
+    importName: "StorefrontLogo",
+  });
+
   // ─── Button ──────────────────────────────────────────────────────────────
   PLASMIC.registerComponent(Button, {
     name: "Button",
