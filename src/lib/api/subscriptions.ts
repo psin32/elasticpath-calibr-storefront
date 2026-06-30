@@ -2,10 +2,10 @@ import { listOfferings } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
 
 export type SubscriptionPlan = {
-  id: string;           // pricing option ID → used as pricing_option in cart body
-  planId: string;       // plan ID → used as plan in cart body
-  name: string;         // pricing option name
-  planName: string;     // plan name (from the plan resource)
+  id: string; // pricing option ID → used as pricing_option in cart body
+  planId: string; // plan ID → used as plan in cart body
+  name: string; // pricing option name
+  planName: string; // plan name (from the plan resource)
   billingFrequency: number;
   billingIntervalType: "day" | "week" | "month" | "year";
   priceFormatted?: string;
@@ -26,7 +26,7 @@ export async function getProductOffering(
     const res = await listOfferings({
       client,
       query: {
-        filter: `eq(external_ref,${productId})`,
+        filter: `eq(plans.external_ref,${productId})`,
         include: ["plans", "pricing_options"],
       } as any,
     });
@@ -40,7 +40,10 @@ export async function getProductOffering(
     const rawPlans: any[] = included?.plans ?? [];
     const firstPlanId: string = rawPlans[0]?.id ?? "";
     const planNameMap = new Map<string, string>(
-      rawPlans.map((p: any) => [p.id as string, (p.attributes?.name as string) ?? ""]),
+      rawPlans.map((p: any) => [
+        p.id as string,
+        (p.attributes?.name as string) ?? "",
+      ]),
     );
 
     const plans: SubscriptionPlan[] = pricingOptions.map((po: any) => {
@@ -58,7 +61,8 @@ export async function getProductOffering(
         name: (po.attributes?.name as string) ?? "Subscription",
         billingFrequency: (po.attributes?.billing_frequency as number) ?? 1,
         billingIntervalType:
-          (po.attributes?.billing_interval_type as SubscriptionPlan["billingIntervalType"]) ??
+          (po.attributes
+            ?.billing_interval_type as SubscriptionPlan["billingIntervalType"]) ??
           "month",
         priceFormatted:
           dp?.with_tax?.formatted ?? dp?.without_tax?.formatted ?? undefined,

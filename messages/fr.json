@@ -377,6 +377,8 @@
     "variationTag": "Variation",
     "bundleTag": "Bundle",
     "detailsLabel": "Détails du produit",
+    "breadcrumbHome": "Accueil",
+    "skuLabel": "SKU",
     "notFoundTitle": "Produit introuvable",
     "notFoundMessage": "Le produit que vous recherchez n'existe pas ou a peut-être été supprimé.",
     "notFoundCta": "Continuer les achats",

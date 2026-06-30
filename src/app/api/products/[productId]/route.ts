@@ -50,6 +50,10 @@ export async function GET(
         raw.meta?.display_price?.without_tax?.formatted ??
         raw.meta?.display_price?.with_tax?.formatted ??
         "",
+      originalPriceFormatted:
+        raw.meta?.original_display_price?.without_tax?.formatted ??
+        raw.meta?.original_display_price?.with_tax?.formatted ??
+        null,
       imageUrl: image?.link?.href ?? null,
       productType,
       parentId,

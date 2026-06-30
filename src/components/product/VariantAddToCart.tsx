@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import React, { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ProductVariation } from "@/lib/api/products";
@@ -17,6 +17,7 @@ type Props = {
   navigateOnSelect?: boolean;
   onVariantResolved?: (childId: string | null) => void;
   parentId?: string;
+  slotBelowSelectors?: React.ReactNode;
 };
 
 export function VariantAddToCart({
@@ -29,6 +30,7 @@ export function VariantAddToCart({
   navigateOnSelect = true,
   onVariantResolved,
   parentId,
+  slotBelowSelectors,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -95,6 +97,8 @@ export function VariantAddToCart({
           onProductResolved={handleProductResolved}
         />
       )}
+
+      {slotBelowSelectors}
 
       <div className="relative group/cart">
         <div className={hasVariations && !allSelected ? "opacity-50 pointer-events-none" : ""}>

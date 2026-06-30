@@ -6,9 +6,13 @@ import { ProductName } from "@/components/product/ProductName";
 import { ProductDescription } from "@/components/product/ProductDescription";
 import { Price } from "@/components/product/Price";
 import { ProductActions } from "@/components/product/ProductActions";
+import { VariationSubscriptionActions } from "@/components/product/VariationSubscriptionActions";
 import { BulkBuyOffer } from "@/components/product/BulkBuyOffer";
 import { Badge } from "@/components/ui/Badge/Badge";
-import { getProductBySlug, getProductRelationshipCarousels } from "@/lib/api/products";
+import {
+  getProductBySlug,
+  getProductRelationshipCarousels,
+} from "@/lib/api/products";
 import { getProductOffering } from "@/lib/api/subscriptions";
 import { ProductCarouselDisplay } from "@/components/product/ProductCarouselDisplay";
 import { SubscriptionProductActions } from "@/components/product/SubscriptionProductActions";
@@ -52,11 +56,14 @@ export default async function ProductDetailPage({ params }: Props) {
     const key = slug
       .replace(/^crp[-_]?/i, "")
       .replace(/[-_](\w)/g, (_, c: string) => c.toUpperCase());
-    return relMsgs?.[key] ?? slug
-      .replace(/^crp[-_]?/i, "")
-      .replace(/[-_]/g, " ")
-      .trim()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return (
+      relMsgs?.[key] ??
+      slug
+        .replace(/^crp[-_]?/i, "")
+        .replace(/[-_]/g, " ")
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    );
   }
 
   return (
@@ -71,7 +78,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 href={`/${lang}`}
                 className="hover:text-gray-900 transition-colors"
               >
-                Home
+                {t("breadcrumbHome")}
               </Link>
             </li>
             <li aria-hidden="true">›</li>
@@ -127,7 +134,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
             {product.sku && (
               <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-3">
-                SKU: {product.sku}
+                {t("skuLabel")}: {product.sku}
               </p>
             )}
 
@@ -137,34 +144,17 @@ export default async function ProductDetailPage({ params }: Props) {
               className="text-3xl sm:text-4xl mb-4"
             />
 
-            {!product.isBundle && !offering && (
-              <div className="mb-6">
-                <Price
-                  formatted={product.priceFormatted}
-                  originalFormatted={product.originalPriceFormatted}
-                  className="text-2xl"
-                />
-              </div>
-            )}
-
-            {product.bulkBuyTiers && product.bulkBuyTiers.length > 0 && (
-              <div className="mb-8">
-                <BulkBuyOffer tiers={product.bulkBuyTiers} />
-              </div>
-            )}
-
-            {!product.isBundle && offering ? (
-              <SubscriptionProductActions
-                offering={offering}
-                oneTimePrice={product.priceFormatted}
-                originalPrice={product.originalPriceFormatted}
-                imageUrl={product.imageUrl ?? undefined}
-              >
-                <ProductActions
+            {/* Variation products (parent or child): subscription slot renders between selectors and cart */}
+            {!product.isBundle && (product.variations?.length ?? 0) > 0 ? (
+              <>
+                {product.bulkBuyTiers && product.bulkBuyTiers.length > 0 && (
+                  <div className="mb-8">
+                    <BulkBuyOffer tiers={product.bulkBuyTiers} />
+                  </div>
+                )}
+                <VariationSubscriptionActions
                   productId={product.id}
                   lang={lang}
-                  isBundle={product.isBundle}
-                  components={product.components}
                   initialPrice={product.priceFormatted}
                   initialOriginalPrice={product.originalPriceFormatted}
                   variations={product.variations}
@@ -172,22 +162,66 @@ export default async function ProductDetailPage({ params }: Props) {
                   childSlugs={product.childSlugs}
                   selectedOptionIds={product.selectedOptionIds}
                   parentId={product.parentId}
+                  imageUrl={product.imageUrl ?? undefined}
+                  initialOffering={offering}
+                  navigateOnSelect={product.productType === "child"}
                 />
-              </SubscriptionProductActions>
+              </>
             ) : (
-              <ProductActions
-                productId={product.id}
-                lang={lang}
-                isBundle={product.isBundle}
-                components={product.components}
-                initialPrice={product.priceFormatted}
-                initialOriginalPrice={product.originalPriceFormatted}
-                variations={product.variations}
-                variationMatrix={product.variationMatrix}
-                childSlugs={product.childSlugs}
-                selectedOptionIds={product.selectedOptionIds}
-                parentId={product.parentId}
-              />
+              <>
+                {!product.isBundle && !offering && (
+                  <div className="mb-6">
+                    <Price
+                      formatted={product.priceFormatted}
+                      originalFormatted={product.originalPriceFormatted}
+                      className="text-2xl"
+                    />
+                  </div>
+                )}
+
+                {product.bulkBuyTiers && product.bulkBuyTiers.length > 0 && (
+                  <div className="mb-8">
+                    <BulkBuyOffer tiers={product.bulkBuyTiers} />
+                  </div>
+                )}
+
+                {!product.isBundle && offering ? (
+                  <SubscriptionProductActions
+                    offering={offering}
+                    oneTimePrice={product.priceFormatted}
+                    originalPrice={product.originalPriceFormatted}
+                    imageUrl={product.imageUrl ?? undefined}
+                  >
+                    <ProductActions
+                      productId={product.id}
+                      lang={lang}
+                      isBundle={product.isBundle}
+                      components={product.components}
+                      initialPrice={product.priceFormatted}
+                      initialOriginalPrice={product.originalPriceFormatted}
+                      variations={product.variations}
+                      variationMatrix={product.variationMatrix}
+                      childSlugs={product.childSlugs}
+                      selectedOptionIds={product.selectedOptionIds}
+                      parentId={product.parentId}
+                    />
+                  </SubscriptionProductActions>
+                ) : (
+                  <ProductActions
+                    productId={product.id}
+                    lang={lang}
+                    isBundle={product.isBundle}
+                    components={product.components}
+                    initialPrice={product.priceFormatted}
+                    initialOriginalPrice={product.originalPriceFormatted}
+                    variations={product.variations}
+                    variationMatrix={product.variationMatrix}
+                    childSlugs={product.childSlugs}
+                    selectedOptionIds={product.selectedOptionIds}
+                    parentId={product.parentId}
+                  />
+                )}
+              </>
             )}
 
             {product.description && (
@@ -209,10 +243,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {resolveCarouselTitle(carousel.slug)}
             </h2>
-            <ProductCarouselDisplay
-              products={carousel.products}
-              lang={lang}
-            />
+            <ProductCarouselDisplay products={carousel.products} lang={lang} />
           </section>
         ))}
       </main>

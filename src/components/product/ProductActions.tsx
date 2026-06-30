@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { BundleConfigurator } from "./BundleConfigurator";
 import { VariantAddToCart } from "./VariantAddToCart";
@@ -17,6 +18,9 @@ type Props = {
   childSlugs?: Record<string, string>;
   selectedOptionIds?: string[];
   parentId?: string;
+  navigateOnSelect?: boolean;
+  onVariantResolved?: (childId: string | null) => void;
+  slotBelowSelectors?: React.ReactNode;
 };
 
 export function ProductActions({
@@ -31,6 +35,9 @@ export function ProductActions({
   childSlugs,
   selectedOptionIds,
   parentId,
+  navigateOnSelect,
+  onVariantResolved,
+  slotBelowSelectors,
 }: Props) {
   const { credentials } = useAuth();
   const authKey = credentials?.selected ?? "guest";
@@ -56,6 +63,9 @@ export function ProductActions({
       childSlugs={childSlugs}
       selectedOptionIds={selectedOptionIds}
       parentId={parentId}
+      navigateOnSelect={navigateOnSelect}
+      onVariantResolved={onVariantResolved}
+      slotBelowSelectors={slotBelowSelectors}
     />
   );
 }
