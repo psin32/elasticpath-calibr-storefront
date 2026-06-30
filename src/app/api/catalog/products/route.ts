@@ -15,6 +15,9 @@ function formatCard(product: Product, included?: IncludedResponse): ProductCardD
     product.meta?.original_display_price?.with_tax?.formatted;
   const variationMatrix = product.meta?.variation_matrix as Record<string, unknown> | undefined;
   const tiersAttr = (product.attributes as Record<string, unknown>)?.tiers;
+  const isBundle =
+    !!product.meta?.product_types?.includes("bundle") ||
+    !!(product.attributes as Record<string, unknown>)?.components;
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -25,6 +28,7 @@ function formatCard(product: Product, included?: IncludedResponse): ProductCardD
     imageUrl: image?.link?.href,
     hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
     hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    isBundle,
   };
 }
 
