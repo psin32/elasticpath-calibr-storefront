@@ -119,6 +119,7 @@ export function B2BCartContent({ lang }: Props) {
           isSubscription: item.isSubscription,
           subscriptionPlanName: item.subscriptionPlanName,
           subscriptionFrequency: item.subscriptionFrequency,
+          productFields: item.productFields,
         };
       });
       setGroups(lineGroups);
@@ -249,6 +250,7 @@ export function B2BCartContent({ lang }: Props) {
         lineTotalOriginal: item.lineTotalOriginalFormatted,
         imageUrl: item.imageHref,
         discounts: item.discounts,
+        productFields: item.productFields,
       });
     }
 

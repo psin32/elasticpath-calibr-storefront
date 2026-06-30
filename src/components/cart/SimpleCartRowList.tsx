@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import type { CartItemDiscount } from "@/context/CartContext";
+import type { CartItemDiscount, ProductField } from "@/context/CartContext";
 import { PromoTooltip } from "./PromoTooltip";
 
 type Props = {
@@ -20,6 +20,7 @@ type Props = {
   isSubscription?: boolean;
   subscriptionPlanName?: string;
   subscriptionFrequency?: string;
+  productFields?: ProductField[];
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
@@ -38,6 +39,7 @@ export function SimpleCartRowList({
   isSubscription,
   subscriptionPlanName,
   subscriptionFrequency,
+  productFields,
   onQuantityChange,
   onRemove,
   disabled,
@@ -116,6 +118,17 @@ export function SimpleCartRowList({
             className="text-[12px] text-green-700 w-fit"
           />
         ))}
+
+        {/* Custom input fields */}
+        {productFields && productFields.length > 0 && (
+          <div className="flex flex-col gap-0.5">
+            {productFields.map((f) => (
+              <span key={f.key} className="text-[12px] text-ink-600">
+                <span className="font-medium text-ink-700">{f.label}:</span> {f.value}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Quantity + line total */}
         <div className="mt-auto pt-3 flex items-center justify-between gap-4 flex-wrap">

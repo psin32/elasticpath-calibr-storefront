@@ -4,7 +4,7 @@ import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { BundleConfigurator } from "./BundleConfigurator";
 import { VariantAddToCart } from "./VariantAddToCart";
-import type { BundleComponent, ProductVariation } from "@/lib/api/products";
+import type { BundleComponent, ProductCustomInput, ProductVariation } from "@/lib/api/products";
 
 type Props = {
   productId: string;
@@ -21,6 +21,7 @@ type Props = {
   navigateOnSelect?: boolean;
   onVariantResolved?: (childId: string | null) => void;
   slotBelowSelectors?: React.ReactNode;
+  productCustomInputs?: Record<string, ProductCustomInput>;
 };
 
 export function ProductActions({
@@ -38,6 +39,7 @@ export function ProductActions({
   navigateOnSelect,
   onVariantResolved,
   slotBelowSelectors,
+  productCustomInputs,
 }: Props) {
   const { credentials } = useAuth();
   const authKey = credentials?.selected ?? "guest";
@@ -66,6 +68,7 @@ export function ProductActions({
       navigateOnSelect={navigateOnSelect}
       onVariantResolved={onVariantResolved}
       slotBelowSelectors={slotBelowSelectors}
+      productCustomInputs={productCustomInputs}
     />
   );
 }

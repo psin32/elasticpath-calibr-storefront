@@ -165,6 +165,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   imageUrl={product.imageUrl ?? undefined}
                   initialOffering={offering}
                   navigateOnSelect={product.productType === "child"}
+                  productCustomInputs={product.customInputs}
                 />
               </>
             ) : (
@@ -204,6 +205,7 @@ export default async function ProductDetailPage({ params }: Props) {
                       childSlugs={product.childSlugs}
                       selectedOptionIds={product.selectedOptionIds}
                       parentId={product.parentId}
+                      productCustomInputs={product.customInputs}
                     />
                   </SubscriptionProductActions>
                 ) : (
@@ -219,6 +221,7 @@ export default async function ProductDetailPage({ params }: Props) {
                     childSlugs={product.childSlugs}
                     selectedOptionIds={product.selectedOptionIds}
                     parentId={product.parentId}
+                    productCustomInputs={product.customInputs}
                   />
                 )}
               </>

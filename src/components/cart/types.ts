@@ -1,6 +1,6 @@
-import type { BundleComponentItem } from "@/context/CartContext";
+import type { BundleComponentItem, ProductField } from "@/context/CartContext";
 
-export type { BundleComponentItem };
+export type { BundleComponentItem, ProductField };
 
 export type ProductInfo = {
   id: string;
@@ -63,6 +63,7 @@ export type LineGroup =
       isSubscription?: boolean;
       subscriptionPlanName?: string;
       subscriptionFrequency?: string;
+      productFields?: ProductField[];
     };
 
 export function buildMatrix(children: ChildProduct[]): {

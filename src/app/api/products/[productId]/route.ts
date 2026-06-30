@@ -42,6 +42,12 @@ export async function GET(
     const included = res.data?.included;
     const image = extractProductImage(product, included?.main_images);
 
+    const rawCustomInputs = raw.attributes?.custom_inputs;
+    const customInputs =
+      rawCustomInputs && typeof rawCustomInputs === "object" && Object.keys(rawCustomInputs).length > 0
+        ? rawCustomInputs
+        : null;
+
     return NextResponse.json({
       id: product.id ?? "",
       name: raw.attributes?.name ?? "",
@@ -57,6 +63,7 @@ export async function GET(
       imageUrl: image?.link?.href ?? null,
       productType,
       parentId,
+      customInputs,
       variationOptions: variations.map((v: any) => ({
         variationName: v.name ?? "",
         optionName: v.option?.name ?? "",

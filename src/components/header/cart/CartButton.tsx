@@ -248,6 +248,16 @@ export function CartButton() {
                             {item.lineTotalFormatted}
                           </span>
                         </div>
+
+                        {item.productFields && item.productFields.length > 0 && (
+                          <div className="mt-2 flex flex-col gap-0.5">
+                            {item.productFields.map((f) => (
+                              <span key={f.key} className="text-[11px] text-gray-500">
+                                <span className="font-medium text-gray-600">{f.label}:</span> {f.value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Remove */}

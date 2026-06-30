@@ -65,6 +65,12 @@ export type BundleComponent = {
   options: BundleComponentOption[];
 };
 
+export type ProductCustomInput = {
+  name: string;
+  required: boolean;
+  validation_rules: unknown[];
+};
+
 export type ProductDetailData = {
   id: string;
   slug: string;
@@ -86,6 +92,7 @@ export type ProductDetailData = {
   components?: BundleComponent[];
   bulkBuyTiers?: BulkBuyTier[];
   customRelationshipSlugs?: string[];
+  customInputs?: Record<string, ProductCustomInput>;
 };
 
 function extractChildIds(matrix: Record<string, unknown>): string[] {
@@ -296,6 +303,12 @@ function formatProductDetail(
       Boolean,
     ) ?? undefined;
 
+  const rawCustomInputs = (product.attributes as Record<string, unknown>)
+    ?.custom_inputs as Record<string, unknown> | undefined;
+  const customInputs: Record<string, ProductCustomInput> | undefined =
+    rawCustomInputs && Object.keys(rawCustomInputs).length > 0
+      ? (rawCustomInputs as Record<string, ProductCustomInput>)
+      : undefined;
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -321,8 +334,10 @@ function formatProductDetail(
     isBundle,
     components,
     bulkBuyTiers,
-    customRelationshipSlugs:
-      customRelationshipSlugs?.length ? customRelationshipSlugs : undefined,
+    customRelationshipSlugs: customRelationshipSlugs?.length
+      ? customRelationshipSlugs
+      : undefined,
+    customInputs,
   };
 }
 
@@ -401,6 +416,9 @@ export async function getProductBySlug(
             client,
             parentFormatted.variationMatrix,
           );
+        }
+        if (!formatted.customInputs && parentFormatted.customInputs) {
+          formatted.customInputs = parentFormatted.customInputs;
         }
       }
     }

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAddToCart } from "@/hooks/use-add-to-cart";
 import { ShoppingBag, Check, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ProductField } from "@/context/CartContext";
 
 type AddToCartProps = {
   productId: string;
@@ -11,6 +12,9 @@ type AddToCartProps = {
   className?: string;
   variant?: "default" | "full";
   customInputs?: Record<string, string>;
+  productFields?: ProductField[];
+  disabled?: boolean;
+  onBeforeAdd?: () => boolean;
 };
 
 export function AddToCart({
@@ -19,14 +23,22 @@ export function AddToCart({
   className,
   variant = "default",
   customInputs,
+  productFields,
+  disabled,
+  onBeforeAdd,
 }: AddToCartProps) {
   const t = useTranslations("product");
-  const { add, isPending, added } = useAddToCart(productId, customInputs);
+  const { add, isPending, added } = useAddToCart(productId, customInputs, productFields);
+
+  function handleClick() {
+    if (onBeforeAdd && !onBeforeAdd()) return;
+    add(quantity);
+  }
 
   return (
     <button
-      onClick={() => add(quantity)}
-      disabled={isPending}
+      onClick={handleClick}
+      disabled={isPending || disabled}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-lg font-medium text-sm transition-all",
         variant === "full"

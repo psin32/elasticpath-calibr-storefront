@@ -6,7 +6,7 @@ import { SubscriptionContext } from "@/context/SubscriptionContext";
 import { SubscriptionSelector } from "./SubscriptionSelector";
 import { ProductActions } from "./ProductActions";
 import { Price } from "./Price";
-import type { BundleComponent, ProductVariation } from "@/lib/api/products";
+import type { BundleComponent, ProductCustomInput, ProductVariation } from "@/lib/api/products";
 import type { ProductOffering } from "@/lib/api/subscriptions";
 
 type Props = {
@@ -24,6 +24,7 @@ type Props = {
   imageUrl?: string;
   initialOffering?: ProductOffering | null;
   navigateOnSelect?: boolean;
+  productCustomInputs?: Record<string, ProductCustomInput>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,12 +48,14 @@ export function VariationSubscriptionActions({
   imageUrl,
   initialOffering,
   navigateOnSelect = false,
+  productCustomInputs,
 }: Props) {
   const t = useTranslations("product");
 
   const [offering, setOffering] = useState<ProductOffering | null>(
     initialOffering ?? null,
   );
+  const [activeCustomInputs, setActiveCustomInputs] = useState(productCustomInputs);
   const [priceFormatted, setPriceFormatted] = useState(initialPrice);
   const [originalPriceFormatted, setOriginalPriceFormatted] = useState<
     string | undefined
@@ -124,6 +127,7 @@ export function VariationSubscriptionActions({
       setOriginalPriceFormatted(
         productRes?.originalPriceFormatted ?? undefined,
       );
+      setActiveCustomInputs(productRes?.customInputs ?? productCustomInputs);
     },
     [initialPrice, initialOriginalPrice, productId],
   );
@@ -156,6 +160,7 @@ export function VariationSubscriptionActions({
         parentId={parentId}
         navigateOnSelect={navigateOnSelect}
         onVariantResolved={handleVariantResolved}
+        productCustomInputs={activeCustomInputs}
         slotBelowSelectors={
           offering ? (
             <SubscriptionSelector

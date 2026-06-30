@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import type { CartItemDiscount } from "@/context/CartContext";
+import type { CartItemDiscount, ProductField } from "@/context/CartContext";
 import { PromoTooltip } from "./PromoTooltip";
 
 type Props = {
@@ -20,6 +20,7 @@ type Props = {
   isSubscription?: boolean;
   subscriptionPlanName?: string;
   subscriptionFrequency?: string;
+  productFields?: ProductField[];
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
@@ -38,6 +39,7 @@ export function SimpleCartRow({
   isSubscription,
   subscriptionPlanName,
   subscriptionFrequency,
+  productFields,
   onQuantityChange,
   onRemove,
   disabled,
@@ -93,6 +95,16 @@ export function SimpleCartRow({
           className="px-[18px] py-1.5 bg-green-50 border-b border-green-100 text-[12px] text-green-700"
         />
       ))}
+
+      {productFields && productFields.length > 0 && (
+        <div className="px-[18px] py-2 border-b border-ink-100 flex flex-col gap-0.5">
+          {productFields.map((f) => (
+            <span key={f.key} className="text-[12px] text-ink-600">
+              <span className="font-medium text-ink-700">{f.label}:</span> {f.value}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-4 px-[18px] py-3.5 flex-wrap">
         {/* Thumbnail */}

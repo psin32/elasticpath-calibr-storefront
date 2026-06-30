@@ -3,12 +3,13 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { useCart } from "@/context/CartContext";
+import { useCart, type ProductField } from "@/context/CartContext";
 import { useSubscriptionConfig } from "@/context/SubscriptionContext";
 
 export function useAddToCart(
   productId: string,
   customInputs?: Record<string, string>,
+  productFields?: ProductField[],
 ) {
   const t = useTranslations("product");
   const { addItem } = useCart();
@@ -25,6 +26,7 @@ export function useAddToCart(
           quantity,
           customInputs,
           subscriptionConfig ?? undefined,
+          productFields,
         );
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
@@ -43,7 +45,7 @@ export function useAddToCart(
         setIsPending(false);
       }
     },
-    [addItem, productId, customInputs, subscriptionConfig, t],
+    [addItem, productId, customInputs, subscriptionConfig, productFields, t],
   );
 
   return { add, isPending, added };

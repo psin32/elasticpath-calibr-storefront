@@ -426,6 +426,8 @@
     "addToCart": "Ajouter au panier",
     "added": "Ajouté !",
     "addToCartFailed": "Impossible d'ajouter l'article au panier. Veuillez réessayer.",
+    "customInputOptional": "Facultatif",
+    "customInputRequired": "Ce champ est obligatoire",
     "oneTimePurchase": "Achat unique",
     "subscribeAndSave": "S'abonner et économiser",
     "frequencyDay": "{count, plural, =1 {Chaque jour} other {Tous les {count} jours}}",

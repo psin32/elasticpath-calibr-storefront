@@ -3,10 +3,16 @@
 import { useState } from "react";
 import { QuantitySelector } from "./QuantitySelector";
 import { AddToCart } from "./AddToCart";
+import type { ProductField } from "@/context/CartContext";
 
-type Props = { productId: string; customInputs?: Record<string, string> };
+type Props = {
+  productId: string;
+  customInputs?: Record<string, string>;
+  productFields?: ProductField[];
+  onBeforeAdd?: () => boolean;
+};
 
-export function QuantityAddToCart({ productId, customInputs }: Props) {
+export function QuantityAddToCart({ productId, customInputs, productFields, onBeforeAdd }: Props) {
   const [quantity, setQuantity] = useState(1);
 
   return (
@@ -19,6 +25,8 @@ export function QuantityAddToCart({ productId, customInputs }: Props) {
           variant="full"
           className="flex-1"
           customInputs={customInputs}
+          productFields={productFields}
+          onBeforeAdd={onBeforeAdd}
         />
       </div>
     </div>

@@ -36,6 +36,12 @@ export type AppliedPromoCode = {
   discountFormatted?: string;
 };
 
+export type ProductField = {
+  key: string;
+  label: string;
+  value: string;
+};
+
 export type PromotionSuggestion = {
   promotion_id: string;
   code: string;
@@ -76,6 +82,7 @@ export type CartLineItem = {
   imageHref?: string;
   bundleComponents?: BundleComponentItem[];
   customInputs?: Record<string, string>;
+  productFields?: ProductField[];
   discounts?: CartItemDiscount[];
   isSubscription?: boolean;
   subscriptionPlanName?: string;
@@ -114,6 +121,7 @@ type CartContextValue = {
     quantity?: number,
     customInputs?: Record<string, string>,
     subscriptionConfig?: { offeringId: string; plan: string; pricing_option: string; planName: string; frequency: string; imageUrl?: string },
+    productFields?: ProductField[],
   ) => Promise<PromotionSuggestion[] | undefined>;
   addItems: (
     items: Array<{ productId: string; quantity: number }>,
@@ -185,11 +193,20 @@ function toCartLineItem(
     if (result.length > 0) bundleComponents = result;
   }
 
+  const rawCustomInputs =
+    raw.custom_inputs && typeof raw.custom_inputs === "object"
+      ? (raw.custom_inputs as Record<string, unknown>)
+      : undefined;
+
   const customInputs =
-    raw.custom_inputs &&
-    typeof raw.custom_inputs === "object" &&
-    Object.keys(raw.custom_inputs).length > 0
-      ? (raw.custom_inputs as Record<string, string>)
+    rawCustomInputs && Object.keys(rawCustomInputs).length > 0
+      ? (rawCustomInputs as Record<string, string>)
+      : undefined;
+
+  const rawProductFields = rawCustomInputs?.product_fields;
+  const productFields: ProductField[] | undefined =
+    Array.isArray(rawProductFields) && rawProductFields.length > 0
+      ? (rawProductFields as ProductField[])
       : undefined;
 
   // Applied discounts from rule promotions
@@ -248,6 +265,7 @@ function toCartLineItem(
     imageHref,
     bundleComponents,
     customInputs,
+    productFields,
     discounts,
     isSubscription: isSubscription || undefined,
     subscriptionPlanName: subscriptionMeta?.plan_name ?? undefined,
@@ -628,10 +646,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       quantity = 1,
       customInputs?: Record<string, string>,
       subscriptionConfig?: { offeringId: string; plan: string; pricing_option: string; planName: string; frequency: string; imageUrl?: string },
+      productFields?: ProductField[],
     ): Promise<PromotionSuggestion[] | undefined> => {
       if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
+        const nonEmptyFields = productFields?.filter((f) => f.value.trim() !== "") ?? [];
+
         const body: any = subscriptionConfig
           ? {
               data: {
@@ -648,12 +669,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     plan_name: subscriptionConfig.planName,
                     frequency: subscriptionConfig.frequency,
                   },
+                  ...(nonEmptyFields.length > 0 ? { product_fields: nonEmptyFields } : {}),
                 },
               },
             }
           : { data: { type: "cart_item", id: productId, quantity } };
-        if (!subscriptionConfig && customInputs && Object.keys(customInputs).length > 0) {
-          body.data.custom_inputs = customInputs;
+        if (!subscriptionConfig) {
+          const ci: Record<string, unknown> = { ...(customInputs ?? {}) };
+          if (nonEmptyFields.length > 0) {
+            ci.product_fields = nonEmptyFields;
+          }
+          if (Object.keys(ci).length > 0) {
+            body.data.custom_inputs = ci;
+          }
         }
         const prevIds = new Set(
           promotionSuggestionsRef.current?.map((s) => s.promotion_id) ?? [],

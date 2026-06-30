@@ -3,9 +3,11 @@
 import React, { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { ProductVariation } from "@/lib/api/products";
+import type { ProductCustomInput, ProductVariation } from "@/lib/api/products";
+import type { ProductField } from "@/context/CartContext";
 import { ProductVariationSelector } from "./ProductVariationSelector";
 import { QuantityAddToCart } from "./QuantityAddToCart";
+import { CustomInputsForm } from "./CustomInputsForm";
 
 type Props = {
   productId: string;
@@ -18,6 +20,7 @@ type Props = {
   onVariantResolved?: (childId: string | null) => void;
   parentId?: string;
   slotBelowSelectors?: React.ReactNode;
+  productCustomInputs?: Record<string, ProductCustomInput>;
 };
 
 export function VariantAddToCart({
@@ -31,6 +34,7 @@ export function VariantAddToCart({
   onVariantResolved,
   parentId,
   slotBelowSelectors,
+  productCustomInputs,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -40,23 +44,46 @@ export function VariantAddToCart({
     if (!selectedOptionIds?.length || !variations?.length) return {};
     const result: Record<string, string> = {};
     for (const variation of variations) {
-      const match = variation.options.find((o) => selectedOptionIds.includes(o.id));
+      const match = variation.options.find((o) =>
+        selectedOptionIds.includes(o.id),
+      );
       if (match) result[variation.id] = match.id;
     }
     return result;
   }, [selectedOptionIds, variations]);
 
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
-    initialSelectedOptions,
-  );
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string>
+  >(initialSelectedOptions);
+
+  const [productFieldValues, setProductFieldValues] = useState<
+    Record<string, string>
+  >({});
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [resolvedProductId, setResolvedProductId] = useState<string | null>(
     selectedOptionIds?.length ? productId : null,
   );
 
   const hasVariations = !!variations?.length && !!variationMatrix;
-  const allSelected = hasVariations && variations!.every((v) => selectedOptions[v.id]);
-  const effectiveProductId = hasVariations ? (resolvedProductId ?? productId) : productId;
+  const allSelected =
+    hasVariations && variations!.every((v) => selectedOptions[v.id]);
+  const effectiveProductId = hasVariations
+    ? (resolvedProductId ?? productId)
+    : productId;
+
+  function validateRequiredInputs(): boolean {
+    if (!productCustomInputs) return true;
+    const errors: Record<string, string> = {};
+    for (const [key, cfg] of Object.entries(productCustomInputs)) {
+      if (cfg.required && !productFieldValues[key]?.trim()) {
+        errors[key] = t("customInputRequired");
+      }
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   const customInputs = useMemo<Record<string, string> | undefined>(() => {
     if (!hasVariations || !allSelected) return undefined;
@@ -64,13 +91,25 @@ export function VariantAddToCart({
     // Case 2: on parent PDP / quick view — productId is the parent, resolvedProductId is the child
     const effectiveParentId = parentId ?? productId;
     const effectiveChildId = parentId ? productId : resolvedProductId;
-    if (!effectiveChildId || effectiveChildId === effectiveParentId) return undefined;
+    if (!effectiveChildId || effectiveChildId === effectiveParentId)
+      return undefined;
     const optionNames = variations!
       .map((v) => v.options.find((o) => o.id === selectedOptions[v.id])?.name)
       .filter((n): n is string => !!n);
     if (!optionNames.length) return undefined;
-    return { parent_product_id: effectiveParentId, options: optionNames.join(" / ") };
-  }, [hasVariations, allSelected, parentId, productId, resolvedProductId, variations, selectedOptions]);
+    return {
+      parent_product_id: effectiveParentId,
+      options: optionNames.join(" / "),
+    };
+  }, [
+    hasVariations,
+    allSelected,
+    parentId,
+    productId,
+    resolvedProductId,
+    variations,
+    selectedOptions,
+  ]);
 
   function handleOptionChange(variationId: string, optionId: string) {
     setSelectedOptions((prev) => ({ ...prev, [variationId]: optionId }));
@@ -79,10 +118,14 @@ export function VariantAddToCart({
   function handleProductResolved(childId: string | null) {
     setResolvedProductId(childId);
     onVariantResolved?.(childId);
-    if (navigateOnSelect && childId && childSlugs?.[childId]) {
-      startTransition(() => {
-        router.replace(`/${lang}/products/${childSlugs[childId]}`);
-      });
+    if (childId && childSlugs?.[childId]) {
+      if (navigateOnSelect) {
+        startTransition(() => {
+          router.replace(`/${lang}/products/${childSlugs![childId]}`);
+        });
+      } else {
+        window.history.replaceState(null, "", `/${lang}/products/${childSlugs![childId]}`);
+      }
     }
   }
 
@@ -100,9 +143,46 @@ export function VariantAddToCart({
 
       {slotBelowSelectors}
 
+      {productCustomInputs && Object.keys(productCustomInputs).length > 0 && (
+        <CustomInputsForm
+          inputs={productCustomInputs}
+          values={productFieldValues}
+          errors={fieldErrors}
+          onChange={(key, value) => {
+            setProductFieldValues((prev) => ({ ...prev, [key]: value }));
+            if (fieldErrors[key]) {
+              setFieldErrors((prev) => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+              });
+            }
+          }}
+        />
+      )}
+
       <div className="relative group/cart">
-        <div className={hasVariations && !allSelected ? "opacity-50 pointer-events-none" : ""}>
-          <QuantityAddToCart productId={effectiveProductId} customInputs={customInputs} />
+        <div
+          className={
+            hasVariations && !allSelected
+              ? "opacity-50 pointer-events-none"
+              : ""
+          }
+        >
+          <QuantityAddToCart
+            productId={effectiveProductId}
+            customInputs={customInputs}
+            productFields={
+              productCustomInputs
+                ? Object.entries(productFieldValues).map<ProductField>(([key, value]) => ({
+                    key,
+                    label: productCustomInputs[key]?.name ?? key,
+                    value,
+                  }))
+                : undefined
+            }
+            onBeforeAdd={validateRequiredInputs}
+          />
         </div>
         {hasVariations && !allSelected && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover/cart:opacity-100 transition-opacity pointer-events-none z-10">

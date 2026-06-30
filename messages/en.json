@@ -426,6 +426,8 @@
     "addToCart": "Add to cart",
     "added": "Added!",
     "addToCartFailed": "Unable to add item to cart. Please try again.",
+    "customInputOptional": "Optional",
+    "customInputRequired": "This field is required",
     "oneTimePurchase": "One-time purchase",
     "subscribeAndSave": "Subscribe & Save",
     "frequencyDay": "{count, plural, =1 {Every day} other {Every {count} days}}",
