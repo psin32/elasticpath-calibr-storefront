@@ -3,16 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowLeft,
-  PauseCircle,
-  PlayCircle,
-  XCircle,
-} from "lucide-react";
+import { ArrowLeft, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   getSubscription,
   createSubscriptionState,
+  listSubscriptionInvoices,
 } from "@epcc-sdk/sdks-shopper";
 import { createEpClient } from "@/lib/api/ep-client";
 import {
@@ -38,10 +34,10 @@ function formatDate(iso: string | undefined, locale: string): string | null {
 }
 
 const FREQ_KEY: Record<string, string> = {
-  day:   "subscriptionFrequencyDay",
-  week:  "subscriptionFrequencyWeek",
+  day: "subscriptionFrequencyDay",
+  week: "subscriptionFrequencyWeek",
   month: "subscriptionFrequencyMonth",
-  year:  "subscriptionFrequencyYear",
+  year: "subscriptionFrequencyYear",
 };
 
 // ─── Data types ───────────────────────────────────────────────────────────────
@@ -93,10 +89,9 @@ async function fetchInvoices(
   if (!subscriptionId) return [];
   try {
     const client = createEpClient();
-    const res = await (client as any).get({
-      url: `/v2/subscriptions/subscriptions/${subscriptionId}/invoices`,
-      query: { "page[limit]": 25 },
-      security: [{ scheme: "bearer", type: "http" }],
+    const res = await listSubscriptionInvoices({
+      client,
+      path: { subscription_uuid: subscriptionId },
     });
     return ((res.data?.data ?? []) as any[]).map((inv: any): InvoiceSummary => {
       const price = inv.meta?.price;
@@ -461,7 +456,9 @@ export function SubscriptionDetail({
                             </td>
                             <td className="px-4 py-3">
                               <Badge
-                                variant={inv.outstanding ? "warning" : "success"}
+                                variant={
+                                  inv.outstanding ? "warning" : "success"
+                                }
                                 dot
                                 size="sm"
                               >
@@ -507,13 +504,14 @@ export function SubscriptionDetail({
                     </span>
                   </div>
                 )}
-                {sub.billingFrequency && FREQ_KEY[sub.billingFrequency.intervalType] && (
-                  <InfoRow label={t("subscriptionBillingFrequency")}>
-                    {t(FREQ_KEY[sub.billingFrequency.intervalType] as any, {
-                      count: sub.billingFrequency.count,
-                    })}
-                  </InfoRow>
-                )}
+                {sub.billingFrequency &&
+                  FREQ_KEY[sub.billingFrequency.intervalType] && (
+                    <InfoRow label={t("subscriptionBillingFrequency")}>
+                      {t(FREQ_KEY[sub.billingFrequency.intervalType] as any, {
+                        count: sub.billingFrequency.count,
+                      })}
+                    </InfoRow>
+                  )}
               </div>
             </div>
           </div>
