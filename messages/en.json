@@ -364,7 +364,8 @@
     "promoRemove": "Remove",
     "promoInvalid": "Invalid promotion code",
     "promoHaveCode": "Do you have a promo code?",
-    "subscription": "Subscription"
+    "subscription": "Subscription",
+    "addToCartFailed": "Unable to add item to cart. Please try again."
   },
   "product": {
     "quickView": "Quick view",
@@ -384,6 +385,7 @@
     "notFoundCta": "Continue Shopping",
     "addToCart": "Add to cart",
     "added": "Added!",
+    "addToCartFailed": "Unable to add item to cart. Please try again.",
     "oneTimePurchase": "One-time purchase",
     "subscribeAndSave": "Subscribe & Save",
     "frequencyDay": "{count, plural, =1 {Every day} other {Every {count} days}}",

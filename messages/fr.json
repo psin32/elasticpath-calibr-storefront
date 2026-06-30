@@ -364,7 +364,8 @@
     "promoRemove": "Supprimer",
     "promoInvalid": "Code de promotion invalide",
     "promoHaveCode": "Avez-vous un code promo ?",
-    "subscription": "Abonnement"
+    "subscription": "Abonnement",
+    "addToCartFailed": "Impossible d'ajouter l'article au panier. Veuillez réessayer."
   },
   "product": {
     "quickView": "Aperçu rapide",
@@ -384,6 +385,7 @@
     "notFoundCta": "Continuer les achats",
     "addToCart": "Ajouter au panier",
     "added": "Ajouté !",
+    "addToCartFailed": "Impossible d'ajouter l'article au panier. Veuillez réessayer.",
     "oneTimePurchase": "Achat unique",
     "subscribeAndSave": "S'abonner et économiser",
     "frequencyDay": "{count, plural, =1 {Chaque jour} other {Tous les {count} jours}}",

@@ -663,6 +663,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           path: { cartID: cartId },
           body,
         });
+        if (res.error) throw res.error;
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
           | PromotionSuggestion[]
           | undefined;
@@ -792,6 +793,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           path: { cartID: cartId, cartitemID: cartItemId },
           body: { data: { type: "cart_item", quantity } },
         });
+        if (res.error) throw res.error;
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
           | PromotionSuggestion[]
           | undefined;

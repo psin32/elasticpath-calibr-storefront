@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { ShoppingBag, LayoutList, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { CartPageHeader } from "./CartPageHeader";
 import { CartSummaryPanel } from "./CartSummaryPanel";
@@ -65,7 +66,7 @@ type Props = { lang: string };
 
 export function B2BCartContent({ lang }: Props) {
   const t = useTranslations("cart");
-  const { items, isLoading, addItem, updateQuantity, removeItem, promotionSuggestions } = useCart();
+  const { items, isLoading, isInitializing, addItem, updateQuantity, removeItem, promotionSuggestions } = useCart();
 
   const productInfoCache = useRef<Map<string, ProductInfo>>(new Map());
   const childrenCache = useRef<Map<string, ChildProduct[]>>(new Map());
@@ -259,45 +260,67 @@ export function B2BCartContent({ lang }: Props) {
     rebuild();
   }, [rebuild]);
 
+  const showCartError = useCallback(
+    (err: unknown) => {
+      const epErrors = (err as Record<string, unknown>)?.errors;
+      if (Array.isArray(epErrors) && epErrors.length > 0) {
+        const first = epErrors[0] as Record<string, unknown>;
+        const message = (first?.detail ?? first?.title) as string | undefined;
+        if (message) { toast.error(message); return; }
+      }
+      toast.error(t("addToCartFailed"));
+    },
+    [t],
+  );
+
   const handleMatrixQtyChange = useCallback(
     async (productId: string, cartItemId: string | null, newQty: number) => {
-      if (newQty <= 0 && cartItemId) {
-        await removeItem(cartItemId);
-      } else if (newQty > 0 && !cartItemId) {
-        // Find the child in the cache to build custom_inputs
-        let customInputs: Record<string, string> | undefined;
-        for (const [parentId, children] of childrenCache.current) {
-          const child = children.find((c) => c.id === productId);
-          if (child && child.variationOptions.length > 0) {
-            customInputs = {
-              parent_product_id: parentId,
-              options: child.variationOptions
-                .map((o) => o.optionName)
-                .join(" / "),
-            };
-            break;
+      try {
+        if (newQty <= 0 && cartItemId) {
+          await removeItem(cartItemId);
+        } else if (newQty > 0 && !cartItemId) {
+          // Find the child in the cache to build custom_inputs
+          let customInputs: Record<string, string> | undefined;
+          for (const [parentId, children] of childrenCache.current) {
+            const child = children.find((c) => c.id === productId);
+            if (child && child.variationOptions.length > 0) {
+              customInputs = {
+                parent_product_id: parentId,
+                options: child.variationOptions
+                  .map((o) => o.optionName)
+                  .join(" / "),
+              };
+              break;
+            }
           }
+          await addItem(productId, newQty, customInputs);
+        } else if (newQty > 0 && cartItemId) {
+          await updateQuantity(cartItemId, newQty);
         }
-        await addItem(productId, newQty, customInputs);
-      } else if (newQty > 0 && cartItemId) {
-        await updateQuantity(cartItemId, newQty);
+      } catch (err) {
+        showCartError(err);
       }
     },
-    [addItem, updateQuantity, removeItem],
+    [addItem, updateQuantity, removeItem, showCartError],
   );
 
   const handleSimpleQtyChange = useCallback(
-    (cartItemId: string, qty: number) => {
-      if (qty <= 0) removeItem(cartItemId);
-      else updateQuantity(cartItemId, qty);
+    async (cartItemId: string, qty: number) => {
+      try {
+        if (qty <= 0) await removeItem(cartItemId);
+        else await updateQuantity(cartItemId, qty);
+      } catch (err) {
+        showCartError(err);
+      }
     },
-    [updateQuantity, removeItem],
+    [updateQuantity, removeItem, showCartError],
   );
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
   const lineCount = groups.length;
 
-  const isEmpty = !isLoading && !groupsLoading && items.length === 0;
+  const isLoadingState = isInitializing || isLoading || (groupsLoading && groups.length === 0);
+  const isEmpty = !isInitializing && !isLoading && !groupsLoading && items.length === 0;
 
   return (
     <div className="max-w-[1240px] mx-auto px-4 py-[30px] pb-20">
@@ -332,90 +355,96 @@ export function B2BCartContent({ lang }: Props) {
 
       {!isEmpty && (
         <>
-          {/* View toggle toolbar — always full width */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[13px] text-[#5C6675]">
-              {t("units", { count: totalUnits })} ·{" "}
-              {t("products", { count: lineCount })}
-            </p>
-            <div className="flex items-center gap-[3px] bg-[#EEF0F2] rounded-[8px] p-[3px]">
-              <button
-                onClick={() => setViewMode("list")}
-                title={t("viewList")}
-                aria-pressed={viewMode === "list"}
-                className={[
-                  "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
-                  viewMode === "list"
-                    ? "bg-white shadow-sm text-[#0E1521]"
-                    : "text-[#5C6675] hover:text-[#0E1521]",
-                ].join(" ")}
-              >
-                <LayoutList size={15} />
-              </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                title={t("viewGrid")}
-                aria-pressed={viewMode === "grid"}
-                className={[
-                  "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
-                  viewMode === "grid"
-                    ? "bg-white shadow-sm text-[#0E1521]"
-                    : "text-[#5C6675] hover:text-[#0E1521]",
-                ].join(" ")}
-              >
-                <LayoutGrid size={15} />
-              </button>
+          {/* View toggle toolbar — hidden while loading to avoid "0 units" flash */}
+          {!isLoadingState && (
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[13px] text-[#5C6675]">
+                {t("units", { count: totalUnits })} ·{" "}
+                {t("products", { count: lineCount })}
+              </p>
+              <div className="flex items-center gap-[3px] bg-[#EEF0F2] rounded-[8px] p-[3px]">
+                <button
+                  onClick={() => setViewMode("list")}
+                  title={t("viewList")}
+                  aria-pressed={viewMode === "list"}
+                  className={[
+                    "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
+                    viewMode === "list"
+                      ? "bg-white shadow-sm text-[#0E1521]"
+                      : "text-[#5C6675] hover:text-[#0E1521]",
+                  ].join(" ")}
+                >
+                  <LayoutList size={15} />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  title={t("viewGrid")}
+                  aria-pressed={viewMode === "grid"}
+                  className={[
+                    "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
+                    viewMode === "grid"
+                      ? "bg-white shadow-sm text-[#0E1521]"
+                      : "text-[#5C6675] hover:text-[#0E1521]",
+                  ].join(" ")}
+                >
+                  <LayoutGrid size={15} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Shared skeleton — shown during initial load and subsequent fetches */}
+          {isLoadingState && (
+            <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-8 lg:items-start">
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+                ))}
+              </div>
+              <div className="mt-6 lg:mt-0 flex flex-col gap-4">
+                <div className="h-64 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+              </div>
+            </div>
+          )}
 
           {/* List view: two-column layout with summary sidebar */}
-          {viewMode === "list" ? (
+          {!isLoadingState && viewMode === "list" && (
             <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-8 lg:items-start">
               {/* Left: items */}
-              <div>
-                {(isLoading || groupsLoading) && groups.length === 0 ? (
-                  <div className="flex flex-col gap-4">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {groups.map((group, idx) => {
-                      if (group.kind === "bundle") {
-                        return (
-                          <BundleCartRowList
-                            key={group.cartItemId}
-                            {...group}
-                            onQuantityChange={handleSimpleQtyChange}
-                            onRemove={removeItem}
-                            disabled={isLoading}
-                          />
-                        );
-                      }
-                      if (group.kind === "matrix") {
-                        return (
-                          <MatrixCartRow
-                            key={group.matrixGroup.parentId}
-                            matrixGroup={group.matrixGroup}
-                            cartItemsByProductId={group.cartItemsByProductId}
-                            onQuantityChange={handleMatrixQtyChange}
-                            disabled={isLoading}
-                          />
-                        );
-                      }
-                      return (
-                        <SimpleCartRowList
-                          key={group.cartItemId + idx}
-                          {...group}
-                          onQuantityChange={handleSimpleQtyChange}
-                          onRemove={removeItem}
-                          disabled={isLoading}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
+              <div className="flex flex-col gap-4">
+                {groups.map((group, idx) => {
+                  if (group.kind === "bundle") {
+                    return (
+                      <BundleCartRowList
+                        key={group.cartItemId}
+                        {...group}
+                        onQuantityChange={handleSimpleQtyChange}
+                        onRemove={removeItem}
+                        disabled={isLoading}
+                      />
+                    );
+                  }
+                  if (group.kind === "matrix") {
+                    return (
+                      <MatrixCartRow
+                        key={group.matrixGroup.parentId}
+                        matrixGroup={group.matrixGroup}
+                        cartItemsByProductId={group.cartItemsByProductId}
+                        onQuantityChange={handleMatrixQtyChange}
+                        disabled={isLoading}
+                      />
+                    );
+                  }
+                  return (
+                    <SimpleCartRowList
+                      key={group.cartItemId + idx}
+                      {...group}
+                      onQuantityChange={handleSimpleQtyChange}
+                      onRemove={removeItem}
+                      disabled={isLoading}
+                    />
+                  );
+                })}
               </div>
 
               {/* Right: sticky order summary + offers section */}
@@ -424,58 +453,51 @@ export function B2BCartContent({ lang }: Props) {
                 <OffersSection promotionSuggestions={promotionSuggestions} lang={lang} t={t} />
               </div>
             </div>
-          ) : (
-            /* Grid view: full-width single-column, totals shown in header */
+          )}
+
+          {/* Grid view: full-width single-column, totals shown in header */}
+          {!isLoadingState && viewMode === "grid" && (
             <>
-              {(isLoading || groupsLoading) && groups.length === 0 ? (
-                <div className="flex flex-col gap-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {groups.map((group, idx) => {
-                    if (group.kind === "bundle") {
-                      return (
-                        <BundleCartRow
-                          key={group.cartItemId}
-                          {...group}
-                          onQuantityChange={handleSimpleQtyChange}
-                          onRemove={removeItem}
-                          disabled={isLoading}
-                        />
-                      );
-                    }
-                    if (group.kind === "matrix") {
-                      return (
-                        <MatrixCartRow
-                          key={group.matrixGroup.parentId}
-                          matrixGroup={group.matrixGroup}
-                          cartItemsByProductId={group.cartItemsByProductId}
-                          onQuantityChange={handleMatrixQtyChange}
-                          disabled={isLoading}
-                        />
-                      );
-                    }
+              <div className="flex flex-col gap-4">
+                {groups.map((group, idx) => {
+                  if (group.kind === "bundle") {
                     return (
-                      <SimpleCartRow
-                        key={group.cartItemId + idx}
+                      <BundleCartRow
+                        key={group.cartItemId}
                         {...group}
                         onQuantityChange={handleSimpleQtyChange}
                         onRemove={removeItem}
                         disabled={isLoading}
                       />
                     );
-                  })}
-                </div>
-              )}
+                  }
+                  if (group.kind === "matrix") {
+                    return (
+                      <MatrixCartRow
+                        key={group.matrixGroup.parentId}
+                        matrixGroup={group.matrixGroup}
+                        cartItemsByProductId={group.cartItemsByProductId}
+                        onQuantityChange={handleMatrixQtyChange}
+                        disabled={isLoading}
+                      />
+                    );
+                  }
+                  return (
+                    <SimpleCartRow
+                      key={group.cartItemId + idx}
+                      {...group}
+                      onQuantityChange={handleSimpleQtyChange}
+                      onRemove={removeItem}
+                      disabled={isLoading}
+                    />
+                  );
+                })}
+              </div>
               <div className="mt-6">
                 <OffersSection promotionSuggestions={promotionSuggestions} lang={lang} t={t} />
               </div>
             </>
           )}
-
         </>
       )}
     </div>

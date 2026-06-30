@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { useSubscriptionConfig } from "@/context/SubscriptionContext";
 
-export function useAddToCart(productId: string, customInputs?: Record<string, string>) {
+export function useAddToCart(
+  productId: string,
+  customInputs?: Record<string, string>,
+) {
+  const t = useTranslations("product");
   const { addItem } = useCart();
   const subscriptionConfig = useSubscriptionConfig();
   const [isPending, setIsPending] = useState(false);
@@ -22,11 +28,22 @@ export function useAddToCart(productId: string, customInputs?: Record<string, st
         );
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
+      } catch (err: unknown) {
+        const epErrors = (err as Record<string, unknown>)?.errors;
+        if (Array.isArray(epErrors) && epErrors.length > 0) {
+          const first = epErrors[0] as Record<string, unknown>;
+          const message = (first?.detail ?? first?.title) as string | undefined;
+          if (message) {
+            toast.error(message);
+            return;
+          }
+        }
+        toast.error(t("addToCartFailed"));
       } finally {
         setIsPending(false);
       }
     },
-    [addItem, productId, customInputs, subscriptionConfig],
+    [addItem, productId, customInputs, subscriptionConfig, t],
   );
 
   return { add, isPending, added };

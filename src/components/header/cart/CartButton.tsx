@@ -16,6 +16,7 @@ import { PromoTooltip } from "@/components/cart/PromoTooltip";
 import { PromotionCarousel } from "@/components/cart/PromotionCarousel";
 import { PromoCodeInput } from "@/components/cart/PromoCodeInput";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -369,7 +370,7 @@ type CartItemStepperProps = {
   itemId: string;
   quantity: number;
   disabled: boolean;
-  updateQuantity: (id: string, qty: number) => void;
+  updateQuantity: (id: string, qty: number) => Promise<void>;
 };
 
 function CartItemStepper({
@@ -379,16 +380,31 @@ function CartItemStepper({
   updateQuantity,
 }: CartItemStepperProps) {
   const t = useTranslations("header");
+  const tCart = useTranslations("cart");
   const [draft, setDraft] = useState(String(quantity));
 
   useEffect(() => {
     setDraft(String(quantity));
   }, [quantity]);
 
+  const handleUpdate = async (qty: number) => {
+    try {
+      await updateQuantity(itemId, qty);
+    } catch (err: unknown) {
+      const epErrors = (err as Record<string, unknown>)?.errors;
+      if (Array.isArray(epErrors) && epErrors.length > 0) {
+        const first = epErrors[0] as Record<string, unknown>;
+        const message = (first?.detail ?? first?.title) as string | undefined;
+        if (message) { toast.error(message); return; }
+      }
+      toast.error(tCart("addToCartFailed"));
+    }
+  };
+
   const commit = (raw: string) => {
     const n = parseInt(raw, 10);
     if (!isNaN(n) && n >= 0) {
-      updateQuantity(itemId, n);
+      handleUpdate(n);
     } else {
       setDraft(String(quantity));
     }
@@ -397,7 +413,7 @@ function CartItemStepper({
   return (
     <div className="inline-flex items-center rounded-lg border border-gray-200 overflow-hidden">
       <button
-        onClick={() => updateQuantity(itemId, quantity - 1)}
+        onClick={() => handleUpdate(quantity - 1)}
         disabled={disabled}
         aria-label={t("decreaseQuantity")}
         className="flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"
@@ -419,7 +435,7 @@ function CartItemStepper({
         className="w-8 h-7 text-center text-sm font-medium text-gray-900 bg-transparent border-x border-gray-200 focus:outline-none disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
       <button
-        onClick={() => updateQuantity(itemId, quantity + 1)}
+        onClick={() => handleUpdate(quantity + 1)}
         disabled={disabled}
         aria-label={t("increaseQuantity")}
         className="flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"

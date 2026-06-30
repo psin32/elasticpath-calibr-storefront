@@ -35,7 +35,7 @@ export function AddToCart({
         added
           ? "bg-brand-secondary text-white"
           : "bg-brand-primary text-white hover:opacity-90 disabled:opacity-60",
-        className
+        className,
       )}
     >
       {isPending ? (
