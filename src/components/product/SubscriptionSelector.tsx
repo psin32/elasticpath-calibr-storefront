@@ -23,11 +23,11 @@ function frequencyLabel(t: any, freq: number, interval: string): string {
 }
 
 function RadioDot({ active, green }: { active: boolean; green?: boolean }) {
-  const color = green ? "#18804C" : "#0E1521";
+  const color = green ? "var(--color-success-600)" : "var(--color-ink-900)";
   return (
     <div
       className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-none transition-colors"
-      style={{ borderColor: active ? color : "#C2C8D0" }}
+      style={{ borderColor: active ? color : "var(--color-ink-300)" }}
     >
       {active && (
         <div
@@ -59,8 +59,8 @@ export function SubscriptionSelector({
       <label
         className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${
           selected === "onetime"
-            ? "border-[#0E1521] bg-[#F7F8F9]"
-            : "border-[#DDE1E6] bg-white hover:border-[#C2C8D0]"
+            ? "border-ink-900 bg-ink-50"
+            : "border-ink-200 bg-white hover:border-ink-300"
         }`}
       >
         <div className="flex items-center gap-3">
@@ -73,17 +73,17 @@ export function SubscriptionSelector({
             onChange={() => onTypeChange("onetime")}
             className="sr-only"
           />
-          <span className="text-[14px] font-medium text-[#0E1521]">
+          <span className="text-[14px] font-medium text-ink-900">
             {t("oneTimePurchase")}
           </span>
         </div>
         <div className="text-right">
           {originalPrice && (
-            <p className="text-[11px] text-[#8C95A3] line-through">
+            <p className="text-[11px] text-ink-400 line-through">
               {originalPrice}
             </p>
           )}
-          <p className="text-[15px] font-bold text-[#0E1521]">{oneTimePrice}</p>
+          <p className="text-[15px] font-bold text-ink-900">{oneTimePrice}</p>
         </div>
       </label>
 
@@ -91,8 +91,8 @@ export function SubscriptionSelector({
       <label
         className={`flex flex-col px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${
           selected === "subscribe"
-            ? "border-[#18804C] bg-[#F0FDF6]"
-            : "border-[#DDE1E6] bg-white hover:border-[#A6EBCA]"
+            ? "border-success-600 bg-green-50"
+            : "border-ink-200 bg-white hover:border-success-200"
         }`}
       >
         <div className="flex items-center justify-between">
@@ -107,7 +107,7 @@ export function SubscriptionSelector({
               className="sr-only"
             />
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-medium text-[#0E1521]">
+              <span className="text-[14px] font-medium text-ink-900">
                 {activePlan?.planName || t("subscribeAndSave")}
               </span>
             </div>
@@ -115,11 +115,11 @@ export function SubscriptionSelector({
           {activePlan && (
             <div className="text-right">
               {activePlan.priceFormatted && (
-                <p className="text-[15px] font-bold text-[#18804C]">
+                <p className="text-[15px] font-bold text-success-600">
                   {activePlan.priceFormatted}
                 </p>
               )}
-              <p className="text-[11px] text-[#5C6675]">
+              <p className="text-[11px] text-ink-600">
                 {frequencyLabel(
                   t,
                   activePlan.billingFrequency,
@@ -138,8 +138,8 @@ export function SubscriptionSelector({
                 key={plan.id}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
                   selectedPlanId === plan.id
-                    ? "bg-[#DCFCE7] border border-[#86EFAC]"
-                    : "bg-white border border-[#C2C8D0] hover:border-[#86EFAC]"
+                    ? "bg-green-100 border border-success-300"
+                    : "bg-white border border-ink-300 hover:border-success-300"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -152,10 +152,10 @@ export function SubscriptionSelector({
                     className="sr-only"
                   />
                   <div>
-                    <p className="text-[13px] font-semibold text-[#0E1521] leading-tight">
+                    <p className="text-[13px] font-semibold text-ink-900 leading-tight">
                       {plan.name}
                     </p>
-                    <p className="text-[12px] text-[#5C6675]">
+                    <p className="text-[12px] text-ink-600">
                       {frequencyLabel(
                         t,
                         plan.billingFrequency,
@@ -165,7 +165,7 @@ export function SubscriptionSelector({
                   </div>
                 </div>
                 {plan.priceFormatted && (
-                  <span className="text-[14px] font-bold text-[#18804C]">
+                  <span className="text-[14px] font-bold text-success-600">
                     {plan.priceFormatted}
                   </span>
                 )}

@@ -47,7 +47,7 @@ export function PromoTooltip({ discount, label, className = "" }: Props) {
             transform: "translateY(-100%)",
             zIndex: 999999,
           }}
-          className="w-64 rounded-lg bg-[#0E1521] px-3 py-2.5 shadow-xl pointer-events-none"
+          className="w-64 rounded-lg bg-ink-900 px-3 py-2.5 shadow-xl pointer-events-none"
         >
           {discount.promotionName && (
             <p className="text-[12px] font-semibold text-white leading-snug">{discount.promotionName}</p>

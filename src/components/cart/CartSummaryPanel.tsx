@@ -27,13 +27,13 @@ export function CartSummaryPanel({ lang, lineCount, totalUnits }: Props) {
   const hasDiscount = cartDiscountAmount < 0 && !!cartSubtotal;
 
   return (
-    <div className="bg-white border border-[#DDE1E6] rounded-[16px] overflow-hidden">
+    <div className="bg-white border border-ink-200 rounded-[16px] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#DDE1E6] bg-[#F7F8F9]">
-        <h2 className="font-semibold text-[15px] text-[#0E1521]">
+      <div className="px-6 py-4 border-b border-ink-200 bg-ink-50">
+        <h2 className="font-semibold text-[15px] text-ink-900">
           {t("orderSummary")}
         </h2>
-        <p className="text-[12px] text-[#5C6675] mt-0.5">
+        <p className="text-[12px] text-ink-600 mt-0.5">
           {t("units", { count: totalUnits })} ·{" "}
           {t("products", { count: lineCount })}
         </p>
@@ -44,36 +44,36 @@ export function CartSummaryPanel({ lang, lineCount, totalUnits }: Props) {
         {hasDiscount ? (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#5C6675]">
+              <span className="text-[13px] text-ink-600">
                 {t("subtotal")}
               </span>
-              <span className="text-[13px] text-[#5C6675]">{cartSubtotal}</span>
+              <span className="text-[13px] text-ink-600">{cartSubtotal}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[13px] text-[#21A765]">
+              <span className="flex items-center gap-1.5 text-[13px] text-success-500">
                 <Tag size={12} />
                 {t("discount")}
               </span>
-              <span className="text-[13px] font-semibold text-[#21A765]">
+              <span className="text-[13px] font-semibold text-success-500">
                 {cartDiscount}
               </span>
             </div>
-            <div className="h-px bg-[#DDE1E6]" />
+            <div className="h-px bg-ink-200" />
             <div className="flex items-center justify-between">
-              <span className="text-[14px] font-semibold text-[#0E1521]">
+              <span className="text-[14px] font-semibold text-ink-900">
                 {t("total")}
               </span>
-              <span className="text-[20px] font-bold text-[#0E1521]">
+              <span className="text-[20px] font-bold text-ink-900">
                 {cartTotal}
               </span>
             </div>
           </>
         ) : (
           <div className="flex items-center justify-between">
-            <span className="text-[14px] font-semibold text-[#0E1521]">
+            <span className="text-[14px] font-semibold text-ink-900">
               {t("total")}
             </span>
-            <span className="text-[20px] font-bold text-[#0E1521]">
+            <span className="text-[20px] font-bold text-ink-900">
               {cartTotal}
             </span>
           </div>
@@ -81,7 +81,7 @@ export function CartSummaryPanel({ lang, lineCount, totalUnits }: Props) {
       </div>
 
       {/* Promo code */}
-      <div className="px-6 pb-4 border-t border-[#DDE1E6] pt-4">
+      <div className="px-6 pb-4 border-t border-ink-200 pt-4">
         <PromoCodeInput />
       </div>
 
@@ -90,7 +90,7 @@ export function CartSummaryPanel({ lang, lineCount, totalUnits }: Props) {
         <Link
           href={lineCount === 0 ? "#" : `/${lang}/checkout`}
           aria-disabled={lineCount === 0}
-          className={`w-full flex items-center justify-center gap-2 h-12 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
+          className={`w-full flex items-center justify-center gap-2 h-12 rounded-[11px] bg-ink-900 text-white font-bold text-[14px] transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
         >
           {t("checkout")}
           <ArrowRight size={16} />
@@ -100,14 +100,14 @@ export function CartSummaryPanel({ lang, lineCount, totalUnits }: Props) {
           <Link
             href={lineCount === 0 ? "#" : `/${lang}/quote-request`}
             aria-disabled={lineCount === 0}
-            className={`w-full flex items-center justify-center gap-2 h-11 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[13px] text-[#3D4654] transition-colors${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:bg-[#F7F8F9]"}`}
+            className={`w-full flex items-center justify-center gap-2 h-11 rounded-[11px] border border-ink-300 bg-white font-semibold text-[13px] text-ink-700 transition-colors${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:bg-ink-50"}`}
           >
             <FileText size={15} />
             {t("requestQuote")}
           </Link>
         )}
 
-        <p className="text-[11px] text-[#8C95A3] text-center leading-snug">
+        <p className="text-[11px] text-ink-400 text-center leading-snug">
           {t("shippingNote")}
         </p>
       </div>

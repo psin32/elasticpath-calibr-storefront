@@ -123,7 +123,7 @@ export function ProductVariationSelector({
                       >
                         <line
                           x1="8" y1="92" x2="92" y2="8"
-                          stroke="#9CA3AF"
+                          stroke="var(--color-ink-400)"
                           strokeWidth="2"
                           vectorEffect="non-scaling-stroke"
                         />

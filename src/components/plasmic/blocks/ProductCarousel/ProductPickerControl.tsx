@@ -86,10 +86,10 @@ export function ProductPickerControl({ value, updateValue }: Props) {
           onChange={handleFieldChange}
           style={{
             padding: "6px 4px",
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--color-ink-200)",
             borderRadius: showResults ? "4px 4px 0 0" : 4,
             fontSize: 12,
-            background: "#f9fafb",
+            background: "var(--color-ink-50)",
             cursor: "pointer",
             outline: "none",
             flexShrink: 0,
@@ -107,7 +107,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
           style={{
             flex: 1,
             padding: "6px 8px",
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--color-ink-200)",
             borderRadius: showResults ? "4px 4px 0 0" : 4,
             fontSize: 12,
             boxSizing: "border-box",
@@ -119,7 +119,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
       {showResults && (
         <div
           style={{
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--color-ink-200)",
             borderTop: "none",
             borderRadius: "0 0 4px 4px",
             marginBottom: 8,
@@ -129,7 +129,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
           }}
         >
           {searching && (
-            <div style={{ padding: "6px 10px", color: "#9ca3af" }}>Searching…</div>
+            <div style={{ padding: "6px 10px", color: "var(--color-ink-400)" }}>Searching…</div>
           )}
           {!searching &&
             results.map((product) => {
@@ -144,10 +144,10 @@ export function ProductPickerControl({ value, updateValue }: Props) {
                     display: "flex",
                     width: "100%",
                     padding: "7px 10px",
-                    background: already ? "#f9fafb" : "#fff",
-                    color: already ? "#9ca3af" : "#111827",
+                    background: already ? "var(--color-ink-50)" : "#fff",
+                    color: already ? "var(--color-ink-400)" : "#111827",
                     border: "none",
-                    borderBottom: "1px solid #f3f4f6",
+                    borderBottom: "1px solid var(--color-ink-100)",
                     cursor: already ? "default" : "pointer",
                     textAlign: "left",
                     fontSize: 12,
@@ -156,7 +156,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
                   }}
                 >
                   <span>{product.name}</span>
-                  {already && <span style={{ fontSize: 10, color: "#6b7280" }}>Added ✓</span>}
+                  {already && <span style={{ fontSize: 10, color: "var(--color-ink-600)" }}>Added ✓</span>}
                 </button>
               );
             })}
@@ -179,7 +179,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
                 gap: 6,
               }}
             >
-              <span style={{ color: "#6b7280", fontSize: 10, minWidth: 14 }}>{i + 1}.</span>
+              <span style={{ color: "var(--color-ink-600)", fontSize: 10, minWidth: 14 }}>{i + 1}.</span>
               <span
                 style={{
                   flex: 1,
@@ -199,7 +199,7 @@ export function ProductPickerControl({ value, updateValue }: Props) {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#9ca3af",
+                  color: "var(--color-ink-400)",
                   fontSize: 16,
                   lineHeight: 1,
                   padding: "0 2px",

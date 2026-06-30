@@ -34,11 +34,11 @@ export function PromoCodeInput() {
       {appliedPromoCodes.map(({ id, code: appliedCode }) => (
         <div
           key={id}
-          className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#EFFCF6] border border-[#A6EBCA]"
+          className="flex items-center justify-between px-3 py-2 rounded-lg bg-success-50 border border-success-200"
         >
           <div className="flex items-center gap-2">
-            <Tag size={13} className="text-[#18804C] flex-none" />
-            <span className="text-[13px] font-semibold text-[#18804C] tracking-wide">
+            <Tag size={13} className="text-success-600 flex-none" />
+            <span className="text-[13px] font-semibold text-success-600 tracking-wide">
               {appliedCode}
             </span>
           </div>
@@ -46,7 +46,7 @@ export function PromoCodeInput() {
             onClick={() => removePromoCode(appliedCode)}
             disabled={isLoading}
             aria-label={t("promoRemove")}
-            className="p-0.5 rounded text-[#18804C] hover:text-red-500 transition-colors disabled:opacity-40"
+            className="p-0.5 rounded text-success-600 hover:text-red-500 transition-colors disabled:opacity-40"
           >
             <X size={14} />
           </button>
@@ -57,7 +57,7 @@ export function PromoCodeInput() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1 text-[12px] text-[#5C6675] hover:text-[#0E1521] transition-colors"
+          className="flex items-center gap-1 text-[12px] text-ink-600 hover:text-ink-900 transition-colors"
         >
           <Tag size={12} className="flex-none" />
           {t("promoHaveCode")}
@@ -76,12 +76,12 @@ export function PromoCodeInput() {
               onChange={(e) => { setCode(e.target.value); setError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
               placeholder={t("promoPlaceholder")}
-              className="flex-1 h-9 px-3 text-[13px] border border-[#C2C8D0] rounded-lg bg-white focus:outline-none focus:border-[#0E1521] placeholder:text-[#8C95A3]"
+              className="flex-1 h-9 px-3 text-[13px] border border-ink-300 rounded-lg bg-white focus:outline-none focus:border-ink-900 placeholder:text-ink-400"
             />
             <button
               onClick={handleApply}
               disabled={applying || !code.trim()}
-              className="h-9 px-4 rounded-lg bg-[#0E1521] text-white text-[12px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+              className="h-9 px-4 rounded-lg bg-ink-900 text-white text-[12px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center gap-1.5 shrink-0"
             >
               {applying && <Loader2 size={13} className="animate-spin" />}
               {t("promoApply")}

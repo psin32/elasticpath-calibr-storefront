@@ -63,7 +63,7 @@ function FlatCarousel({
     return (
       <div className="flex gap-3 overflow-hidden">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex-none w-[280px] h-[84px] rounded-[12px] border border-[#EEF0F2] bg-white animate-pulse" />
+          <div key={i} className="flex-none w-[280px] h-[84px] rounded-[12px] border border-ink-100 bg-white animate-pulse" />
         ))}
       </div>
     );
@@ -76,7 +76,7 @@ function FlatCarousel({
       <button
         onClick={() => scroll("left")}
         aria-label={t("promotionPrev")}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover/carousel:opacity-100"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-ink-200 shadow-sm flex items-center justify-center text-ink-600 hover:text-ink-900 transition-all opacity-0 group-hover/carousel:opacity-100"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
@@ -100,7 +100,7 @@ function FlatCarousel({
       <button
         onClick={() => scroll("right")}
         aria-label={t("promotionNext")}
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-[#DDE1E6] shadow-sm flex items-center justify-center text-[#5C6675] hover:text-[#0E1521] transition-all opacity-0 group-hover/carousel:opacity-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-6 h-6 rounded-full bg-white border border-ink-200 shadow-sm flex items-center justify-center text-ink-600 hover:text-ink-900 transition-all opacity-0 group-hover/carousel:opacity-100"
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
@@ -126,7 +126,7 @@ function PromoRow({ suggestion, products, lang, t }: RowProps) {
   return (
     <div>
       <div className="mb-3">
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#18804C] bg-[#EFFCF6] border border-[#A6EBCA] rounded-full px-3 py-1">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-600 bg-success-50 border border-success-200 rounded-full px-3 py-1">
           <Tag className="h-3.5 w-3.5" />
           {suggestion.info}
         </span>

@@ -50,7 +50,7 @@ export function ProductCard({
           />
 
           {promoInfo && (
-            <span className="inline-flex items-center gap-1 self-start text-[10px] font-semibold text-[#18804C] bg-[#EFFCF6] border border-[#A6EBCA] rounded-full px-2 py-0.5 leading-none">
+            <span className="inline-flex items-center gap-1 self-start text-[10px] font-semibold text-success-600 bg-success-50 border border-success-200 rounded-full px-2 py-0.5 leading-none">
               <Tag className="h-2.5 w-2.5 flex-none" />
               {promoInfo}
             </span>

@@ -35,12 +35,12 @@ function OffersSection({
   if (!promotionSuggestions?.length) return null;
 
   return (
-    <div className="bg-white border border-[#DDE1E6] rounded-[16px] p-4 flex flex-col gap-3">
+    <div className="bg-white border border-ink-200 rounded-[16px] p-4 flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <Tag size={15} className="text-[#18804C] flex-none" />
-        <h3 className="text-[14px] font-semibold text-[#0E1521]">{t("offersForYou")}</h3>
+        <Tag size={15} className="text-success-600 flex-none" />
+        <h3 className="text-[14px] font-semibold text-ink-900">{t("offersForYou")}</h3>
       </div>
-      <p className="text-[12px] text-[#5C6675]">{t("offersEmpty")}</p>
+      <p className="text-[12px] text-ink-600">{t("offersEmpty")}</p>
       <PromotionCarousel suggestions={promotionSuggestions} lang={lang} flat />
     </div>
   );
@@ -331,22 +331,22 @@ export function B2BCartContent({ lang }: Props) {
         showActions={viewMode === "grid"}
       />
 
-      <div className="h-px bg-[#DDE1E6] my-7" />
+      <div className="h-px bg-ink-200 my-7" />
 
       {isEmpty && (
         <div className="flex flex-col items-center justify-center py-24 gap-5">
-          <div className="w-20 h-20 rounded-full bg-[#EEF0F2] flex items-center justify-center">
-            <ShoppingBag size={36} className="text-[#C2C8D0]" />
+          <div className="w-20 h-20 rounded-full bg-ink-100 flex items-center justify-center">
+            <ShoppingBag size={36} className="text-ink-300" />
           </div>
           <div className="text-center">
-            <p className="text-[18px] font-semibold text-[#0E1521]">
+            <p className="text-[18px] font-semibold text-ink-900">
               {t("emptyTitle")}
             </p>
-            <p className="text-[14px] text-[#5C6675] mt-1">{t("emptyHint")}</p>
+            <p className="text-[14px] text-ink-600 mt-1">{t("emptyHint")}</p>
           </div>
           <Link
             href={`/${lang}`}
-            className="mt-2 h-11 px-6 rounded-[11px] bg-[#0E1521] text-white font-semibold text-[14px] flex items-center gap-2 hover:opacity-90 transition-opacity"
+            className="mt-2 h-11 px-6 rounded-[11px] bg-ink-900 text-white font-semibold text-[14px] flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
             {t("browseCatalog")}
           </Link>
@@ -358,11 +358,11 @@ export function B2BCartContent({ lang }: Props) {
           {/* View toggle toolbar — hidden while loading to avoid "0 units" flash */}
           {!isLoadingState && (
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[13px] text-[#5C6675]">
+              <p className="text-[13px] text-ink-600">
                 {t("units", { count: totalUnits })} ·{" "}
                 {t("products", { count: lineCount })}
               </p>
-              <div className="flex items-center gap-[3px] bg-[#EEF0F2] rounded-[8px] p-[3px]">
+              <div className="flex items-center gap-[3px] bg-ink-100 rounded-[8px] p-[3px]">
                 <button
                   onClick={() => setViewMode("list")}
                   title={t("viewList")}
@@ -370,8 +370,8 @@ export function B2BCartContent({ lang }: Props) {
                   className={[
                     "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
                     viewMode === "list"
-                      ? "bg-white shadow-sm text-[#0E1521]"
-                      : "text-[#5C6675] hover:text-[#0E1521]",
+                      ? "bg-white shadow-sm text-ink-900"
+                      : "text-ink-600 hover:text-ink-900",
                   ].join(" ")}
                 >
                   <LayoutList size={15} />
@@ -383,8 +383,8 @@ export function B2BCartContent({ lang }: Props) {
                   className={[
                     "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
                     viewMode === "grid"
-                      ? "bg-white shadow-sm text-[#0E1521]"
-                      : "text-[#5C6675] hover:text-[#0E1521]",
+                      ? "bg-white shadow-sm text-ink-900"
+                      : "text-ink-600 hover:text-ink-900",
                   ].join(" ")}
                 >
                   <LayoutGrid size={15} />
@@ -398,11 +398,11 @@ export function B2BCartContent({ lang }: Props) {
             <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-8 lg:items-start">
               <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+                  <div key={i} className="h-32 rounded-2xl bg-white border border-ink-200 animate-pulse" />
                 ))}
               </div>
               <div className="mt-6 lg:mt-0 flex flex-col gap-4">
-                <div className="h-64 rounded-2xl bg-white border border-[#DDE1E6] animate-pulse" />
+                <div className="h-64 rounded-2xl bg-white border border-ink-200 animate-pulse" />
               </div>
             </div>
           )}

@@ -128,7 +128,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
       appearance: {
         theme: "stripe",
         variables: {
-          colorPrimary: "#0E1521",
+          colorPrimary: process.env.NEXT_PUBLIC_COLOR_INK_900 ?? "#0e1521",
           borderRadius: "8px",
         },
       },
@@ -157,10 +157,10 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                   className={[
                     "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
                     isPast
-                      ? "bg-[#2BCC7E] text-[#0E1521]"
+                      ? "bg-success-400 text-ink-900"
                       : isActive
-                        ? "bg-[#0E1521] text-white ring-2 ring-offset-2 ring-[#2BCC7E]"
-                        : "bg-[#DDE1E6] text-[#5C6675]",
+                        ? "bg-ink-900 text-white ring-2 ring-offset-2 ring-success-400"
+                        : "bg-ink-200 text-ink-600",
                   ].join(" ")}
                 >
                   {isPast ? <Check size={14} /> : st.num}
@@ -169,10 +169,10 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                   className={[
                     "text-sm font-medium",
                     isActive
-                      ? "text-[#0E1521]"
+                      ? "text-ink-900"
                       : isPast
-                        ? "text-[#2BCC7E]"
-                        : "text-[#8C95A3]",
+                        ? "text-success-400"
+                        : "text-ink-400",
                   ].join(" ")}
                 >
                   {st.label}
@@ -182,7 +182,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
                 <span
                   className={[
                     "w-10 h-px mx-1",
-                    isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]",
+                    isPast ? "bg-success-400" : "bg-ink-200",
                   ].join(" ")}
                 />
               )}
@@ -392,8 +392,8 @@ export function CheckoutFlow({ lang }: { lang: string }) {
           {/* Shipping summary — compact flat row */}
           <div className="flex items-center justify-between pb-5 border-b border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="w-5 h-5 rounded-full bg-[#2BCC7E] flex items-center justify-center flex-none">
-                <Check size={12} className="text-[#0E1521]" strokeWidth={3} />
+              <span className="w-5 h-5 rounded-full bg-success-400 flex items-center justify-center flex-none">
+                <Check size={12} className="text-ink-900" strokeWidth={3} />
               </span>
               <span className="font-medium text-gray-800">
                 {t("reviewShipping")}

@@ -65,22 +65,22 @@ export function SimpleCartRow({
           </span>
         </div>
       )}
-    <section className={`bg-white border rounded-[14px] overflow-hidden ${isSubscription ? "border-blue-600" : "border-[#DDE1E6]"}`}>
-      <div className="flex items-center gap-3 px-[18px] py-[13px] bg-[#F7F8F9] border-b border-[#DDE1E6] flex-wrap">
-        <span className="font-bold text-[15px] text-[#0E1521]">{name}</span>
-        {sku && <span className="font-mono text-[11px] text-[#5C6675]">{sku}</span>}
+    <section className={`bg-white border rounded-[14px] overflow-hidden ${isSubscription ? "border-blue-600" : "border-ink-200"}`}>
+      <div className="flex items-center gap-3 px-[18px] py-[13px] bg-ink-50 border-b border-ink-200 flex-wrap">
+        <span className="font-bold text-[15px] text-ink-900">{name}</span>
+        {sku && <span className="font-mono text-[11px] text-ink-600">{sku}</span>}
         {isSubscription && (subscriptionPlanName || subscriptionFrequency) && (
-          <span className="text-[12px] text-[#5C6675]">
+          <span className="text-[12px] text-ink-600">
             {[subscriptionPlanName, subscriptionFrequency].filter(Boolean).join(" · ")}
           </span>
         )}
         {unitPrice && (
-          <span className="text-[12px] text-[#5C6675]">· {unitPrice}{t("perUnit")}</span>
+          <span className="text-[12px] text-ink-600">· {unitPrice}{t("perUnit")}</span>
         )}
         <div className="flex-1" />
-        <span className="font-extrabold text-[15px] text-[#0E1521]">
+        <span className="font-extrabold text-[15px] text-ink-900">
           {lineTotalOriginal && (
-            <span className="line-through mr-1.5 text-[13px] font-normal text-[#9BA3AF]">{lineTotalOriginal}</span>
+            <span className="line-through mr-1.5 text-[13px] font-normal text-ink-400">{lineTotalOriginal}</span>
           )}
           {lineTotal}
         </span>
@@ -96,18 +96,18 @@ export function SimpleCartRow({
 
       <div className="flex items-center gap-4 px-[18px] py-3.5 flex-wrap">
         {/* Thumbnail */}
-        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#EEF0F2] border border-[#DDE1E6] flex-none">
+        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-ink-100 border border-ink-200 flex-none">
           {imageUrl ? (
             <Image src={imageUrl} alt={name} fill sizes="48px" className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <ShoppingBag size={18} className="text-[#C2C8D0]" />
+              <ShoppingBag size={18} className="text-ink-300" />
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] text-[#5C6675]">{unitPrice} {t("each")}</p>
+          <p className="text-[13px] text-ink-600">{unitPrice} {t("each")}</p>
         </div>
 
         {/* Inline stepper */}
@@ -115,7 +115,7 @@ export function SimpleCartRow({
           <button
             onClick={() => onQuantityChange(cartItemId, Math.max(0, quantity - 1))}
             disabled={disabled || quantity <= 1}
-            className="w-[30px] h-[34px] border border-[#DDE1E6] rounded-[7px] bg-white text-[#3D4654] flex items-center justify-center hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+            className="w-[30px] h-[34px] border border-ink-200 rounded-[7px] bg-white text-ink-700 flex items-center justify-center hover:bg-ink-100 transition-colors disabled:opacity-40"
           >
             <Minus size={14} />
           </button>
@@ -127,12 +127,12 @@ export function SimpleCartRow({
             onChange={(e) => setDraft(e.target.value)}
             onBlur={(e) => commitQty(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") commitQty((e.target as HTMLInputElement).value); }}
-            className="w-[54px] h-[34px] text-center text-[14px] font-bold text-[#0E1521] border border-[#DDE1E6] rounded-[7px] bg-white outline-none focus:border-[#2BCC7E] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-[54px] h-[34px] text-center text-[14px] font-bold text-ink-900 border border-ink-200 rounded-[7px] bg-white outline-none focus:border-success-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <button
             onClick={() => onQuantityChange(cartItemId, quantity + 1)}
             disabled={disabled}
-            className="w-[30px] h-[34px] border border-[#DDE1E6] rounded-[7px] bg-white text-[#3D4654] flex items-center justify-center hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+            className="w-[30px] h-[34px] border border-ink-200 rounded-[7px] bg-white text-ink-700 flex items-center justify-center hover:bg-ink-100 transition-colors disabled:opacity-40"
           >
             <Plus size={14} />
           </button>
@@ -141,7 +141,7 @@ export function SimpleCartRow({
         <button
           onClick={() => onRemove(cartItemId)}
           disabled={disabled}
-          className="flex items-center gap-1.5 h-[30px] px-3 rounded-[7px] border border-[#DDE1E6] bg-white text-[12px] font-semibold text-[#5C6675] hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 h-[30px] px-3 rounded-[7px] border border-ink-200 bg-white text-[12px] font-semibold text-ink-600 hover:bg-ink-100 transition-colors disabled:opacity-40"
         >
           <Trash2 size={13} />
           {t("remove")}

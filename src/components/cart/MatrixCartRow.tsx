@@ -70,16 +70,16 @@ export function MatrixCartRow({
 
   if (!matrix) {
     return (
-      <section className="bg-white border border-[#DDE1E6] rounded-[14px] overflow-hidden">
-        <header className="flex items-center gap-3 px-[18px] py-[13px] bg-[#F7F8F9] border-b border-[#DDE1E6]">
-          <span className="font-bold text-[15px] text-[#0E1521]">{parentName}</span>
-          {parentSku && <span className="font-mono text-[11px] text-[#5C6675]">{parentSku}</span>}
+      <section className="bg-white border border-ink-200 rounded-[14px] overflow-hidden">
+        <header className="flex items-center gap-3 px-[18px] py-[13px] bg-ink-50 border-b border-ink-200">
+          <span className="font-bold text-[15px] text-ink-900">{parentName}</span>
+          {parentSku && <span className="font-mono text-[11px] text-ink-600">{parentSku}</span>}
           <div className="flex-1" />
-          <span className="font-extrabold text-[15px] text-[#0E1521]">
+          <span className="font-extrabold text-[15px] text-ink-900">
             {t("units", { count: totalUnits })}
           </span>
         </header>
-        <div className="px-[18px] py-4 text-[13px] text-[#5C6675]">{t("noVariants")}</div>
+        <div className="px-[18px] py-4 text-[13px] text-ink-600">{t("noVariants")}</div>
       </section>
     );
   }
@@ -105,24 +105,24 @@ export function MatrixCartRow({
   );
 
   return (
-    <section className="bg-white border border-[#DDE1E6] rounded-[14px] overflow-hidden">
+    <section className="bg-white border border-ink-200 rounded-[14px] overflow-hidden">
       {/* Header */}
-      <header className="flex items-center gap-3 px-[18px] py-[13px] bg-[#F7F8F9] border-b border-[#DDE1E6] flex-wrap">
-        <span className="font-bold text-[15px] text-[#0E1521]">{parentName}</span>
+      <header className="flex items-center gap-3 px-[18px] py-[13px] bg-ink-50 border-b border-ink-200 flex-wrap">
+        <span className="font-bold text-[15px] text-ink-900">{parentName}</span>
         {parentSku && (
-          <span className="font-mono text-[11px] text-[#5C6675]">{parentSku}</span>
+          <span className="font-mono text-[11px] text-ink-600">{parentSku}</span>
         )}
         {parentPriceFormatted && (
-          <span className="text-[12px] text-[#5C6675]">· {parentPriceFormatted}{t("perUnit")}</span>
+          <span className="text-[12px] text-ink-600">· {parentPriceFormatted}{t("perUnit")}</span>
         )}
         <div className="flex-1" />
         {totalUnits > 0 && (
-          <span className="text-[12px] text-[#5C6675] mr-1">{t("units", { count: totalUnits })}</span>
+          <span className="text-[12px] text-ink-600 mr-1">{t("units", { count: totalUnits })}</span>
         )}
         <button
           onClick={() => handleFill(12)}
           disabled={disabled}
-          className="h-[30px] px-[11px] rounded-[7px] border border-[#DDE1E6] bg-white text-[12px] font-semibold text-[#3D4654] flex items-center gap-1.5 hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+          className="h-[30px] px-[11px] rounded-[7px] border border-ink-200 bg-white text-[12px] font-semibold text-ink-700 flex items-center gap-1.5 hover:bg-ink-100 transition-colors disabled:opacity-40"
         >
           <WandSparkles size={13} />
           {t("fill", { qty: 12 })}
@@ -130,7 +130,7 @@ export function MatrixCartRow({
         <button
           onClick={handleClear}
           disabled={disabled || totalUnits === 0}
-          className="h-[30px] px-[11px] rounded-[7px] border border-[#DDE1E6] bg-white text-[12px] font-semibold text-[#5C6675] flex items-center gap-1.5 hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+          className="h-[30px] px-[11px] rounded-[7px] border border-ink-200 bg-white text-[12px] font-semibold text-ink-600 flex items-center gap-1.5 hover:bg-ink-100 transition-colors disabled:opacity-40"
         >
           <Eraser size={13} />
           {t("clearMatrix")}
@@ -141,19 +141,19 @@ export function MatrixCartRow({
       <div className="overflow-x-auto">
         <div style={{ minWidth: Math.max(560, 140 + cols.length * 80 + 84) }}>
           {/* Column header */}
-          <div className="flex items-center border-b border-[#DDE1E6]">
-            <div className="flex-none w-[140px] px-4 py-[9px] font-mono text-[10px] tracking-[.1em] uppercase text-[#5C6675]">
+          <div className="flex items-center border-b border-ink-200">
+            <div className="flex-none w-[140px] px-4 py-[9px] font-mono text-[10px] tracking-[.1em] uppercase text-ink-600">
               {rowAxisName ?? colAxisName}
             </div>
             {cols.map((col) => (
               <div
                 key={col}
-                className="flex-1 text-center px-1 py-[9px] font-bold text-[12px] text-[#0E1521] border-l border-[#EEF0F2]"
+                className="flex-1 text-center px-1 py-[9px] font-bold text-[12px] text-ink-900 border-l border-ink-100"
               >
                 {col}
               </div>
             ))}
-            <div className="flex-none w-[84px] text-right px-4 py-[9px] font-mono text-[10px] tracking-[.1em] uppercase text-[#5C6675]">
+            <div className="flex-none w-[84px] text-right px-4 py-[9px] font-mono text-[10px] tracking-[.1em] uppercase text-ink-600">
               {t("total")}
             </div>
           </div>
@@ -163,11 +163,11 @@ export function MatrixCartRow({
             return (
               <div
                 key={row || rIdx}
-                className="flex items-center border-b border-[#EEF0F2]"
+                className="flex items-center border-b border-ink-100"
               >
                 {/* Row label */}
                 <div className="flex-none w-[140px] px-4 flex items-center">
-                  <span className="font-semibold text-[13px] text-[#0E1521]">{row || "—"}</span>
+                  <span className="font-semibold text-[13px] text-ink-900">{row || "—"}</span>
                 </div>
 
                 {/* Cells */}
@@ -178,13 +178,13 @@ export function MatrixCartRow({
                     return (
                       <div
                         key={col}
-                        className="flex-1 border-l border-[#EEF0F2] h-10 flex items-center justify-center"
+                        className="flex-1 border-l border-ink-100 h-10 flex items-center justify-center"
                         style={{
                           background:
-                            "repeating-linear-gradient(45deg,transparent,transparent 5px,#F7F8F9 5px,#F7F8F9 10px)",
+                            "repeating-linear-gradient(45deg,transparent,transparent 5px,var(--color-ink-50) 5px,var(--color-ink-50) 10px)",
                         }}
                       >
-                        <span className="text-[#C2C8D0] text-[12px]">—</span>
+                        <span className="text-ink-300 text-[12px]">—</span>
                       </div>
                     );
                   }
@@ -193,7 +193,7 @@ export function MatrixCartRow({
                   const draftVal = getDraft(child.id);
 
                   return (
-                    <div key={col} className="flex-1 border-l border-[#EEF0F2] relative">
+                    <div key={col} className="flex-1 border-l border-ink-100 relative">
                       <input
                         type="number"
                         value={draftVal || ""}
@@ -210,14 +210,14 @@ export function MatrixCartRow({
                         }}
                         className={[
                           "w-full h-10 text-center text-[13px] font-semibold bg-transparent border-none outline-none",
-                          "focus:bg-[#EFFCF6] transition-colors",
-                          "placeholder:text-[#C2C8D0]",
+                          "focus:bg-success-50 transition-colors",
+                          "placeholder:text-ink-300",
                           "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                          qty > 0 ? "text-[#0E1521]" : "text-[#8C95A3]",
+                          qty > 0 ? "text-ink-900" : "text-ink-400",
                         ].join(" ")}
                       />
                       {qty > 0 && (
-                        <span className="absolute top-[3px] right-[5px] text-[10px] font-semibold text-[#18804C] bg-[#EFFCF6] px-1 rounded leading-tight">
+                        <span className="absolute top-[3px] right-[5px] text-[10px] font-semibold text-success-600 bg-success-50 px-1 rounded leading-tight">
                           {qty}
                         </span>
                       )}
@@ -226,7 +226,7 @@ export function MatrixCartRow({
                 })}
 
                 {/* Row total */}
-                <div className="flex-none w-[84px] text-right px-4 font-bold text-[14px] text-[#0E1521]">
+                <div className="flex-none w-[84px] text-right px-4 font-bold text-[14px] text-ink-900">
                   {rowTotals[rIdx] > 0 ? rowTotals[rIdx] : ""}
                 </div>
               </div>
@@ -234,19 +234,19 @@ export function MatrixCartRow({
           })}
 
           {/* Footer totals row */}
-          <div className="flex items-center bg-[#F7F8F9]">
-            <div className="flex-none w-[140px] px-4 py-[11px] text-[12px] font-bold text-[#5C6675]">
+          <div className="flex items-center bg-ink-50">
+            <div className="flex-none w-[140px] px-4 py-[11px] text-[12px] font-bold text-ink-600">
               {parentPriceFormatted ?? t("perSize")}
             </div>
             {colTotals.map((ct, i) => (
               <div
                 key={i}
-                className="flex-1 text-center px-1 py-[11px] font-semibold text-[13px] text-[#5C6675] border-l border-[#EEF0F2]"
+                className="flex-1 text-center px-1 py-[11px] font-semibold text-[13px] text-ink-600 border-l border-ink-100"
               >
                 {ct > 0 ? ct : ""}
               </div>
             ))}
-            <div className="flex-none w-[84px] text-right px-4 py-[11px] font-extrabold text-[14px] text-[#18804C]">
+            <div className="flex-none w-[84px] text-right px-4 py-[11px] font-extrabold text-[14px] text-success-600">
               {totalUnits > 0 ? totalUnits : ""}
             </div>
           </div>

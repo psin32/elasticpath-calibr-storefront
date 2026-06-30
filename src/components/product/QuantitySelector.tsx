@@ -17,7 +17,7 @@ export function QuantitySelector({
   value,
   onChange,
   min = 1,
-  max = 999,
+  max = 9999999,
   disabled = false,
   className,
 }: Props) {
@@ -40,7 +40,7 @@ export function QuantitySelector({
     <div
       className={cn(
         "inline-flex items-center rounded-lg border border-gray-200 overflow-hidden",
-        className
+        className,
       )}
     >
       <button

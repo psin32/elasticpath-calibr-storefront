@@ -13,8 +13,8 @@ export default function PlasmicHostPage() {
   if (!PLASMIC) {
     return (
       <p style={{ padding: "2rem", fontFamily: "monospace" }}>
-        Plasmic is not configured. Set NEXT_PUBLIC_PLASMIC_PROJECT_ID and
-        NEXT_PUBLIC_PLASMIC_API_TOKEN in your .env file.
+        Elastic Path CMS is not configured. Set NEXT_PUBLIC_EP_CMS_PROJECT_ID and
+        NEXT_PUBLIC_EP_CMS_API_TOKEN in your .env file.
       </p>
     );
   }

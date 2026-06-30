@@ -160,7 +160,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   const lineCount = items.length;
   const canContinue = form.company.trim() && form.contact.trim() && form.email.trim();
 
-  const toggleLabelCls = "block text-[12px] font-semibold text-[#3D4654] mb-[7px]";
+  const toggleLabelCls = "block text-[12px] font-semibold text-ink-700 mb-[7px]";
 
   /* ── Stepper ── */
   function Stepper() {
@@ -179,10 +179,10 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                   className={[
                     "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
                     isPast
-                      ? "bg-[#2BCC7E] text-[#0E1521]"
+                      ? "bg-success-400 text-ink-900"
                       : isActive
-                        ? "bg-[#0E1521] text-white ring-2 ring-offset-2 ring-[#2BCC7E]"
-                        : "bg-[#DDE1E6] text-[#5C6675]",
+                        ? "bg-ink-900 text-white ring-2 ring-offset-2 ring-success-400"
+                        : "bg-ink-200 text-ink-600",
                   ].join(" ")}
                 >
                   {isPast ? <Check size={14} /> : st.num}
@@ -190,14 +190,14 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                 <span
                   className={[
                     "text-sm font-medium",
-                    isActive ? "text-[#0E1521]" : isPast ? "text-[#2BCC7E]" : "text-[#8C95A3]",
+                    isActive ? "text-ink-900" : isPast ? "text-success-400" : "text-ink-400",
                   ].join(" ")}
                 >
                   {st.label}
                 </span>
               </div>
               {!isLast && (
-                <span className={["w-10 h-px mx-1", isPast ? "bg-[#2BCC7E]" : "bg-[#DDE1E6]"].join(" ")} />
+                <span className={["w-10 h-px mx-1", isPast ? "bg-success-400" : "bg-ink-200"].join(" ")} />
               )}
             </div>
           );
@@ -234,7 +234,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     <Button
       variant="ghost"
       size="sm"
-      className="text-[#21A765] hover:text-[#21A765] hover:bg-[#EFFCF6]"
+      className="text-success-500 hover:text-success-500 hover:bg-success-50"
       leftIcon={<Pencil size={13} />}
       onClick={onClick}
     >
@@ -244,7 +244,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
 
   /* ── Section mono-label ── */
   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-    <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-[14px]">
+    <p className="font-mono text-[10px] tracking-[.12em] uppercase text-ink-600 mb-[14px]">
       {children}
     </p>
   );
@@ -252,12 +252,12 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   /* ── Items list ── */
   function ItemsList({ editable = false }: { editable?: boolean }) {
     return (
-      <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
-        <CardHeader className="border-[#EEF0F2] py-4">
+      <Card className="rounded-2xl border-ink-200 shadow-none">
+        <CardHeader className="border-ink-100 py-4">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-[15px] text-[#0E1521]">{t("itemsTitle")}</p>
+            <p className="font-bold text-[15px] text-ink-900">{t("itemsTitle")}</p>
             <div className="flex items-center gap-3">
-              <p className="text-[13px] text-[#5C6675]">
+              <p className="text-[13px] text-ink-600">
                 {totalUnits} unit{totalUnits !== 1 ? "s" : ""} · {lineCount} product{lineCount !== 1 ? "s" : ""}
               </p>
               {editable && <EditButton onClick={() => setStep("details")} />}
@@ -266,7 +266,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
         </CardHeader>
 
         {items.length === 0 ? (
-          <CardBody className="flex flex-col items-center gap-3 py-12 text-[#8C95A3]">
+          <CardBody className="flex flex-col items-center gap-3 py-12 text-ink-400">
             <ShoppingBag size={32} />
             <p className="text-sm">{t("noItemsInCart")}</p>
           </CardBody>
@@ -274,30 +274,30 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
           items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3.5 px-5 py-[13px] border-b border-[#EEF0F2] last:border-b-0"
+              className="flex items-center gap-3.5 px-5 py-[13px] border-b border-ink-100 last:border-b-0"
             >
-              <span className="w-[38px] h-[38px] rounded-[9px] bg-[#EEF0F2] flex items-center justify-center flex-none overflow-hidden">
+              <span className="w-[38px] h-[38px] rounded-[9px] bg-ink-100 flex items-center justify-center flex-none overflow-hidden">
                 {item.imageHref ? (
                   <img src={item.imageHref} alt={item.name} className="w-full h-full object-cover" />
                 ) : (
-                  <ShoppingBag size={19} className="text-[#5C6675]" />
+                  <ShoppingBag size={19} className="text-ink-600" />
                 )}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[14px] text-[#0E1521]">{item.name}</p>
-                <p className="text-[12px] text-[#5C6675] font-mono mt-0.5">
+                <p className="font-semibold text-[14px] text-ink-900">{item.name}</p>
+                <p className="text-[12px] text-ink-600 font-mono mt-0.5">
                   {item.sku} · {item.quantity} unit{item.quantity !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-[14px] text-[#0E1521]">{item.lineTotalFormatted}</p>
-                <p className="text-[11px] text-[#8C95A3]">{t("listLabel")}</p>
+                <p className="font-bold text-[14px] text-ink-900">{item.lineTotalFormatted}</p>
+                <p className="text-[11px] text-ink-400">{t("listLabel")}</p>
               </div>
             </div>
           ))
         )}
 
-        <div className="flex items-center gap-2.5 px-5 py-3 bg-[#EFFCF6] text-[#18804C] text-[12.5px] font-medium">
+        <div className="flex items-center gap-2.5 px-5 py-3 bg-success-50 text-success-600 text-[12.5px] font-medium">
           <Info size={15} className="flex-none" />
           {t("listPriceNote")}
         </div>
@@ -315,7 +315,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             <ItemsList />
 
             {/* Company & contact */}
-            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
               <CardBody>
                 <SectionLabel>{t("companySectionTitle")}</SectionLabel>
                 <div className="flex flex-col gap-[14px]">
@@ -352,7 +352,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             </Card>
 
             {/* Delivery */}
-            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
               <CardBody>
                 <SectionLabel>{t("deliverySectionTitle")}</SectionLabel>
                 <div className="flex flex-col gap-3">
@@ -385,7 +385,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                   {selectedAddressId && (() => {
                     const addr = addresses.find((a) => a.id === selectedAddressId);
                     return addr ? (
-                      <Card className="rounded-xl border-[#DDE1E6] shadow-none">
+                      <Card className="rounded-xl border-ink-200 shadow-none">
                         <CardBody className="py-3">
                           <DeliveryAddress address={addr} />
                         </CardBody>
@@ -411,12 +411,12 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                             onClick={() => setForm((f) => ({ ...f, urgency: u.value }))}
                             className={
                               form.urgency === u.value
-                                ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521] hover:bg-[#EFFCF6] hover:border-[#2BCC7E] hover:opacity-100"
+                                ? "border-success-400 bg-success-50 text-ink-900 hover:bg-success-50 hover:border-success-400 hover:opacity-100"
                                 : "hover:opacity-100"
                             }
                           >
                             {u.label}{" "}
-                            <span className="text-[11px] text-[#5C6675] font-normal ml-1">{u.sub}</span>
+                            <span className="text-[11px] text-ink-600 font-normal ml-1">{u.sub}</span>
                           </Button>
                         ))}
                       </div>
@@ -427,7 +427,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             </Card>
 
             {/* Commercial terms */}
-            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
               <CardBody>
                 <SectionLabel>{t("commercialSectionTitle")}</SectionLabel>
                 <div className="flex flex-col gap-4">
@@ -441,7 +441,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                           onClick={() => setForm((f) => ({ ...f, terms: t.value }))}
                           className={
                             form.terms === t.value
-                              ? "border-[#2BCC7E] bg-[#EFFCF6] text-[#0E1521] hover:bg-[#EFFCF6] hover:border-[#2BCC7E] hover:opacity-100"
+                              ? "border-success-400 bg-success-50 text-ink-900 hover:bg-success-50 hover:border-success-400 hover:opacity-100"
                               : "hover:opacity-100"
                           }
                         >
@@ -482,11 +482,11 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             </Card>
 
             {/* Notes */}
-            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
               <CardBody>
                 <SectionLabel>
                   {t("notesSectionTitle")}{" "}
-                  <span className="normal-case tracking-normal text-[#8C95A3]">{t("notesOptional")}</span>
+                  <span className="normal-case tracking-normal text-ink-400">{t("notesOptional")}</span>
                 </SectionLabel>
                 <Textarea
                   id={`${formId}-notes`}
@@ -501,23 +501,23 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
 
           {/* Summary rail */}
           <div className="flex-none w-[300px] sticky top-8 flex flex-col gap-3">
-            <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
               <CardBody>
                 <SectionLabel>{t("summaryTitle")}</SectionLabel>
-                <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
+                <div className="flex justify-between text-[13px] text-ink-700 py-1.5">
                   <span>{t("summaryProducts")}</span>
-                  <span className="font-semibold text-[#0E1521]">{lineCount}</span>
+                  <span className="font-semibold text-ink-900">{lineCount}</span>
                 </div>
-                <div className="flex justify-between text-[13px] text-[#3D4654] py-1.5">
+                <div className="flex justify-between text-[13px] text-ink-700 py-1.5">
                   <span>{t("summaryTotalUnits")}</span>
-                  <span className="font-semibold text-[#0E1521]">{totalUnits}</span>
+                  <span className="font-semibold text-ink-900">{totalUnits}</span>
                 </div>
-                <div className="h-px bg-[#EEF0F2] my-2.5" />
+                <div className="h-px bg-ink-100 my-2.5" />
                 <div className="flex justify-between items-baseline py-1">
-                  <span className="text-[13px] text-[#5C6675]">{t("summaryListValue")}</span>
-                  <span className="font-serif text-[24px] text-[#0E1521]">{cartTotal}</span>
+                  <span className="text-[13px] text-ink-600">{t("summaryListValue")}</span>
+                  <span className="font-serif text-[24px] text-ink-900">{cartTotal}</span>
                 </div>
-                <div className="flex items-start gap-2 mt-3.5 p-3 rounded-[11px] bg-[#F7F8F9] text-[12px] text-[#5C6675] leading-relaxed">
+                <div className="flex items-start gap-2 mt-3.5 p-3 rounded-[11px] bg-ink-50 text-[12px] text-ink-600 leading-relaxed">
                   <Lock size={14} className="flex-none mt-0.5 shrink-0" />
                   {t("summaryPricingNote")}
                 </div>
@@ -527,7 +527,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
               fullWidth
               size="lg"
               disabled={!canContinue}
-              className="bg-[#0E1521] hover:opacity-90"
+              className="bg-ink-900 hover:opacity-90"
               rightIcon={<ArrowRight size={16} />}
               onClick={() => canContinue && setStep("review")}
             >
@@ -543,8 +543,8 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   /* ── STEP 2: REVIEW ── */
   const reviewRow = (label: string, value: string) => (
     <div className="bg-white px-5 py-[14px]">
-      <p className="text-[11px] text-[#5C6675] mb-1">{label}</p>
-      <p className="font-semibold text-[14px] text-[#0E1521]">{value || "—"}</p>
+      <p className="text-[11px] text-ink-600 mb-1">{label}</p>
+      <p className="font-semibold text-[14px] text-ink-900">{value || "—"}</p>
     </div>
   );
 
@@ -558,47 +558,47 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-[18px]">
-          <p className="font-serif text-[26px] tracking-tight text-[#0E1521]">{t("reviewTitle")}</p>
+          <p className="font-serif text-[26px] tracking-tight text-ink-900">{t("reviewTitle")}</p>
 
           {/* Items recap */}
-          <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
-            <CardHeader className="border-[#EEF0F2]">
+          <Card className="rounded-2xl border-ink-200 shadow-none">
+            <CardHeader className="border-ink-100">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-[14px] text-[#0E1521]">{t("reviewItemsLabel", { units: totalUnits })}</p>
+                <p className="font-bold text-[14px] text-ink-900">{t("reviewItemsLabel", { units: totalUnits })}</p>
                 <EditButton onClick={() => setStep("details")} />
               </div>
             </CardHeader>
             {items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 px-5 py-[11px] border-b border-[#EEF0F2] last:border-b-0"
+                className="flex items-center justify-between gap-3 px-5 py-[11px] border-b border-ink-100 last:border-b-0"
               >
                 <div className="min-w-0">
-                  <span className="font-semibold text-[14px] text-[#0E1521]">{item.name}</span>{" "}
-                  <span className="text-[12px] text-[#5C6675]">
+                  <span className="font-semibold text-[14px] text-ink-900">{item.name}</span>{" "}
+                  <span className="text-[12px] text-ink-600">
                     · {item.quantity} unit{item.quantity !== 1 ? "s" : ""}
                   </span>
                 </div>
-                <p className="font-bold text-[14px] text-[#0E1521] whitespace-nowrap">
+                <p className="font-bold text-[14px] text-ink-900 whitespace-nowrap">
                   {item.lineTotalFormatted}
                 </p>
               </div>
             ))}
-            <div className="flex items-center justify-between px-5 py-[13px] bg-[#F7F8F9]">
-              <span className="text-[13px] text-[#5C6675]">{t("summaryListValue")}</span>
-              <span className="font-serif text-[20px] text-[#0E1521]">{cartTotal}</span>
+            <div className="flex items-center justify-between px-5 py-[13px] bg-ink-50">
+              <span className="text-[13px] text-ink-600">{t("summaryListValue")}</span>
+              <span className="font-serif text-[20px] text-ink-900">{cartTotal}</span>
             </div>
           </Card>
 
           {/* Details recap */}
-          <Card className="rounded-2xl border-[#DDE1E6] shadow-none">
-            <CardHeader className="border-[#EEF0F2]">
+          <Card className="rounded-2xl border-ink-200 shadow-none">
+            <CardHeader className="border-ink-100">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-[14px] text-[#0E1521]">{t("requestDetailsTitle")}</p>
+                <p className="font-bold text-[14px] text-ink-900">{t("requestDetailsTitle")}</p>
                 <EditButton onClick={() => setStep("details")} />
               </div>
             </CardHeader>
-            <div className="grid grid-cols-2 gap-px bg-[#EEF0F2]">
+            <div className="grid grid-cols-2 gap-px bg-ink-100">
               {reviewRow(t("reviewCompany"), form.company)}
               {reviewRow(t("reviewBuyer"), form.contact)}
               {reviewRow(t("reviewEmail"), form.email)}
@@ -611,16 +611,16 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             {selectedAddressId && selectedAddressId !== "__new__" && (() => {
               const addr = addresses.find((a) => a.id === selectedAddressId);
               return addr ? (
-                <div className="px-5 py-[14px] border-t border-[#EEF0F2]">
-                  <p className="text-[11px] text-[#5C6675] mb-2">{t("reviewShipTo")}</p>
+                <div className="px-5 py-[14px] border-t border-ink-100">
+                  <p className="text-[11px] text-ink-600 mb-2">{t("reviewShipTo")}</p>
                   <DeliveryAddress address={addr} />
                 </div>
               ) : null;
             })()}
             {form.notes && (
-              <div className="px-5 py-[14px] border-t border-[#EEF0F2]">
-                <p className="text-[11px] text-[#5C6675] mb-1">{t("reviewNotes")}</p>
-                <p className="text-[14px] text-[#232C3A] leading-relaxed whitespace-pre-wrap">{form.notes}</p>
+              <div className="px-5 py-[14px] border-t border-ink-100">
+                <p className="text-[11px] text-ink-600 mb-1">{t("reviewNotes")}</p>
+                <p className="text-[14px] text-ink-800 leading-relaxed whitespace-pre-wrap">{form.notes}</p>
               </div>
             )}
           </Card>
@@ -629,17 +629,17 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
           <button
             type="button"
             onClick={() => setAcked((a) => !a)}
-            className="flex items-start gap-[13px] text-left bg-white border border-[#DDE1E6] rounded-[14px] px-[18px] py-4 w-full hover:border-[#C2C8D0] transition-colors"
+            className="flex items-start gap-[13px] text-left bg-white border border-ink-200 rounded-[14px] px-[18px] py-4 w-full hover:border-ink-300 transition-colors"
           >
             <span
               className={[
                 "flex-none w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-colors",
-                acked ? "bg-[#2BCC7E] border-[#2BCC7E] text-[#0E1521]" : "border-[#C2C8D0] bg-white",
+                acked ? "bg-success-400 border-success-400 text-ink-900" : "border-ink-300 bg-white",
               ].join(" ")}
             >
               {acked && <Check size={11} strokeWidth={3} />}
             </span>
-            <span className="text-[13.5px] text-[#232C3A] leading-relaxed">
+            <span className="text-[13.5px] text-ink-800 leading-relaxed">
               {t("ackText")}
             </span>
           </button>
@@ -647,7 +647,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
       </div>
 
       {/* Footer */}
-      <footer className="flex-none bg-white border-t border-[#DDE1E6]">
+      <footer className="flex-none bg-white border-t border-ink-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <Button variant="outline" size="lg" leftIcon={<ArrowLeft size={16} />} onClick={() => setStep("details")}>
             {t("back")}
@@ -655,7 +655,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
           <Button
             size="lg"
             disabled={!acked}
-            className="bg-[#2BCC7E] text-[#0E1521] hover:bg-[#21A765] hover:text-white hover:opacity-100"
+            className="bg-success-400 text-ink-900 hover:bg-success-500 hover:text-white hover:opacity-100"
             rightIcon={<Send size={16} />}
             onClick={() => acked && setStep("success")}
           >
@@ -670,39 +670,39 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   const step3 = (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[560px] mx-auto px-10 py-12 flex flex-col items-center text-center">
-        <div className="w-[72px] h-[72px] rounded-full bg-[#EFFCF6] border border-[#A6EBCA] flex items-center justify-center text-[#21A765]">
+        <div className="w-[72px] h-[72px] rounded-full bg-success-50 border border-success-200 flex items-center justify-center text-success-500">
           <Check size={36} />
         </div>
 
-        <h2 className="font-serif font-medium text-[32px] tracking-tight text-[#0E1521] mt-6 mb-0">
+        <h2 className="font-serif font-medium text-[32px] tracking-tight text-ink-900 mt-6 mb-0">
           {t("successTitle")}
         </h2>
-        <p className="text-[15px] text-[#3D4654] leading-relaxed mt-3 max-w-[42ch]">
+        <p className="text-[15px] text-ink-700 leading-relaxed mt-3 max-w-[42ch]">
           {t("successMessagePrefix")}{" "}
-          <strong className="text-[#0E1521]">{form.email}</strong>.
+          <strong className="text-ink-900">{form.email}</strong>.
         </p>
 
-        <div className="inline-flex items-center gap-2.5 mt-6 px-[18px] py-[11px] rounded-full bg-[#0E1521] text-white">
+        <div className="inline-flex items-center gap-2.5 mt-6 px-[18px] py-[11px] rounded-full bg-ink-900 text-white">
           <span className="font-mono text-[10px] tracking-[.12em] uppercase text-[#61DEA6]">{t("successRefLabel")}</span>
           <span className="font-mono font-bold text-[15px] tracking-[.04em]">{ref}</span>
         </div>
 
-        <div className="flex w-full mt-6 border border-[#DDE1E6] rounded-[14px] overflow-hidden bg-white">
-          <div className="flex-1 px-3 py-[15px] border-r border-[#EEF0F2]">
-            <p className="text-[11px] text-[#5C6675]">{t("successSubmitted")}</p>
-            <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{submittedDate}</p>
+        <div className="flex w-full mt-6 border border-ink-200 rounded-[14px] overflow-hidden bg-white">
+          <div className="flex-1 px-3 py-[15px] border-r border-ink-100">
+            <p className="text-[11px] text-ink-600">{t("successSubmitted")}</p>
+            <p className="font-semibold text-[14px] text-ink-900 mt-0.5">{submittedDate}</p>
           </div>
-          <div className="flex-1 px-3 py-[15px] border-r border-[#EEF0F2]">
-            <p className="text-[11px] text-[#5C6675]">{t("successUnits")}</p>
-            <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{totalUnits}</p>
+          <div className="flex-1 px-3 py-[15px] border-r border-ink-100">
+            <p className="text-[11px] text-ink-600">{t("successUnits")}</p>
+            <p className="font-semibold text-[14px] text-ink-900 mt-0.5">{totalUnits}</p>
           </div>
           <div className="flex-1 px-3 py-[15px]">
-            <p className="text-[11px] text-[#5C6675]">{t("successListValue")}</p>
-            <p className="font-semibold text-[14px] text-[#0E1521] mt-0.5">{cartTotal}</p>
+            <p className="text-[11px] text-ink-600">{t("successListValue")}</p>
+            <p className="font-semibold text-[14px] text-ink-900 mt-0.5">{cartTotal}</p>
           </div>
         </div>
 
-        <Card className="w-full mt-6 rounded-2xl border-[#DDE1E6] shadow-none text-left">
+        <Card className="w-full mt-6 rounded-2xl border-ink-200 shadow-none text-left">
           <CardBody>
             <SectionLabel>{t("whatHappensNext")}</SectionLabel>
             {TIMELINE.map((t, i) => (
@@ -711,18 +711,18 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                   <span
                     className={[
                       "w-[26px] h-[26px] rounded-full flex items-center justify-center flex-none text-sm font-bold",
-                      t.done ? "bg-[#2BCC7E] text-[#0E1521]" : "bg-[#EEF0F2] text-[#8C95A3]",
+                      t.done ? "bg-success-400 text-ink-900" : "bg-ink-100 text-ink-400",
                     ].join(" ")}
                   >
                     {t.done ? <Check size={13} /> : i + 1}
                   </span>
-                  {i < TIMELINE.length - 1 && <span className="w-px flex-1 bg-[#EEF0F2] my-1" />}
+                  {i < TIMELINE.length - 1 && <span className="w-px flex-1 bg-ink-100 my-1" />}
                 </div>
                 <div className={i < TIMELINE.length - 1 ? "pb-4" : ""}>
-                  <p className={["text-[14px] font-semibold", t.done ? "text-[#0E1521]" : "text-[#5C6675]"].join(" ")}>
+                  <p className={["text-[14px] font-semibold", t.done ? "text-ink-900" : "text-ink-600"].join(" ")}>
                     {t.label}
                   </p>
-                  <p className="text-[12.5px] text-[#5C6675] mt-0.5">{t.sub}</p>
+                  <p className="text-[12.5px] text-ink-600 mt-0.5">{t.sub}</p>
                 </div>
               </div>
             ))}
@@ -732,7 +732,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
         <div className="flex gap-3 mt-7">
           <Button
             size="lg"
-            className="bg-[#0E1521] hover:opacity-90"
+            className="bg-ink-900 hover:opacity-90"
             leftIcon={<ArrowLeft size={16} />}
             onClick={() => router.push(`/${lang}/cart`)}
           >
@@ -749,7 +749,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
         {tAddr("cancel")}
       </Button>
       <Button
-        className="bg-[#0E1521] hover:opacity-90"
+        className="bg-ink-900 hover:opacity-90"
         onClick={handleAddAddress}
         disabled={addressSaving}
       >
@@ -759,7 +759,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   );
 
   return (
-    <div className="h-screen bg-[#EEF0F2] flex flex-col">
+    <div className="h-screen bg-ink-100 flex flex-col">
       {pageHeader}
       {step === "details" && step1}
       {step === "review" && step2}

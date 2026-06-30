@@ -44,7 +44,7 @@ export function NodePickerControl({ value, updateValue }: Props) {
   const selectStyle: React.CSSProperties = {
     width: "100%",
     padding: "6px 8px",
-    border: "1px solid #d1d5db",
+    border: "1px solid var(--color-ink-200)",
     borderRadius: 4,
     fontSize: 12,
     background: "#fff",
@@ -56,7 +56,7 @@ export function NodePickerControl({ value, updateValue }: Props) {
   const labelStyle: React.CSSProperties = {
     display: "block",
     fontSize: 11,
-    color: "#6b7280",
+    color: "var(--color-ink-600)",
     marginBottom: 4,
   };
 
@@ -110,7 +110,7 @@ export function NodePickerControl({ value, updateValue }: Props) {
             color: "#1e40af",
           }}
         >
-          <span style={{ color: "#6b7280" }}>Selected: </span>
+          <span style={{ color: "var(--color-ink-600)" }}>Selected: </span>
           {selectedNodeName ?? value}
         </div>
       )}

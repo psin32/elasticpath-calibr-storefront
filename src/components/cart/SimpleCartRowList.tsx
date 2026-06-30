@@ -65,14 +65,14 @@ export function SimpleCartRowList({
           </span>
         </div>
       )}
-    <article className={`bg-white border rounded-[16px] p-5 flex gap-5 transition-colors ${isSubscription ? "border-blue-600 hover:border-blue-700" : "border-[#DDE1E6] hover:border-[#C2C8D0]"}`}>
+    <article className={`bg-white border rounded-[16px] p-5 flex gap-5 transition-colors ${isSubscription ? "border-blue-600 hover:border-blue-700" : "border-ink-200 hover:border-ink-300"}`}>
       {/* Image */}
-      <div className="relative w-[100px] h-[100px] flex-none rounded-[12px] overflow-hidden bg-[#EEF0F2] border border-[#DDE1E6] self-start">
+      <div className="relative w-[100px] h-[100px] flex-none rounded-[12px] overflow-hidden bg-ink-100 border border-ink-200 self-start">
         {imageUrl ? (
           <Image src={imageUrl} alt={name} fill sizes="100px" className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag size={28} className="text-[#C2C8D0]" />
+            <ShoppingBag size={28} className="text-ink-300" />
           </div>
         )}
       </div>
@@ -82,12 +82,12 @@ export function SimpleCartRowList({
         {/* Name + remove */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="font-semibold text-[15px] text-[#0E1521] leading-snug">{name}</p>
+            <p className="font-semibold text-[15px] text-ink-900 leading-snug">{name}</p>
             {sku && (
-              <p className="text-[12px] text-[#8C95A3] font-mono mt-0.5">{t("sku")}: {sku}</p>
+              <p className="text-[12px] text-ink-400 font-mono mt-0.5">{t("sku")}: {sku}</p>
             )}
             {isSubscription && (subscriptionPlanName || subscriptionFrequency) && (
-              <p className="text-[12px] text-[#5C6675] mt-0.5">
+              <p className="text-[12px] text-ink-600 mt-0.5">
                 {[subscriptionPlanName, subscriptionFrequency].filter(Boolean).join(" · ")}
               </p>
             )}
@@ -96,15 +96,15 @@ export function SimpleCartRowList({
             onClick={() => onRemove(cartItemId)}
             disabled={disabled}
             aria-label={t("remove")}
-            className="flex-none p-1.5 rounded-[8px] text-[#C2C8D0] hover:text-[#C2402B] hover:bg-[#FFF0EE] transition-colors disabled:opacity-40"
+            className="flex-none p-1.5 rounded-[8px] text-ink-300 hover:text-error-600 hover:bg-error-100 transition-colors disabled:opacity-40"
           >
             <Trash2 size={15} />
           </button>
         </div>
 
         {/* Unit price */}
-        <p className="text-[13px] text-[#5C6675]">
-          {unitPrice} <span className="text-[#8C95A3]">{t("perUnit")}</span>
+        <p className="text-[13px] text-ink-600">
+          {unitPrice} <span className="text-ink-400">{t("perUnit")}</span>
         </p>
 
         {/* Discount badges */}
@@ -120,12 +120,12 @@ export function SimpleCartRowList({
         {/* Quantity + line total */}
         <div className="mt-auto pt-3 flex items-center justify-between gap-4 flex-wrap">
           {/* Stepper */}
-          <div className="flex items-center rounded-[10px] border border-[#DDE1E6] overflow-hidden">
+          <div className="flex items-center rounded-[10px] border border-ink-200 overflow-hidden">
             <button
               onClick={() => onQuantityChange(cartItemId, Math.max(0, quantity - 1))}
               disabled={disabled || quantity <= 1}
               aria-label={t("decreaseQuantity")}
-              className="w-9 h-9 flex items-center justify-center text-[#5C6675] hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+              className="w-9 h-9 flex items-center justify-center text-ink-600 hover:bg-ink-100 transition-colors disabled:opacity-40"
             >
               <Minus size={13} />
             </button>
@@ -139,13 +139,13 @@ export function SimpleCartRowList({
               onBlur={(e) => commitQty(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commitQty((e.target as HTMLInputElement).value); }}
               aria-label={t("quantity")}
-              className="w-12 h-9 text-center text-[14px] font-semibold text-[#0E1521] bg-transparent border-x border-[#DDE1E6] focus:outline-none focus:border-x-[#2BCC7E] disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-12 h-9 text-center text-[14px] font-semibold text-ink-900 bg-transparent border-x border-ink-200 focus:outline-none focus:border-x-success-400 disabled:opacity-40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <button
               onClick={() => onQuantityChange(cartItemId, quantity + 1)}
               disabled={disabled}
               aria-label={t("increaseQuantity")}
-              className="w-9 h-9 flex items-center justify-center text-[#5C6675] hover:bg-[#EEF0F2] transition-colors disabled:opacity-40"
+              className="w-9 h-9 flex items-center justify-center text-ink-600 hover:bg-ink-100 transition-colors disabled:opacity-40"
             >
               <Plus size={13} />
             </button>
@@ -154,9 +154,9 @@ export function SimpleCartRowList({
           {/* Line total */}
           <div className="text-right">
             {lineTotalOriginal && (
-              <p className="text-[12px] text-[#9BA3AF] line-through leading-none mb-0.5">{lineTotalOriginal}</p>
+              <p className="text-[12px] text-ink-400 line-through leading-none mb-0.5">{lineTotalOriginal}</p>
             )}
-            <p className={`text-[17px] font-bold leading-none ${lineTotalOriginal ? "text-[#C2402B]" : "text-[#0E1521]"}`}>
+            <p className={`text-[17px] font-bold leading-none ${lineTotalOriginal ? "text-error-600" : "text-ink-900"}`}>
               {lineTotal}
             </p>
           </div>

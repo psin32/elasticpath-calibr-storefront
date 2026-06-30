@@ -76,41 +76,41 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
       {/* Left: requisition switcher (authenticated) or plain cart title (guest) */}
       {isAuthenticated ? (
       <div className="relative" ref={menuRef}>
-        <p className="font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] mb-2">
+        <p className="font-mono text-[10px] tracking-[.12em] uppercase text-ink-600 mb-2">
           {t("activeRequisition")}
         </p>
         <button
           onClick={() => { setMenuOpen((o) => !o); setCreating(false); setConfirm(null); }}
-          className="flex items-center gap-3.5 bg-white border border-[#DDE1E6] rounded-[14px] px-4 py-3 min-w-[340px] text-left hover:border-[#C2C8D0] transition-colors"
+          className="flex items-center gap-3.5 bg-white border border-ink-200 rounded-[14px] px-4 py-3 min-w-[340px] text-left hover:border-ink-300 transition-colors"
         >
-          <span className="w-[38px] h-[38px] rounded-[10px] bg-[#0E1521] text-[#2BCC7E] flex items-center justify-center flex-none">
+          <span className="w-[38px] h-[38px] rounded-[10px] bg-ink-900 text-success-400 flex items-center justify-center flex-none">
             <ClipboardList size={19} />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block font-bold text-[16px] text-[#0E1521] tracking-tight truncate">
+            <span className="block font-bold text-[16px] text-ink-900 tracking-tight truncate">
               {activeName}
             </span>
-            <span className="block text-[12px] text-[#5C6675] mt-0.5">
+            <span className="block text-[12px] text-ink-600 mt-0.5">
               {t("units", { count: totalUnits })} · {t("products", { count: lineCount })}
             </span>
           </span>
-          <ChevronsUpDown size={18} className="text-[#8C95A3] flex-none" />
+          <ChevronsUpDown size={18} className="text-ink-400 flex-none" />
         </button>
 
         {totalUnits > 0 && (
           confirmClearAll ? (
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-[12px] font-medium text-[#B26A00]">{t("confirmClearCart")}</span>
+              <span className="text-[12px] font-medium text-warning-600">{t("confirmClearCart")}</span>
               <button
                 onClick={async () => { await clearCart(); setConfirmClearAll(false); }}
                 disabled={isLoading}
-                className="h-6 px-2.5 rounded-[6px] bg-[#C2402B] text-white text-[11px] font-semibold hover:bg-[#a8341f] disabled:opacity-40 transition-colors"
+                className="h-6 px-2.5 rounded-[6px] bg-error-600 text-white text-[11px] font-semibold hover:bg-error-700 disabled:opacity-40 transition-colors"
               >
                 {t("confirm")}
               </button>
               <button
                 onClick={() => setConfirmClearAll(false)}
-                className="w-6 h-6 rounded-[6px] border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:bg-[#F7F8F9] transition-colors"
+                className="w-6 h-6 rounded-[6px] border border-ink-200 bg-white text-ink-600 flex items-center justify-center hover:bg-ink-50 transition-colors"
               >
                 <X size={11} />
               </button>
@@ -119,7 +119,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
             <button
               onClick={() => { setMenuOpen(false); setConfirmClearAll(true); }}
               disabled={isLoading}
-              className="flex items-center gap-1 mt-2 text-[11px] text-[#8C95A3] hover:text-[#C2402B] transition-colors disabled:opacity-40"
+              className="flex items-center gap-1 mt-2 text-[11px] text-ink-400 hover:text-error-600 transition-colors disabled:opacity-40"
             >
               <Eraser size={11} />
               {t("clearAllItems")}
@@ -128,24 +128,24 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
         )}
 
         {menuOpen && (
-          <div className="absolute top-full left-0 mt-2 w-[400px] bg-white border border-[#DDE1E6] rounded-[14px] shadow-[0_24px_60px_rgba(14,21,33,.18)] overflow-hidden z-30">
-            <div className="px-4 py-[11px] font-mono text-[10px] tracking-[.12em] uppercase text-[#5C6675] bg-[#F7F8F9] border-b border-[#EEF0F2]">
+          <div className="absolute top-full left-0 mt-2 w-[400px] bg-white border border-ink-200 rounded-[14px] shadow-[0_24px_60px_rgba(14,21,33,.18)] overflow-hidden z-30">
+            <div className="px-4 py-[11px] font-mono text-[10px] tracking-[.12em] uppercase text-ink-600 bg-ink-50 border-b border-ink-100">
               {t("switchCart")}
             </div>
 
             {allCarts.length === 0 ? (
-              <div className="px-4 py-3 text-[13px] text-[#8C95A3]">{t("noCartsFound")}</div>
+              <div className="px-4 py-3 text-[13px] text-ink-400">{t("noCartsFound")}</div>
             ) : (
               allCarts.map((c) => {
                 const isActive = c.id === cartId;
                 const isConfirming = confirm?.id === c.id;
 
                 return (
-                  <div key={c.id} className="border-b border-[#EEF0F2] last:border-b-0">
+                  <div key={c.id} className="border-b border-ink-100 last:border-b-0">
                     {/* Confirm bar */}
                     {isConfirming ? (
-                      <div className="flex items-center gap-3 px-4 py-3 bg-[#FFF4E0]">
-                        <span className="flex-1 text-[13px] font-medium text-[#B26A00]">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-warning-50">
+                        <span className="flex-1 text-[13px] font-medium text-warning-600">
                           {confirm!.action === "delete"
                             ? t("confirmDeleteCart")
                             : t("confirmClearCart")}
@@ -153,19 +153,19 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
                         <button
                           onClick={handleConfirm}
                           disabled={isLoading}
-                          className="h-7 px-3 rounded-[6px] bg-[#C2402B] text-white text-[12px] font-semibold hover:bg-[#a8341f] disabled:opacity-40 transition-colors"
+                          className="h-7 px-3 rounded-[6px] bg-error-600 text-white text-[12px] font-semibold hover:bg-error-700 disabled:opacity-40 transition-colors"
                         >
                           {t("confirm")}
                         </button>
                         <button
                           onClick={() => setConfirm(null)}
-                          className="w-7 h-7 rounded-[6px] border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:bg-[#F7F8F9] transition-colors"
+                          className="w-7 h-7 rounded-[6px] border border-ink-200 bg-white text-ink-600 flex items-center justify-center hover:bg-ink-50 transition-colors"
                         >
                           <X size={13} />
                         </button>
                       </div>
                     ) : (
-                      <div className="group flex items-center gap-3 px-4 py-3 hover:bg-[#F7F8F9] transition-colors">
+                      <div className="group flex items-center gap-3 px-4 py-3 hover:bg-ink-50 transition-colors">
                         {/* Cart info — click to switch */}
                         <button
                           onClick={() => handleSwitch(c.id)}
@@ -174,18 +174,18 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
                         >
                           <span className={[
                             "w-8 h-8 rounded-[8px] flex items-center justify-center flex-none transition-colors",
-                            isActive ? "bg-[#0E1521] text-[#2BCC7E]" : "bg-[#EEF0F2] text-[#5C6675]",
+                            isActive ? "bg-ink-900 text-success-400" : "bg-ink-100 text-ink-600",
                           ].join(" ")}>
                             <ShoppingCart size={15} />
                           </span>
                           <span className="flex-1 min-w-0">
-                            <span className="block font-semibold text-[14px] text-[#0E1521] truncate">{c.name}</span>
-                            <span className="block text-[12px] text-[#5C6675]">
+                            <span className="block font-semibold text-[14px] text-ink-900 truncate">{c.name}</span>
+                            <span className="block text-[12px] text-ink-600">
                               {c.totalFormatted ?? "—"}
                               {c.itemCount != null ? ` · ${t("items", { count: c.itemCount })}` : ""}
                             </span>
                           </span>
-                          {isActive && <Check size={16} className="text-[#21A765] flex-none" />}
+                          {isActive && <Check size={16} className="text-success-500 flex-none" />}
                         </button>
 
                         {/* Action buttons — always visible on hover */}
@@ -194,7 +194,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
                             onClick={(e) => { e.stopPropagation(); setConfirm({ id: c.id, action: "clear" }); }}
                             disabled={isLoading}
                             title={t("clearAllItems")}
-                            className="w-7 h-7 rounded-[6px] border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:border-[#B26A00] hover:text-[#B26A00] transition-colors disabled:opacity-40"
+                            className="w-7 h-7 rounded-[6px] border border-ink-200 bg-white text-ink-600 flex items-center justify-center hover:border-warning-600 hover:text-warning-600 transition-colors disabled:opacity-40"
                           >
                             <Eraser size={13} />
                           </button>
@@ -202,7 +202,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
                             onClick={(e) => { e.stopPropagation(); setConfirm({ id: c.id, action: "delete" }); }}
                             disabled={isLoading}
                             title={t("deleteCart")}
-                            className="w-7 h-7 rounded-[6px] border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:border-[#C2402B] hover:text-[#C2402B] transition-colors disabled:opacity-40"
+                            className="w-7 h-7 rounded-[6px] border border-ink-200 bg-white text-ink-600 flex items-center justify-center hover:border-error-600 hover:text-error-600 transition-colors disabled:opacity-40"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -216,7 +216,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
 
             {/* New requisition */}
             {creating ? (
-              <div className="flex items-center gap-2 px-4 py-3 border-t border-[#EEF0F2]">
+              <div className="flex items-center gap-2 px-4 py-3 border-t border-ink-100">
                 <input
                   autoFocus
                   value={newName}
@@ -226,12 +226,12 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
                     if (e.key === "Escape") { setCreating(false); setNewName(""); }
                   }}
                   placeholder={t("cartNamePlaceholder")}
-                  className="flex-1 h-8 px-3 text-[13px] border border-[#DDE1E6] rounded-[8px] outline-none focus:border-[#2BCC7E]"
+                  className="flex-1 h-8 px-3 text-[13px] border border-ink-200 rounded-[8px] outline-none focus:border-success-400"
                 />
                 <button
                   onClick={handleCreate}
                   disabled={!newName.trim()}
-                  className="h-8 px-3 rounded-[8px] bg-[#0E1521] text-white text-[13px] font-semibold disabled:opacity-40"
+                  className="h-8 px-3 rounded-[8px] bg-ink-900 text-white text-[13px] font-semibold disabled:opacity-40"
                 >
                   {t("create")}
                 </button>
@@ -239,7 +239,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
             ) : (
               <button
                 onClick={() => setCreating(true)}
-                className="flex items-center gap-2.5 w-full px-4 py-3 border-t border-[#EEF0F2] text-[#21A765] font-semibold text-[14px] hover:bg-[#EFFCF6] transition-colors"
+                className="flex items-center gap-2.5 w-full px-4 py-3 border-t border-ink-100 text-success-500 font-semibold text-[14px] hover:bg-success-50 transition-colors"
               >
                 <Plus size={16} />
                 {t("newRequisition")}
@@ -251,12 +251,12 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
       ) : (
         <div>
           <div className="flex items-center gap-3.5">
-            <span className="w-[38px] h-[38px] rounded-[10px] bg-[#0E1521] text-[#2BCC7E] flex items-center justify-center flex-none">
+            <span className="w-[38px] h-[38px] rounded-[10px] bg-ink-900 text-success-400 flex items-center justify-center flex-none">
               <ShoppingCart size={19} />
             </span>
             <div>
-              <p className="font-bold text-[18px] text-[#0E1521] tracking-tight">{t("yourCart")}</p>
-              <p className="text-[12px] text-[#5C6675] mt-0.5">
+              <p className="font-bold text-[18px] text-ink-900 tracking-tight">{t("yourCart")}</p>
+              <p className="text-[12px] text-ink-600 mt-0.5">
                 {t("units", { count: totalUnits })} · {t("products", { count: lineCount })}
               </p>
             </div>
@@ -264,17 +264,17 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
           {totalUnits > 0 && (
             confirmClearAll ? (
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-[12px] font-medium text-[#B26A00]">{t("confirmClearCart")}</span>
+                <span className="text-[12px] font-medium text-warning-600">{t("confirmClearCart")}</span>
                 <button
                   onClick={async () => { await clearCart(); setConfirmClearAll(false); }}
                   disabled={isLoading}
-                  className="h-6 px-2.5 rounded-[6px] bg-[#C2402B] text-white text-[11px] font-semibold hover:bg-[#a8341f] disabled:opacity-40 transition-colors"
+                  className="h-6 px-2.5 rounded-[6px] bg-error-600 text-white text-[11px] font-semibold hover:bg-error-700 disabled:opacity-40 transition-colors"
                 >
                   {t("confirm")}
                 </button>
                 <button
                   onClick={() => setConfirmClearAll(false)}
-                  className="w-6 h-6 rounded-[6px] border border-[#DDE1E6] bg-white text-[#5C6675] flex items-center justify-center hover:bg-[#F7F8F9] transition-colors"
+                  className="w-6 h-6 rounded-[6px] border border-ink-200 bg-white text-ink-600 flex items-center justify-center hover:bg-ink-50 transition-colors"
                 >
                   <X size={11} />
                 </button>
@@ -283,7 +283,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
               <button
                 onClick={() => setConfirmClearAll(true)}
                 disabled={isLoading}
-                className="flex items-center gap-1 mt-2 text-[11px] text-[#8C95A3] hover:text-[#C2402B] transition-colors disabled:opacity-40"
+                className="flex items-center gap-1 mt-2 text-[11px] text-ink-400 hover:text-error-600 transition-colors disabled:opacity-40"
               >
                 <Eraser size={11} />
                 {t("clearAllItems")}
@@ -300,21 +300,21 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
           <div className="flex items-center gap-4 flex-wrap justify-end">
             {cartDiscountAmount < 0 && cartSubtotal ? (
               <>
-                <div className="flex items-center gap-1.5 text-[13px] text-[#5C6675]">
+                <div className="flex items-center gap-1.5 text-[13px] text-ink-600">
                   <span>{t("subtotal")}</span>
                   <span>{cartSubtotal}</span>
                 </div>
-                <div className="flex items-center gap-1 text-[13px] text-[#21A765]">
+                <div className="flex items-center gap-1 text-[13px] text-success-500">
                   <Tag size={12} />
                   <span>{t("discount")}</span>
                   <span className="font-semibold">{cartDiscount}</span>
                 </div>
-                <div className="w-px h-4 bg-[#DDE1E6]" />
+                <div className="w-px h-4 bg-ink-200" />
               </>
             ) : null}
             <div className="flex items-baseline gap-2">
-              <span className="text-[13px] font-semibold text-[#5C6675]">{t("total")}</span>
-              <span className="text-[24px] font-bold text-[#0E1521] leading-none">{cartTotal}</span>
+              <span className="text-[13px] font-semibold text-ink-600">{t("total")}</span>
+              <span className="text-[24px] font-bold text-ink-900 leading-none">{cartTotal}</span>
             </div>
           </div>
 
@@ -324,7 +324,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
               <Link
                 href={lineCount === 0 ? "#" : `/${lang}/quote-request`}
                 aria-disabled={lineCount === 0}
-                className={`flex items-center gap-2 h-11 px-5 rounded-[11px] border border-[#C2C8D0] bg-white font-semibold text-[13px] text-[#3D4654] transition-colors${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:bg-[#F7F8F9]"}`}
+                className={`flex items-center gap-2 h-11 px-5 rounded-[11px] border border-ink-300 bg-white font-semibold text-[13px] text-ink-700 transition-colors${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:bg-ink-50"}`}
               >
                 <FileText size={15} />
                 {t("requestQuote")}
@@ -333,7 +333,7 @@ export function CartPageHeader({ lang, totalUnits, lineCount, showActions }: Pro
             <Link
               href={lineCount === 0 ? "#" : `/${lang}/checkout`}
               aria-disabled={lineCount === 0}
-              className={`flex items-center gap-2 h-11 px-6 rounded-[11px] bg-[#0E1521] text-white font-bold text-[14px] transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
+              className={`flex items-center gap-2 h-11 px-6 rounded-[11px] bg-ink-900 text-white font-bold text-[14px] transition-opacity${lineCount === 0 ? " opacity-40 cursor-not-allowed pointer-events-none" : " hover:opacity-90"}`}
             >
               {t("checkout")}
               <ArrowRight size={16} />

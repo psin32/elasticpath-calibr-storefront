@@ -266,12 +266,12 @@ export function CartButton() {
               {promotionSuggestions && promotionSuggestions.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
-                    <Tag size={14} className="text-[#18804C] flex-none" />
-                    <h3 className="text-[13px] font-semibold text-[#0E1521]">
+                    <Tag size={14} className="text-success-600 flex-none" />
+                    <h3 className="text-[13px] font-semibold text-ink-900">
                       {tCart("offersForYou")}
                     </h3>
                   </div>
-                  <p className="text-[11px] text-[#5C6675] mb-3">
+                  <p className="text-[11px] text-ink-600 mb-3">
                     {tCart("offersEmpty")}
                   </p>
                   <PromotionCarousel
