@@ -363,7 +363,8 @@
     "promoApply": "Appliquer",
     "promoRemove": "Supprimer",
     "promoInvalid": "Code de promotion invalide",
-    "promoHaveCode": "Avez-vous un code promo ?"
+    "promoHaveCode": "Avez-vous un code promo ?",
+    "subscription": "Abonnement"
   },
   "product": {
     "quickView": "Aperçu rapide",
@@ -380,7 +381,13 @@
     "notFoundMessage": "Le produit que vous recherchez n'existe pas ou a peut-être été supprimé.",
     "notFoundCta": "Continuer les achats",
     "addToCart": "Ajouter au panier",
-    "added": "Ajouté !"
+    "added": "Ajouté !",
+    "oneTimePurchase": "Achat unique",
+    "subscribeAndSave": "S'abonner et économiser",
+    "frequencyDay": "{count, plural, =1 {Chaque jour} other {Tous les {count} jours}}",
+    "frequencyWeek": "{count, plural, =1 {Chaque semaine} other {Toutes les {count} semaines}}",
+    "frequencyMonth": "{count, plural, =1 {Chaque mois} other {Tous les {count} mois}}",
+    "frequencyYear": "{count, plural, =1 {Chaque année} other {Tous les {count} ans}}"
   },
   "shipping": {
     "sectionTitle": "Mode de livraison",

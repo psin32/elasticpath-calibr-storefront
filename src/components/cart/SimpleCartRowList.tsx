@@ -17,6 +17,9 @@ type Props = {
   lineTotalOriginal?: string;
   imageUrl?: string;
   discounts?: CartItemDiscount[];
+  isSubscription?: boolean;
+  subscriptionPlanName?: string;
+  subscriptionFrequency?: string;
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
@@ -32,6 +35,9 @@ export function SimpleCartRowList({
   lineTotalOriginal,
   imageUrl,
   discounts,
+  isSubscription,
+  subscriptionPlanName,
+  subscriptionFrequency,
   onQuantityChange,
   onRemove,
   disabled,
@@ -51,7 +57,15 @@ export function SimpleCartRowList({
   };
 
   return (
-    <article className="bg-white border border-[#DDE1E6] rounded-[16px] p-5 flex gap-5 hover:border-[#C2C8D0] transition-colors">
+    <div className={isSubscription ? "relative mt-3" : undefined}>
+      {isSubscription && (
+        <div className="absolute -top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
+          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shadow-sm">
+            {t("subscription")}
+          </span>
+        </div>
+      )}
+    <article className={`bg-white border rounded-[16px] p-5 flex gap-5 transition-colors ${isSubscription ? "border-blue-600 hover:border-blue-700" : "border-[#DDE1E6] hover:border-[#C2C8D0]"}`}>
       {/* Image */}
       <div className="relative w-[100px] h-[100px] flex-none rounded-[12px] overflow-hidden bg-[#EEF0F2] border border-[#DDE1E6] self-start">
         {imageUrl ? (
@@ -71,6 +85,11 @@ export function SimpleCartRowList({
             <p className="font-semibold text-[15px] text-[#0E1521] leading-snug">{name}</p>
             {sku && (
               <p className="text-[12px] text-[#8C95A3] font-mono mt-0.5">{t("sku")}: {sku}</p>
+            )}
+            {isSubscription && (subscriptionPlanName || subscriptionFrequency) && (
+              <p className="text-[12px] text-[#5C6675] mt-0.5">
+                {[subscriptionPlanName, subscriptionFrequency].filter(Boolean).join(" · ")}
+              </p>
             )}
           </div>
           <button
@@ -144,5 +163,6 @@ export function SimpleCartRowList({
         </div>
       </div>
     </article>
+    </div>
   );
 }

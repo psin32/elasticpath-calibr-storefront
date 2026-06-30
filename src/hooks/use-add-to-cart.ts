@@ -2,9 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { useCart } from "@/context/CartContext";
+import { useSubscriptionConfig } from "@/context/SubscriptionContext";
 
 export function useAddToCart(productId: string, customInputs?: Record<string, string>) {
   const { addItem } = useCart();
+  const subscriptionConfig = useSubscriptionConfig();
   const [isPending, setIsPending] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -12,14 +14,19 @@ export function useAddToCart(productId: string, customInputs?: Record<string, st
     async (quantity = 1) => {
       setIsPending(true);
       try {
-        await addItem(productId, quantity, customInputs);
+        await addItem(
+          productId,
+          quantity,
+          customInputs,
+          subscriptionConfig ?? undefined,
+        );
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
       } finally {
         setIsPending(false);
       }
     },
-    [addItem, productId, customInputs]
+    [addItem, productId, customInputs, subscriptionConfig],
   );
 
   return { add, isPending, added };

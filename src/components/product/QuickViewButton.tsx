@@ -11,6 +11,8 @@ import { VariantAddToCart } from "./VariantAddToCart";
 import { BundleConfigurator } from "./BundleConfigurator";
 import { getProductBySlugAction, getProductByIdAction } from "@/lib/actions/product";
 import type { ProductCardData, ProductDetailData } from "@/lib/api/products";
+import { SubscriptionProductActions } from "./SubscriptionProductActions";
+import type { ProductOffering } from "@/lib/api/subscriptions";
 
 type ChildOverride = Pick<
   ProductDetailData,
@@ -26,6 +28,7 @@ export function QuickViewButton({ product, lang }: Props) {
   const t = useTranslations("product");
   const [isOpen, setIsOpen] = useState(false);
   const [detail, setDetail] = useState<ProductDetailData | null>(null);
+  const [offering, setOffering] = useState<ProductOffering | null>(null);
   const [loading, setLoading] = useState(false);
   const [childOverride, setChildOverride] = useState<ChildOverride | null>(null);
   const [childLoading, setChildLoading] = useState(false);
@@ -39,8 +42,12 @@ export function QuickViewButton({ product, lang }: Props) {
       setChildOverride(null);
       if (!detail) {
         setLoading(true);
-        const data = await getProductBySlugAction(product.slug);
+        const [data, offeringData] = await Promise.all([
+          getProductBySlugAction(product.slug),
+          fetch(`/api/subscriptions/${product.id}`).then((r) => r.json()).catch(() => null),
+        ]);
         setDetail(data);
+        setOffering(offeringData ?? null);
         setLoading(false);
       }
     },
@@ -151,31 +158,56 @@ export function QuickViewButton({ product, lang }: Props) {
             <div className="flex flex-col gap-4">
               <ProductName name={detail.name} as="h2" className="text-xl" />
 
-              <div className="relative">
-                <Price
-                  formatted={displayPrice}
-                  originalFormatted={displayOriginalPrice}
-                  className="text-lg"
-                />
-                {childLoading && (
-                  <div className="absolute inset-0 bg-white/60 rounded" />
-                )}
-              </div>
+              {!childOverride && offering ? (
+                <SubscriptionProductActions
+                  offering={offering}
+                  oneTimePrice={displayPrice}
+                  originalPrice={displayOriginalPrice}
+                  imageUrl={displayImageUrl ?? undefined}
+                >
+                  {displayDescription && (
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-4">{displayDescription}</p>
+                  )}
+                  <VariantAddToCart
+                    productId={detail.id}
+                    lang={lang}
+                    variations={detail.variations}
+                    variationMatrix={detail.variationMatrix}
+                    childSlugs={detail.childSlugs}
+                    selectedOptionIds={detail.selectedOptionIds}
+                    navigateOnSelect={false}
+                    onVariantResolved={handleVariantResolved}
+                  />
+                </SubscriptionProductActions>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Price
+                      formatted={displayPrice}
+                      originalFormatted={displayOriginalPrice}
+                      className="text-lg"
+                    />
+                    {childLoading && (
+                      <div className="absolute inset-0 bg-white/60 rounded" />
+                    )}
+                  </div>
 
-              {displayDescription && (
-                <p className="text-sm text-gray-600 line-clamp-3">{displayDescription}</p>
+                  {displayDescription && (
+                    <p className="text-sm text-gray-600 line-clamp-3">{displayDescription}</p>
+                  )}
+
+                  <VariantAddToCart
+                    productId={detail.id}
+                    lang={lang}
+                    variations={detail.variations}
+                    variationMatrix={detail.variationMatrix}
+                    childSlugs={detail.childSlugs}
+                    selectedOptionIds={detail.selectedOptionIds}
+                    navigateOnSelect={false}
+                    onVariantResolved={handleVariantResolved}
+                  />
+                </>
               )}
-
-              <VariantAddToCart
-                productId={detail.id}
-                lang={lang}
-                variations={detail.variations}
-                variationMatrix={detail.variationMatrix}
-                childSlugs={detail.childSlugs}
-                selectedOptionIds={detail.selectedOptionIds}
-                navigateOnSelect={false}
-                onVariantResolved={handleVariantResolved}
-              />
             </div>
           </div>
         ) : null}

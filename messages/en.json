@@ -363,7 +363,8 @@
     "promoApply": "Apply",
     "promoRemove": "Remove",
     "promoInvalid": "Invalid promotion code",
-    "promoHaveCode": "Do you have a promo code?"
+    "promoHaveCode": "Do you have a promo code?",
+    "subscription": "Subscription"
   },
   "product": {
     "quickView": "Quick view",
@@ -380,7 +381,13 @@
     "notFoundMessage": "The product you're looking for doesn't exist or may have been removed.",
     "notFoundCta": "Continue Shopping",
     "addToCart": "Add to cart",
-    "added": "Added!"
+    "added": "Added!",
+    "oneTimePurchase": "One-time purchase",
+    "subscribeAndSave": "Subscribe & Save",
+    "frequencyDay": "{count, plural, =1 {Every day} other {Every {count} days}}",
+    "frequencyWeek": "{count, plural, =1 {Every week} other {Every {count} weeks}}",
+    "frequencyMonth": "{count, plural, =1 {Every month} other {Every {count} months}}",
+    "frequencyYear": "{count, plural, =1 {Every year} other {Every {count} years}}"
   },
   "shipping": {
     "sectionTitle": "Shipping method",

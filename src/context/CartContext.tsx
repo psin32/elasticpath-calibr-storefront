@@ -77,6 +77,9 @@ export type CartLineItem = {
   bundleComponents?: BundleComponentItem[];
   customInputs?: Record<string, string>;
   discounts?: CartItemDiscount[];
+  isSubscription?: boolean;
+  subscriptionPlanName?: string;
+  subscriptionFrequency?: string;
 };
 
 export type CartSummary = {
@@ -110,6 +113,7 @@ type CartContextValue = {
     productId: string,
     quantity?: number,
     customInputs?: Record<string, string>,
+    subscriptionConfig?: { offeringId: string; plan: string; pricing_option: string; planName: string; frequency: string; imageUrl?: string },
   ) => Promise<PromotionSuggestion[] | undefined>;
   addItems: (
     items: Array<{ productId: string; quantity: number }>,
@@ -221,6 +225,15 @@ function toCartLineItem(
     ? (dp?.without_discount?.value?.formatted ?? undefined)
     : undefined;
 
+  const isSubscription = raw.type === "subscription_item";
+  const imageHref =
+    (raw.custom_inputs?.image_url as string | undefined) ||
+    (item.image?.href || undefined);
+
+  const subscriptionMeta = isSubscription
+    ? (raw.custom_inputs?.subscription as { plan_name?: string; frequency?: string } | undefined)
+    : undefined;
+
   return {
     id: item.id ?? "",
     productId: item.product_id ?? "",
@@ -232,10 +245,13 @@ function toCartLineItem(
     unitPriceFormatted: (withTax as any)?.unit?.formatted ?? "",
     lineTotalFormatted: (withTax as any)?.value?.formatted ?? "",
     lineTotalOriginalFormatted,
-    imageHref: item.image?.href,
+    imageHref,
     bundleComponents,
     customInputs,
     discounts,
+    isSubscription: isSubscription || undefined,
+    subscriptionPlanName: subscriptionMeta?.plan_name ?? undefined,
+    subscriptionFrequency: subscriptionMeta?.frequency ?? undefined,
   };
 }
 
@@ -314,6 +330,7 @@ function parseCartResponse(response: CartsResponse): {
   const rawItems = (response.data ?? []).filter(
     (i): i is CartItemObject =>
       (i as CartItemObject).type === "cart_item" ||
+      (i as any).type === "subscription_item" ||
       (i as CartItemObject).type === undefined,
   );
   const items = rawItems.map((item) => toCartLineItem(item, promotionsById));
@@ -610,14 +627,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
       productId: string,
       quantity = 1,
       customInputs?: Record<string, string>,
+      subscriptionConfig?: { offeringId: string; plan: string; pricing_option: string; planName: string; frequency: string; imageUrl?: string },
     ): Promise<PromotionSuggestion[] | undefined> => {
       if (!epClient || !cartId) return undefined;
       setIsLoading(true);
       try {
-        const body: any = {
-          data: { type: "cart_item", id: productId, quantity },
-        };
-        if (customInputs && Object.keys(customInputs).length > 0) {
+        const body: any = subscriptionConfig
+          ? {
+              data: {
+                type: "subscription_item",
+                id: subscriptionConfig.offeringId,
+                quantity,
+                subscription_configuration: {
+                  plan: subscriptionConfig.plan,
+                  pricing_option: subscriptionConfig.pricing_option,
+                },
+                custom_inputs: {
+                  image_url: subscriptionConfig.imageUrl ?? "",
+                  subscription: {
+                    plan_name: subscriptionConfig.planName,
+                    frequency: subscriptionConfig.frequency,
+                  },
+                },
+              },
+            }
+          : { data: { type: "cart_item", id: productId, quantity } };
+        if (!subscriptionConfig && customInputs && Object.keys(customInputs).length > 0) {
           body.data.custom_inputs = customInputs;
         }
         const prevIds = new Set(

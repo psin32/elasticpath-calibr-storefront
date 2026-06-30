@@ -60,6 +60,9 @@ export type LineGroup =
       lineTotalOriginal?: string;
       imageUrl?: string;
       discounts?: import("@/context/CartContext").CartItemDiscount[];
+      isSubscription?: boolean;
+      subscriptionPlanName?: string;
+      subscriptionFrequency?: string;
     };
 
 export function buildMatrix(children: ChildProduct[]): {

@@ -17,6 +17,9 @@ type Props = {
   lineTotalOriginal?: string;
   imageUrl?: string;
   discounts?: CartItemDiscount[];
+  isSubscription?: boolean;
+  subscriptionPlanName?: string;
+  subscriptionFrequency?: string;
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
@@ -32,6 +35,9 @@ export function SimpleCartRow({
   lineTotalOriginal,
   imageUrl,
   discounts,
+  isSubscription,
+  subscriptionPlanName,
+  subscriptionFrequency,
   onQuantityChange,
   onRemove,
   disabled,
@@ -51,10 +57,23 @@ export function SimpleCartRow({
   };
 
   return (
-    <section className="bg-white border border-[#DDE1E6] rounded-[14px] overflow-hidden">
+    <div className={isSubscription ? "relative mt-3" : undefined}>
+      {isSubscription && (
+        <div className="absolute -top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
+          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shadow-sm">
+            {t("subscription")}
+          </span>
+        </div>
+      )}
+    <section className={`bg-white border rounded-[14px] overflow-hidden ${isSubscription ? "border-blue-600" : "border-[#DDE1E6]"}`}>
       <div className="flex items-center gap-3 px-[18px] py-[13px] bg-[#F7F8F9] border-b border-[#DDE1E6] flex-wrap">
         <span className="font-bold text-[15px] text-[#0E1521]">{name}</span>
         {sku && <span className="font-mono text-[11px] text-[#5C6675]">{sku}</span>}
+        {isSubscription && (subscriptionPlanName || subscriptionFrequency) && (
+          <span className="text-[12px] text-[#5C6675]">
+            {[subscriptionPlanName, subscriptionFrequency].filter(Boolean).join(" · ")}
+          </span>
+        )}
         {unitPrice && (
           <span className="text-[12px] text-[#5C6675]">· {unitPrice}{t("perUnit")}</span>
         )}
@@ -129,5 +148,6 @@ export function SimpleCartRow({
         </button>
       </div>
     </section>
+    </div>
   );
 }

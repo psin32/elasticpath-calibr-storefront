@@ -163,9 +163,19 @@ export function CartButton() {
 
                       {/* Details */}
                       <div className="flex-1 min-w-0">
+                        {item.isSubscription && (
+                          <span className="mb-1 inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shadow-sm">
+                            {tCart("subscription")}
+                          </span>
+                        )}
                         <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">
                           {item.name}
                         </p>
+                        {item.isSubscription && (item.subscriptionPlanName || item.subscriptionFrequency) && (
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {[item.subscriptionPlanName, item.subscriptionFrequency].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
                         {item.sku && (
                           <p className="mt-0.5 text-xs text-gray-400">
                             {t("sku")}: {item.sku}

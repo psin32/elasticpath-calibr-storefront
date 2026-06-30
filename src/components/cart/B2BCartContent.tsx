@@ -115,6 +115,9 @@ export function B2BCartContent({ lang }: Props) {
           lineTotalOriginal: item.lineTotalOriginalFormatted,
           imageUrl: item.imageHref,
           discounts: item.discounts,
+          isSubscription: item.isSubscription,
+          subscriptionPlanName: item.subscriptionPlanName,
+          subscriptionFrequency: item.subscriptionFrequency,
         };
       });
       setGroups(lineGroups);

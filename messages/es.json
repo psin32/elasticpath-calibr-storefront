@@ -363,7 +363,8 @@
     "promoApply": "Aplicar",
     "promoRemove": "Eliminar",
     "promoInvalid": "Código de promoción no válido",
-    "promoHaveCode": "¿Tienes un código promocional?"
+    "promoHaveCode": "¿Tienes un código promocional?",
+    "subscription": "Suscripción"
   },
   "product": {
     "quickView": "Vista rápida",
@@ -380,7 +381,13 @@
     "notFoundMessage": "El producto que buscas no existe o puede haber sido eliminado.",
     "notFoundCta": "Continuar comprando",
     "addToCart": "Añadir al carrito",
-    "added": "¡Añadido!"
+    "added": "¡Añadido!",
+    "oneTimePurchase": "Compra única",
+    "subscribeAndSave": "Suscribirse y ahorrar",
+    "frequencyDay": "{count, plural, =1 {Cada día} other {Cada {count} días}}",
+    "frequencyWeek": "{count, plural, =1 {Cada semana} other {Cada {count} semanas}}",
+    "frequencyMonth": "{count, plural, =1 {Cada mes} other {Cada {count} meses}}",
+    "frequencyYear": "{count, plural, =1 {Cada año} other {Cada {count} años}}"
   },
   "shipping": {
     "sectionTitle": "Método de envío",

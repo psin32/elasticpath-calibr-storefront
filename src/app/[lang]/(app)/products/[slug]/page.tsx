@@ -9,6 +9,8 @@ import { ProductActions } from "@/components/product/ProductActions";
 import { BulkBuyOffer } from "@/components/product/BulkBuyOffer";
 import { Badge } from "@/components/ui/Badge/Badge";
 import { getProductBySlug } from "@/lib/api/products";
+import { getProductOffering } from "@/lib/api/subscriptions";
+import { SubscriptionProductActions } from "@/components/product/SubscriptionProductActions";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -28,11 +30,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductDetailPage({ params }: Props) {
   const { lang, slug } = await params;
 
-  const [product, t] = await Promise.all([
-    getProductBySlug(slug).catch(() => null),
-    getTranslations("product"),
-  ]);
+  const product = await getProductBySlug(slug).catch(() => null);
   if (!product) notFound();
+
+  const [t, offering] = await Promise.all([
+    getTranslations("product"),
+    getProductOffering(product.id).catch(() => null),
+  ]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -112,7 +116,7 @@ export default async function ProductDetailPage({ params }: Props) {
               className="text-3xl sm:text-4xl mb-4"
             />
 
-            {!product.isBundle && (
+            {!product.isBundle && !offering && (
               <div className="mb-6">
                 <Price
                   formatted={product.priceFormatted}
@@ -128,19 +132,42 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            <ProductActions
-              productId={product.id}
-              lang={lang}
-              isBundle={product.isBundle}
-              components={product.components}
-              initialPrice={product.priceFormatted}
-              initialOriginalPrice={product.originalPriceFormatted}
-              variations={product.variations}
-              variationMatrix={product.variationMatrix}
-              childSlugs={product.childSlugs}
-              selectedOptionIds={product.selectedOptionIds}
-              parentId={product.parentId}
-            />
+            {!product.isBundle && offering ? (
+              <SubscriptionProductActions
+                offering={offering}
+                oneTimePrice={product.priceFormatted}
+                originalPrice={product.originalPriceFormatted}
+                imageUrl={product.imageUrl ?? undefined}
+              >
+                <ProductActions
+                  productId={product.id}
+                  lang={lang}
+                  isBundle={product.isBundle}
+                  components={product.components}
+                  initialPrice={product.priceFormatted}
+                  initialOriginalPrice={product.originalPriceFormatted}
+                  variations={product.variations}
+                  variationMatrix={product.variationMatrix}
+                  childSlugs={product.childSlugs}
+                  selectedOptionIds={product.selectedOptionIds}
+                  parentId={product.parentId}
+                />
+              </SubscriptionProductActions>
+            ) : (
+              <ProductActions
+                productId={product.id}
+                lang={lang}
+                isBundle={product.isBundle}
+                components={product.components}
+                initialPrice={product.priceFormatted}
+                initialOriginalPrice={product.originalPriceFormatted}
+                variations={product.variations}
+                variationMatrix={product.variationMatrix}
+                childSlugs={product.childSlugs}
+                selectedOptionIds={product.selectedOptionIds}
+                parentId={product.parentId}
+              />
+            )}
 
             {product.description && (
               <div className="mt-8">
