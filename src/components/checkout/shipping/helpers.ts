@@ -41,13 +41,13 @@ export async function mergeGroupDuplicates(
   }
 
   const deleteIds: string[] = [];
-  const updateOps: { id: string; qty: number; gid: string }[] = [];
+  const updateOps: { id: string; qty: number; gid: string; itemType: string }[] = [];
 
   for (const [, dupes] of byKey) {
     if (dupes.length <= 1) continue;
     const mergedQty = dupes.reduce((s, i) => s + (i.quantity ?? 0), 0);
     const [keep, ...rest] = dupes;
-    updateOps.push({ id: keep.id!, qty: mergedQty, gid: keep.shipping_group_id! });
+    updateOps.push({ id: keep.id!, qty: mergedQty, gid: keep.shipping_group_id!, itemType: keep.type ?? "cart_item" });
     rest.forEach((r) => deleteIds.push(r.id!));
   }
 
@@ -57,11 +57,11 @@ export async function mergeGroupDuplicates(
     ...deleteIds.map((id) =>
       deleteACartItem({ client, path: { cartID: cartId, cartitemID: id } }).catch(() => {}),
     ),
-    ...updateOps.map(({ id, qty, gid }) =>
+    ...updateOps.map(({ id, qty, gid, itemType }) =>
       updateACartItem({
         client,
         path: { cartID: cartId, cartitemID: id },
-        body: { data: { type: "cart_item", id, quantity: qty, shipping_group_id: gid } },
+        body: { data: { type: itemType, id, quantity: qty, shipping_group_id: gid } } as any,
       }).catch(() => {}),
     ),
   ]);

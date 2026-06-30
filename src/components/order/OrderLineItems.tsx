@@ -55,7 +55,7 @@ export function formatDate(iso?: string) {
 
 export function OrderItemCard({ item }: { item: OrderItemResponse }) {
   const t = useTranslations("account");
-  const imageHref = (item as any).image?.href as string | undefined;
+  const imageHref = ((item as any).custom_inputs?.image_url as string | undefined) ?? ((item as any).image?.href as string | undefined);
   const dp = item.meta?.display_price;
   const unitPrice = dp?.with_tax?.unit?.formatted ?? dp?.without_tax?.unit?.formatted;
   const lineTotal = dp?.with_tax?.value?.formatted ?? dp?.without_tax?.value?.formatted;

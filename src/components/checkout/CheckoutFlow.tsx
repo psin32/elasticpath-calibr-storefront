@@ -117,6 +117,8 @@ export function CheckoutFlow({ lang }: { lang: string }) {
 
   // Deferred intent mode: Elements collects card details without a PaymentIntent upfront.
   // EP's paymentSetup creates the PaymentIntent when the order is placed.
+  const hasSubscription = items.some((i) => i.isSubscription);
+
   const stripeElementsOptions = useMemo<StripeElementsOptions>(
     () => ({
       mode: "payment",
@@ -125,6 +127,7 @@ export function CheckoutFlow({ lang }: { lang: string }) {
       amount: Math.max(100, cartTotalAmount + cartShippingAmount),
       capture_method: "automatic",
       paymentMethodCreation: "manual",
+      ...(hasSubscription ? { setup_future_usage: "off_session" as const } : {}),
       appearance: {
         theme: "stripe",
         variables: {

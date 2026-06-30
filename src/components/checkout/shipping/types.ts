@@ -14,6 +14,7 @@ export type Group = {
 
 export type CartItem = {
   id?: string;
+  type?: string;
   product_id?: string;
   name?: string;
   sku?: string;

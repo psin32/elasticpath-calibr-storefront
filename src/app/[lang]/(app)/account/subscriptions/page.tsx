@@ -1,5 +1,5 @@
-import { PlaceholderTab } from "@/components/account/tabs/PlaceholderTab";
+import { SubscriptionsTab } from "@/components/account/tabs/SubscriptionsTab";
 
 export default function SubscriptionsPage() {
-  return <PlaceholderTab titleKey="tabSubscriptions" />;
+  return <SubscriptionsTab />;
 }

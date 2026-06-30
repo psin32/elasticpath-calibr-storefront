@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { User, LogOut, ChevronDown, Check, Building2, MapPin, ShoppingBag, ShoppingCart } from "lucide-react";
+import { User, LogOut, ChevronDown, Check, Building2, MapPin, ShoppingBag, ShoppingCart, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 
@@ -157,6 +157,14 @@ export function AccountButton() {
             >
               <ShoppingBag size={15} />
               {tAccount("tabOrders")}
+            </Link>
+            <Link
+              href={`/${lang}/account/subscriptions`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw size={15} />
+              {tAccount("tabSubscriptions")}
             </Link>
             <Link
               href={`/${lang}/account/carts`}

@@ -31,6 +31,12 @@ import { ShipmentCard } from "./shipping/ShipmentCard";
 import { UnassignedItems } from "./shipping/UnassignedItems";
 import type { Address, Group, CartItem, SplitState } from "./shipping/types";
 
+function cleanInputs(inputs?: Record<string, unknown>): Record<string, unknown> {
+  if (!inputs) return {};
+  const { _ep_split_id: _, ...rest } = inputs;
+  return rest;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,9 +112,14 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
     const res = await getCartItems({ client, path: { cartID: cartId } }).catch(() => null);
     if (!res) return;
     const raw = (res.data?.data ?? [])
-      .filter((i): i is CartItemObject =>
-        (i as CartItemObject).type === "cart_item" || !(i as CartItemObject).type)
-      .map((i) => ({ ...i, imageHref: (i as any).image?.href as string | undefined })) as CartItem[];
+      .filter((i): i is CartItemObject => {
+        const t = (i as any).type as string | undefined;
+        return t === "cart_item" || t === "subscription_item" || !t;
+      })
+      .map((i) => ({
+        ...i,
+        imageHref: ((i as any).custom_inputs?.image_url as string | undefined) ?? ((i as any).image?.href as string | undefined),
+      })) as CartItem[];
     setCartItems(await mergeGroupDuplicates(raw, cartId, client));
   }, [cartId]);
 
@@ -132,11 +143,13 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
       const loaded = (groupRes.data?.data ?? []).map(mapGroup);
       const liveIds = new Set(loaded.map((g) => g.id));
       const items = (itemRes.data?.data ?? [])
-        .filter((i): i is CartItemObject =>
-          (i as CartItemObject).type === "cart_item" || !(i as CartItemObject).type)
+        .filter((i): i is CartItemObject => {
+          const t = (i as any).type as string | undefined;
+          return t === "cart_item" || t === "subscription_item" || !t;
+        })
         .map((i) => {
           const gid = (i as CartItemObject & { shipping_group_id?: string }).shipping_group_id;
-          const imageHref = (i as any).image?.href as string | undefined;
+          const imageHref = ((i as any).custom_inputs?.image_url as string | undefined) ?? ((i as any).image?.href as string | undefined);
           return gid && !liveIds.has(gid)
             ? { ...i, imageHref, shipping_group_id: undefined }
             : { ...i, imageHref };
@@ -303,17 +316,20 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           client: createEpClient(),
           path: { cartID: cartId },
           body: {
-            data: pickedItems.map((itemId) => ({
-              id: itemId,
-              quantity: cartItems.find((i) => i.id === itemId)?.quantity ?? 1,
-              shipping_group_id: ng.id,
-              custom_inputs: {},
-            })),
+            data: pickedItems.map((itemId) => {
+              const cartItem = cartItems.find((i) => i.id === itemId);
+              return {
+                id: itemId,
+                quantity: cartItem?.quantity ?? 1,
+                shipping_group_id: ng.id,
+                custom_inputs: cleanInputs(cartItem?.custom_inputs),
+              };
+            }),
           } as any,
         });
         setCartItems((prev) =>
           prev.map((i) =>
-            pickedItems.includes(i.id ?? "") ? { ...i, shipping_group_id: ng.id, custom_inputs: {} } : i,
+            pickedItems.includes(i.id ?? "") ? { ...i, shipping_group_id: ng.id, custom_inputs: cleanInputs(i.custom_inputs) } : i,
           ),
         );
       }
@@ -358,9 +374,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           body: {
             data: members.map((i) => ({
               id: i.id,
-              quantity: i.quantity ?? 1,
               shipping_group_id: "",
-              custom_inputs: {},
             })),
           } as any,
         });
@@ -422,7 +436,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           updateACartItem({
             client,
             path: { cartID: cartId, cartitemID: existingInTarget.id },
-            body: { data: { type: "cart_item", id: existingInTarget.id, quantity: mergedQty, shipping_group_id: groupId } },
+            body: { data: { id: existingInTarget.id, quantity: mergedQty, shipping_group_id: groupId } } as any,
           }),
         ]);
         await syncItems();
@@ -432,16 +446,17 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
         syncItems();
       }
     } else {
+      const inputs = cleanInputs(item.custom_inputs);
       setCartItems((prev) =>
         prev.map((i) =>
-          i.id === itemId ? { ...i, shipping_group_id: groupId || undefined, custom_inputs: {} } : i,
+          i.id === itemId ? { ...i, shipping_group_id: groupId || undefined, custom_inputs: inputs } : i,
         ),
       );
       try {
         await updateACartItem({
           client,
           path: { cartID: cartId, cartitemID: itemId },
-          body: { data: { type: "cart_item", id: itemId, quantity: item.quantity ?? 1, shipping_group_id: groupId, custom_inputs: {} } },
+          body: { data: { id: itemId, quantity: item.quantity ?? 1, shipping_group_id: groupId, custom_inputs: inputs } } as any,
         });
         await syncItems();
         void refreshCart();
@@ -459,14 +474,14 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
     const item = cartItems.find((i) => i.id === itemId);
     if (!item) return;
     setCartItems((prev) =>
-      prev.map((i) => i.id === itemId ? { ...i, shipping_group_id: undefined, custom_inputs: {} } : i),
+      prev.map((i) => i.id === itemId ? { ...i, shipping_group_id: undefined } : i),
     );
     const client = createEpClient();
     try {
       await updateACartItem({
         client,
         path: { cartID: cartId, cartitemID: itemId },
-        body: { data: { type: "cart_item", id: itemId, quantity: item.quantity ?? 1, shipping_group_id: "", custom_inputs: {} } },
+        body: { data: { id: itemId, shipping_group_id: "" } } as any,
       });
       await syncItems();
       void refreshCart();
@@ -490,6 +505,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
     if (safeSplitQty < 1) { toast.error(t("toastInvalidSplit")); setSplit(null); return; }
     if (totalQty > cartTotalForProduct) { toast.error(t("toastSplitExceeds")); setSplit(null); return; }
 
+    const splitItem = cartItems.find((i) => i.id === itemId);
     setSplit(null);
     const client = createEpClient();
     try {
@@ -502,19 +518,19 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           updateACartItem({
             client,
             path: { cartID: cartId, cartitemID: itemId },
-            body: { data: { type: "cart_item", id: itemId, quantity: safeRemainQty, shipping_group_id: currentGroupId } },
+            body: { data: { type: splitItem?.type ?? "cart_item", id: itemId, quantity: safeRemainQty, shipping_group_id: currentGroupId } } as any,
           }),
           updateACartItem({
             client,
             path: { cartID: cartId, cartitemID: existingInTarget.id },
             body: {
               data: {
-                type: "cart_item",
+                type: existingInTarget.type ?? "cart_item",
                 id: existingInTarget.id,
                 quantity: (existingInTarget.quantity ?? 0) + safeSplitQty,
                 shipping_group_id: targetGroupId,
               },
-            },
+            } as any,
           }),
         ]);
       } else {
@@ -524,7 +540,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           path: { cartID: cartId, cartitemID: itemId },
           body: {
             data: {
-              type: "cart_item", id: itemId, quantity: safeRemainQty,
+              type: splitItem?.type ?? "cart_item", id: itemId, quantity: safeRemainQty,
               shipping_group_id: currentGroupId,
               custom_inputs: { _ep_split_id: `${splitId}-src` },
             },
@@ -548,7 +564,7 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
           await updateACartItem({
             client,
             path: { cartID: cartId, cartitemID: newItem.id },
-            body: { data: { type: "cart_item", id: newItem.id, quantity: safeSplitQty, shipping_group_id: targetGroupId } },
+            body: { data: { type: newItem.type ?? "cart_item", id: newItem.id, quantity: safeSplitQty, shipping_group_id: targetGroupId } } as any,
           });
         }
       }
@@ -572,17 +588,18 @@ export function ShippingGroupManager({ onReadyChange, onShippingCostChange, onLo
     const totalQty = parts.reduce((s, i) => s + (i.quantity ?? 0), 0);
     const [keeper, ...rest] = parts;
     const client = createEpClient();
+    const keeperInputs = cleanInputs(keeper.custom_inputs);
     setCartItems((prev) =>
       prev
         .filter((i) => !rest.some((r) => r.id === i.id))
-        .map((i) => i.id === keeper.id ? { ...i, quantity: totalQty, custom_inputs: {} } : i),
+        .map((i) => i.id === keeper.id ? { ...i, quantity: totalQty, custom_inputs: keeperInputs } : i),
     );
     try {
       await Promise.all([
         updateACartItem({
           client,
           path: { cartID: cartId, cartitemID: keeper.id! },
-          body: { data: { type: "cart_item", id: keeper.id, quantity: totalQty, custom_inputs: {} } } as any,
+          body: { data: { type: keeper.type ?? "cart_item", id: keeper.id, quantity: totalQty, custom_inputs: keeperInputs } } as any,
         }),
         ...rest.map((i) =>
           deleteACartItem({ client, path: { cartID: cartId, cartitemID: i.id! } }),

@@ -5,6 +5,7 @@ import {
   checkoutApi,
   paymentSetup,
   confirmPayment,
+  getV2AccountsAccountId,
 } from "@epcc-sdk/sdks-shopper";
 import type { AccountAddressResponse } from "@epcc-sdk/sdks-shopper";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
@@ -34,7 +35,7 @@ export function useEpStripePayment(
   savedAddresses: AccountAddressResponse[] = []
 ) {
   const t = useTranslations("checkout");
-  const { cartId, clearCart } = useCart();
+  const { cartId, clearCart, items } = useCart();
   const { credentials } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -160,7 +161,23 @@ export function useEpStripePayment(
         const orderId = orderRes.data?.data?.id;
         if (!orderId) throw new Error(t("orderCreationFailed"));
 
-        // 2. Initiate payment via EP — EP creates the PaymentIntent server-side.
+        // 2. If the cart contains subscription items, fetch the account's stripe_customer_id
+        // so Stripe can attach the PaymentMethod for future off-session charges.
+        let stripeCustomerId: string | undefined;
+        const hasSubscription = items.some((i) => i.isSubscription);
+        if (hasSubscription && credentials?.selected) {
+          try {
+            const accountRes = await getV2AccountsAccountId({
+              client,
+              path: { accountID: credentials.selected },
+            });
+            stripeCustomerId = (accountRes.data?.data as any)?.stripe_customer_id as string | undefined;
+          } catch {
+            // Non-fatal — proceed without customer ID
+          }
+        }
+
+        // 3. Initiate payment via EP — EP creates the PaymentIntent server-side.
         // Gateway is determined by env: elastic_path_payments_stripe (EP Payments, needs account ID)
         // or stripe_payment (merchant's own Stripe account).
         const paymentRes = await paymentSetup({
@@ -170,6 +187,12 @@ export function useEpStripePayment(
             data: {
               gateway: STRIPE_GATEWAY,
               method: "purchase",
+              ...(stripeCustomerId ? {
+                options: {
+                  customer: stripeCustomerId,
+                  setup_future_usage: "off_session",
+                },
+              } : {}),
             } as any,
           },
         });
@@ -185,7 +208,7 @@ export function useEpStripePayment(
           throw new Error(t("paymentSetupFailed"));
         }
 
-        // 3. Confirm payment with Stripe using the client secret from EP.
+        // 4. Confirm payment with Stripe using the client secret from EP.
         // return_url is required for automatic payment methods (Klarna, Clearpay, 3DS redirects).
         // For standard card payments redirect:"if_required" means this URL is never visited.
         // Redirect-based methods land on /payment-return which confirms with EP and clears the cart.
@@ -206,7 +229,7 @@ export function useEpStripePayment(
           throw new Error(stripeError.message ?? t("paymentConfirmFailed"));
         }
 
-        // 4. Confirm the transaction with EP to sync payment status
+        // 5. Confirm the transaction with EP to sync payment status
         if (transactionId) {
           await confirmPayment({
             client,
@@ -230,7 +253,7 @@ export function useEpStripePayment(
         setIsLoading(false);
       }
     },
-    [cartId, clearCart, router, lang, savedAddresses, credentials, t]
+    [cartId, clearCart, items, router, lang, savedAddresses, credentials, t]
   );
 
   return { processPayment, isLoading, isRedirecting, error };

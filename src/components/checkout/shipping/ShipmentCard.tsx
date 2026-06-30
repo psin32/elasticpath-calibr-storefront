@@ -253,8 +253,8 @@ export function ShipmentCard({
                 )}
               </div>
 
-              {/* Split button — only when qty > 1 */}
-              {(item.quantity ?? 0) > 1 && (
+              {/* Split button — only when qty > 1 and not a subscription item */}
+              {(item.quantity ?? 0) > 1 && item.type !== "subscription_item" && (
                 <Button
                   variant="outline"
                   size="xs"
@@ -375,7 +375,7 @@ export function ShipmentCard({
             </div>
 
             {/* Split panel */}
-            {split?.itemId === item.id && split && (() => {
+            {split?.itemId === item.id && split && item.type !== "subscription_item" && (() => {
               const s: SplitState = split;
               const others = groups.filter((g) => g.id !== activeGroup.id);
               return (
