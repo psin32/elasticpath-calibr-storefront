@@ -387,7 +387,16 @@
     "frequencyDay": "{count, plural, =1 {Cada día} other {Cada {count} días}}",
     "frequencyWeek": "{count, plural, =1 {Cada semana} other {Cada {count} semanas}}",
     "frequencyMonth": "{count, plural, =1 {Cada mes} other {Cada {count} meses}}",
-    "frequencyYear": "{count, plural, =1 {Cada año} other {Cada {count} años}}"
+    "frequencyYear": "{count, plural, =1 {Cada año} other {Cada {count} años}}",
+    "customRelationships": {
+      "relatedProducts": "Productos relacionados",
+      "accessories": "Accesorios",
+      "complementaryProducts": "Productos complementarios",
+      "similarProducts": "Productos similares",
+      "frequentlyBoughtTogether": "Comprados frecuentemente juntos",
+      "upsell": "También te puede gustar",
+      "crossSell": "Combina bien con"
+    }
   },
   "shipping": {
     "sectionTitle": "Método de envío",

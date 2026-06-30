@@ -2,6 +2,7 @@ import {
   getByContextAllProducts,
   getByContextProduct,
   getByContextProductsForNode,
+  getByContextAllRelatedProducts,
   extractProductImage,
   type Product,
   type IncludedResponse,
@@ -84,6 +85,7 @@ export type ProductDetailData = {
   isBundle?: boolean;
   components?: BundleComponent[];
   bulkBuyTiers?: BulkBuyTier[];
+  customRelationshipSlugs?: string[];
 };
 
 function extractChildIds(matrix: Record<string, unknown>): string[] {
@@ -289,6 +291,11 @@ function formatProductDetail(
     bulkBuyTiers = rows;
   }
 
+  const customRelationshipSlugs =
+    (product.meta?.custom_relationships as string[] | undefined)?.filter(
+      Boolean,
+    ) ?? undefined;
+
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -314,6 +321,8 @@ function formatProductDetail(
     isBundle,
     components,
     bulkBuyTiers,
+    customRelationshipSlugs:
+      customRelationshipSlugs?.length ? customRelationshipSlugs : undefined,
   };
 }
 
@@ -407,6 +416,39 @@ export async function getProductBySlug(
   }
 
   return formatted;
+}
+
+export type RelationshipCarousel = {
+  slug: string;
+  products: ProductCardData[];
+};
+
+export async function getProductRelationshipCarousels(
+  productId: string,
+  slugs: string[],
+): Promise<RelationshipCarousel[]> {
+  if (!slugs.length) return [];
+  const client = await createElasticPathClient();
+  const results = await Promise.all(
+    slugs.map(async (slug) => {
+      try {
+        const response = await getByContextAllRelatedProducts({
+          client,
+          path: { product_id: productId, custom_relationship_slug: slug },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          query: { "page[limit]": BigInt(24), include: ["main_image"] } as any,
+        });
+        const products = (response.data?.data ?? []).map((p) =>
+          formatProduct(p, response.data?.included),
+        );
+        if (!products.length) return null;
+        return { slug, products };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return results.filter((r): r is RelationshipCarousel => r !== null);
 }
 
 export async function getProductById(

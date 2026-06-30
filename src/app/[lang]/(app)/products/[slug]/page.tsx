@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getMessages } from "next-intl/server";
 import { Header } from "@/components/header/Header";
 import { ProductThumbnail } from "@/components/product/ProductThumbnail";
 import { ProductName } from "@/components/product/ProductName";
@@ -8,8 +8,9 @@ import { Price } from "@/components/product/Price";
 import { ProductActions } from "@/components/product/ProductActions";
 import { BulkBuyOffer } from "@/components/product/BulkBuyOffer";
 import { Badge } from "@/components/ui/Badge/Badge";
-import { getProductBySlug } from "@/lib/api/products";
+import { getProductBySlug, getProductRelationshipCarousels } from "@/lib/api/products";
 import { getProductOffering } from "@/lib/api/subscriptions";
+import { ProductCarouselDisplay } from "@/components/product/ProductCarouselDisplay";
 import { SubscriptionProductActions } from "@/components/product/SubscriptionProductActions";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -33,10 +34,30 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = await getProductBySlug(slug).catch(() => null);
   if (!product) notFound();
 
-  const [t, offering] = await Promise.all([
+  const [t, messages, offering, relationshipCarousels] = await Promise.all([
     getTranslations("product"),
+    getMessages(),
     getProductOffering(product.id).catch(() => null),
+    getProductRelationshipCarousels(
+      product.id,
+      product.customRelationshipSlugs ?? [],
+    ).catch(() => []),
   ]);
+
+  const relMsgs = (
+    (messages as Record<string, unknown>).product as Record<string, unknown>
+  )?.customRelationships as Record<string, string> | undefined;
+
+  function resolveCarouselTitle(slug: string): string {
+    const key = slug
+      .replace(/^crp[-_]?/i, "")
+      .replace(/[-_](\w)/g, (_, c: string) => c.toUpperCase());
+    return relMsgs?.[key] ?? slug
+      .replace(/^crp[-_]?/i, "")
+      .replace(/[-_]/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -182,6 +203,18 @@ export default async function ProductDetailPage({ params }: Props) {
             )}
           </div>
         </div>
+
+        {relationshipCarousels.map((carousel) => (
+          <section key={carousel.slug} className="mt-16">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              {resolveCarouselTitle(carousel.slug)}
+            </h2>
+            <ProductCarouselDisplay
+              products={carousel.products}
+              lang={lang}
+            />
+          </section>
+        ))}
       </main>
     </div>
   );
