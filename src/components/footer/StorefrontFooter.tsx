@@ -83,14 +83,14 @@ export function StorefrontFooter({
           </div>
 
           {/* Dynamic columns */}
-          {columns.map((col) => (
-            <div key={col.heading}>
+          {columns.map((col, colIdx) => (
+            <div key={colIdx}>
               <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-widest mb-4">
                 {col.heading}
               </h3>
               <ul className="space-y-3">
-                {(col.links ?? []).map((link) => (
-                  <li key={link.label}>
+                {(col.links ?? []).map((link, linkIdx) => (
+                  <li key={linkIdx}>
                     <Link
                       href={`/${lang}${link.href}`}
                       className="text-sm text-gray-500 hover:text-gray-900 transition-colors"

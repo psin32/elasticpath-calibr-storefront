@@ -321,7 +321,7 @@ export function B2BCartContent({ lang }: Props) {
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
   const lineCount = groups.length;
 
-  const isLoadingState = isInitializing || isLoading || (groupsLoading && groups.length === 0);
+  const isLoadingState = isInitializing || (groupsLoading && groups.length === 0);
   const isEmpty = !isInitializing && !isLoading && !groupsLoading && items.length === 0;
 
   return (
