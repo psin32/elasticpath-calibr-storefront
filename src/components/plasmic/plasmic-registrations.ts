@@ -3,6 +3,9 @@ import { PLASMIC } from "./plasmic-loader";
 // Header
 import { StorefrontLogo } from "@/components/header/StorefrontLogo";
 
+// Footer
+import { StorefrontFooter } from "@/components/footer/StorefrontFooter";
+
 // UI primitives
 import { Button } from "@/components/ui/Button/Button";
 import { Badge } from "@/components/ui/Badge/Badge";
@@ -399,5 +402,111 @@ if (PLASMIC) {
     },
     importPath: "@/components/plasmic/blocks/ProductCarousel/ProductCarousel",
     importName: "ProductCarousel",
+  });
+
+  // ─── StorefrontFooter ─────────────────────────────────────────────────────
+  PLASMIC.registerComponent(StorefrontFooter, {
+    name: "StorefrontFooter",
+    description: "Site footer with logo, dynamic link columns, and copyright bar.",
+    classNameProp: "className",
+    props: {
+      lang: {
+        type: "string",
+        defaultValue: "en",
+        description: "Locale prefix for internal links (e.g. 'en', 'fr')",
+      },
+      logoUrl: {
+        type: "imageUrl",
+        defaultValue: "/logo.png",
+        description: "Footer logo image",
+      },
+      logoAlt: {
+        type: "string",
+        defaultValue: "Elastic Path",
+        description: "Alt text for the footer logo",
+      },
+      tagline: {
+        type: "string",
+        defaultValue:
+          "API-first composable commerce built for enterprise brands with complex requirements.",
+        description: "Short brand description below the logo",
+      },
+      columns: {
+        type: "array",
+        itemType: {
+          type: "object",
+          nameFunc: (item: { heading?: string }) => item?.heading || "Column",
+          fields: {
+            heading: {
+              type: "string",
+              defaultValue: "Column",
+            },
+            links: {
+              type: "array",
+              itemType: {
+                type: "object",
+                nameFunc: (item: { label?: string }) => item?.label || "Link",
+                fields: {
+                  label: { type: "string" },
+                  href: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        defaultValue: [
+          {
+            heading: "Shop",
+            links: [
+              { label: "All Products", href: "/category" },
+              { label: "Featured", href: "/" },
+            ],
+          },
+          {
+            heading: "Account",
+            links: [
+              { label: "My Account", href: "/account" },
+              { label: "Order History", href: "/account" },
+            ],
+          },
+          {
+            heading: "Company",
+            links: [
+              { label: "About", href: "/" },
+              { label: "Contact", href: "/" },
+            ],
+          },
+        ],
+        description: "Footer link columns — add, remove, or reorder freely",
+      },
+      copyrightText: {
+        type: "string",
+        defaultValue: "",
+        description:
+          "Override the copyright line. Leave blank to use the auto-generated year.",
+      },
+      privacyPolicyLabel: {
+        type: "string",
+        defaultValue: "Privacy Policy",
+        description: "Label for the Privacy Policy link",
+      },
+      privacyPolicyHref: {
+        type: "string",
+        defaultValue: "/",
+        description: "URL for the Privacy Policy link",
+      },
+      termsLabel: {
+        type: "string",
+        defaultValue: "Terms of Service",
+        description: "Label for the Terms of Service link",
+      },
+      termsHref: {
+        type: "string",
+        defaultValue: "/",
+        description: "URL for the Terms of Service link",
+      },
+    },
+    importPath: "@/components/footer/StorefrontFooter",
+    importName: "StorefrontFooter",
   });
 }
