@@ -13,9 +13,12 @@ import {
   ShoppingBag,
   Pencil,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAccountAddresses, type NewAddressFields } from "@/hooks/use-account-addresses";
+import { createEpClient } from "@/lib/api/ep-client";
+import { createQuote, bulkAddQuoteItems } from "@/lib/api/quotes";
 import { DeliveryAddress } from "@/components/checkout/shipping/DeliveryAddress";
 import { Select } from "@/components/ui/Select";
 import { CheckoutUserInfo } from "@/components/checkout/CheckoutUserInfo";
@@ -42,7 +45,6 @@ type FormState = {
   notes: string;
 };
 
-
 function generateRef() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let r = "QR-";
@@ -54,7 +56,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   const router = useRouter();
   const t = useTranslations("quote");
   const tAddr = useTranslations("address");
-  const { items, cartTotal } = useCart();
+  const { items, cartTotal, clearCart } = useCart();
   const { credentials, selectedAccount } = useAuth();
   const { addresses, isLoading: addressesLoading, addAddress } = useAccountAddresses();
   const formId = useId();
@@ -72,11 +74,6 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     { value: "prepay",  label: t("prepay") },
   ];
 
-  const URGENCY_OPTIONS: Array<{ value: "standard" | "urgent"; label: string; sub: string }> = [
-    { value: "standard", label: t("standardLabel"), sub: t("standardSub") },
-    { value: "urgent",   label: t("urgentLabel"),   sub: t("urgentSub") },
-  ];
-
   const TIMELINE = [
     { label: t("timeline1"), sub: t("timeline1Sub"), done: true  },
     { label: t("timeline2"), sub: t("timeline2Sub"), done: false },
@@ -85,7 +82,9 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   ];
 
   const [step, setStep] = useState<Step>("details");
+  const [showErrors, setShowErrors] = useState(false);
   const [acked, setAcked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ref] = useState(generateRef);
   const [submittedDate] = useState(() =>
     new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
@@ -158,7 +157,84 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
   const lineCount = items.length;
-  const canContinue = form.company.trim() && form.contact.trim() && form.email.trim();
+  const canContinue = !!(
+    form.company.trim() &&
+    form.contact.trim() &&
+    form.email.trim() &&
+    selectedAddressId &&
+    selectedAddressId !== "__new__"
+  );
+
+  async function handleSubmit() {
+    if (!acked || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const client = createEpClient();
+      const addr = addresses.find((a) => a.id === selectedAddressId);
+
+      const addressValue = addr
+        ? [addr.line_1, addr.line_2, addr.city, addr.county, addr.postcode, addr.country]
+            .filter(Boolean)
+            .join(", ")
+        : undefined;
+
+      const requestedDateValue = form.date
+        ? (() => {
+            const [y, m, d] = form.date.split("-");
+            return `${d}/${m}/${y}`;
+          })()
+        : undefined;
+
+      const customAttributes: Record<string, { type: "string"; value: string }> = {};
+      if (addressValue)        customAttributes.address        = { type: "string", value: addressValue };
+      if (form.terms)          customAttributes.payment_term   = { type: "string", value: form.terms };
+      if (requestedDateValue)  customAttributes.requested_date = { type: "string", value: requestedDateValue };
+      if (form.contact)        customAttributes.buyer_name     = { type: "string", value: form.contact };
+      if (form.email)          customAttributes.buyer_email    = { type: "string", value: form.email };
+      if (form.po)             customAttributes.po_reference   = { type: "string", value: form.po };
+      if (form.target)         customAttributes.target_price   = { type: "string", value: form.target };
+      if (form.volume)         customAttributes.annual_volume  = { type: "string", value: form.volume };
+      if (form.notes)          customAttributes.notes          = { type: "string", value: form.notes };
+
+      const quoteRes = await createQuote({
+        client,
+        body: {
+          data: {
+            type: "quote",
+            name: ref,
+            custom_attributes: Object.keys(customAttributes).length > 0 ? customAttributes : undefined,
+          },
+        },
+      });
+
+      const quoteId = (quoteRes.data as any)?.data?.id;
+      if (!quoteId) throw new Error("Quote creation failed — no ID returned.");
+
+      if (items.length > 0) {
+        await bulkAddQuoteItems({
+          client,
+          path: { quoteId },
+          body: {
+            data: items.map((item) => ({
+              type: "quote_item" as const,
+              id: item.productId,
+              quantity: item.quantity,
+              ...(item.customInputs && Object.keys(item.customInputs).length > 0
+                ? { custom_inputs: item.customInputs }
+                : {}),
+            })),
+          },
+        });
+      }
+
+      await clearCart();
+      setStep("success");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("submitError"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   const toggleLabelCls = "block text-[12px] font-semibold text-ink-700 mb-[7px]";
 
@@ -325,6 +401,8 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                     value={form.company}
                     onChange={set("company")}
                     placeholder={t("companyPlaceholder")}
+                    required
+                    error={showErrors && !form.company.trim() ? t("errorCompany") : undefined}
                   />
                   <div className="flex gap-[14px]">
                     <Input
@@ -334,6 +412,8 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                       value={form.contact}
                       onChange={set("contact")}
                       placeholder={t("contactPlaceholder")}
+                      required
+                      error={showErrors && !form.contact.trim() ? t("errorContact") : undefined}
                     />
                     <div className="flex-1" suppressHydrationWarning>
                       <Input
@@ -344,6 +424,8 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                         onChange={set("email")}
                         placeholder={t("emailPlaceholder")}
                         suppressHydrationWarning
+                        required
+                        error={showErrors && !form.email.trim() ? t("errorEmail") : undefined}
                       />
                     </div>
                   </div>
@@ -361,6 +443,8 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                     placeholder={t("selectAddress")}
                     disabled={addressesLoading}
                     value={selectedAddressId}
+                    required
+                    error={showErrors && !selectedAddressId ? t("errorShipTo") : undefined}
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val === "__new__") {
@@ -392,36 +476,14 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                       </Card>
                     ) : null;
                   })()}
-                  <div className="flex gap-5 flex-wrap items-end">
-                    <Input
-                      label={t("deliveryDateLabel")}
-                      id={`${formId}-date`}
-                      type="date"
-                      wrapperClassName="flex-1 min-w-[180px]"
-                      value={form.date}
-                      onChange={set("date")}
-                    />
-                    <div>
-                      <label className={toggleLabelCls}>{t("handlingLabel")}</label>
-                      <div className="flex gap-2">
-                        {URGENCY_OPTIONS.map((u) => (
-                          <Button
-                            key={u.value}
-                            variant="outline"
-                            onClick={() => setForm((f) => ({ ...f, urgency: u.value }))}
-                            className={
-                              form.urgency === u.value
-                                ? "border-success-400 bg-success-50 text-ink-900 hover:bg-success-50 hover:border-success-400 hover:opacity-100"
-                                : "hover:opacity-100"
-                            }
-                          >
-                            {u.label}{" "}
-                            <span className="text-[11px] text-ink-600 font-normal ml-1">{u.sub}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <Input
+                    label={t("deliveryDateLabel")}
+                    id={`${formId}-date`}
+                    type="date"
+                    wrapperClassName="flex-1 min-w-[180px]"
+                    value={form.date}
+                    onChange={set("date")}
+                  />
                 </div>
               </CardBody>
             </Card>
@@ -434,18 +496,18 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
                   <div>
                     <label className={toggleLabelCls}>{t("paymentTermsLabel")}</label>
                     <div className="flex gap-2 flex-wrap">
-                      {TERMS_OPTIONS.map((t) => (
+                      {TERMS_OPTIONS.map((opt) => (
                         <Button
-                          key={t.value}
+                          key={opt.value}
                           variant="outline"
-                          onClick={() => setForm((f) => ({ ...f, terms: t.value }))}
+                          onClick={() => setForm((f) => ({ ...f, terms: opt.value }))}
                           className={
-                            form.terms === t.value
+                            form.terms === opt.value
                               ? "border-success-400 bg-success-50 text-ink-900 hover:bg-success-50 hover:border-success-400 hover:opacity-100"
                               : "hover:opacity-100"
                           }
                         >
-                          {t.label}
+                          {opt.label}
                         </Button>
                       ))}
                     </div>
@@ -526,17 +588,18 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
             <Button
               fullWidth
               size="lg"
-              disabled={!canContinue}
               className="bg-ink-900 hover:opacity-90"
               rightIcon={<ArrowRight size={16} />}
-              onClick={() => canContinue && setStep("review")}
+              onClick={() => {
+                setShowErrors(true);
+                if (canContinue) setStep("review");
+              }}
             >
               {t("continueToReview")}
             </Button>
           </div>
         </div>
       </div>
-
     </div>
   );
 
@@ -548,8 +611,7 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
     </div>
   );
 
-  const termsLabel = TERMS_OPTIONS.find((t) => t.value === form.terms)?.label ?? form.terms;
-  const urgencyLabel = form.urgency === "urgent" ? t("urgencyUrgentFull") : t("urgencyStandardFull");
+  const termsLabel = TERMS_OPTIONS.find((opt) => opt.value === form.terms)?.label ?? form.terms;
   const dateLabel = form.date
     ? new Date(form.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
     : "—";
@@ -557,112 +619,149 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
   const step2 = (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-[18px]">
-          <p className="font-serif text-[26px] tracking-tight text-ink-900">{t("reviewTitle")}</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-6 items-start">
 
-          {/* Items recap */}
-          <Card className="rounded-2xl border-ink-200 shadow-none">
-            <CardHeader className="border-ink-100">
-              <div className="flex items-center justify-between">
-                <p className="font-bold text-[14px] text-ink-900">{t("reviewItemsLabel", { units: totalUnits })}</p>
-                <EditButton onClick={() => setStep("details")} />
-              </div>
-            </CardHeader>
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 px-5 py-[11px] border-b border-ink-100 last:border-b-0"
-              >
-                <div className="min-w-0">
-                  <span className="font-semibold text-[14px] text-ink-900">{item.name}</span>{" "}
-                  <span className="text-[12px] text-ink-600">
-                    · {item.quantity} unit{item.quantity !== 1 ? "s" : ""}
-                  </span>
+          {/* Main column */}
+          <div className="flex-1 min-w-0 flex flex-col gap-[18px]">
+            <p className="font-serif text-[26px] tracking-tight text-ink-900">{t("reviewTitle")}</p>
+
+            {/* Items recap */}
+            <Card className="rounded-2xl border-ink-200 shadow-none">
+              <CardHeader className="border-ink-100">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-[14px] text-ink-900">{t("reviewItemsLabel", { units: totalUnits })}</p>
+                  <EditButton onClick={() => setStep("details")} />
                 </div>
-                <p className="font-bold text-[14px] text-ink-900 whitespace-nowrap">
-                  {item.lineTotalFormatted}
-                </p>
-              </div>
-            ))}
-            <div className="flex items-center justify-between px-5 py-[13px] bg-ink-50">
-              <span className="text-[13px] text-ink-600">{t("summaryListValue")}</span>
-              <span className="font-serif text-[20px] text-ink-900">{cartTotal}</span>
-            </div>
-          </Card>
+              </CardHeader>
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 px-5 py-[11px] border-b border-ink-100 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <span className="font-semibold text-[14px] text-ink-900">{item.name}</span>{" "}
+                    <span className="text-[12px] text-ink-600">
+                      · {item.quantity} unit{item.quantity !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <p className="font-bold text-[14px] text-ink-900 whitespace-nowrap">
+                    {item.lineTotalFormatted}
+                  </p>
+                </div>
+              ))}
+            </Card>
 
-          {/* Details recap */}
-          <Card className="rounded-2xl border-ink-200 shadow-none">
-            <CardHeader className="border-ink-100">
-              <div className="flex items-center justify-between">
-                <p className="font-bold text-[14px] text-ink-900">{t("requestDetailsTitle")}</p>
-                <EditButton onClick={() => setStep("details")} />
+            {/* Details recap */}
+            <Card className="rounded-2xl border-ink-200 shadow-none">
+              <CardHeader className="border-ink-100">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-[14px] text-ink-900">{t("requestDetailsTitle")}</p>
+                  <EditButton onClick={() => setStep("details")} />
+                </div>
+              </CardHeader>
+              <div className="grid grid-cols-2 gap-px bg-ink-100">
+                {reviewRow(t("reviewCompany"), form.company)}
+                {reviewRow(t("reviewBuyer"), form.contact)}
+                {reviewRow(t("reviewEmail"), form.email)}
+                {reviewRow(t("reviewPo"), form.po)}
+                {reviewRow(t("reviewDelivery"), dateLabel)}
+                {reviewRow(t("reviewPaymentTerms"), termsLabel)}
+                {reviewRow(t("reviewTargetPrice"), form.target || t("reviewNotSpecified"))}
               </div>
-            </CardHeader>
-            <div className="grid grid-cols-2 gap-px bg-ink-100">
-              {reviewRow(t("reviewCompany"), form.company)}
-              {reviewRow(t("reviewBuyer"), form.contact)}
-              {reviewRow(t("reviewEmail"), form.email)}
-              {reviewRow(t("reviewPo"), form.po)}
-              {reviewRow(t("reviewDelivery"), dateLabel)}
-              {reviewRow(t("reviewHandling"), urgencyLabel)}
-              {reviewRow(t("reviewPaymentTerms"), termsLabel)}
-              {reviewRow(t("reviewTargetPrice"), form.target || t("reviewNotSpecified"))}
-            </div>
-            {selectedAddressId && selectedAddressId !== "__new__" && (() => {
-              const addr = addresses.find((a) => a.id === selectedAddressId);
-              return addr ? (
+              {selectedAddressId && selectedAddressId !== "__new__" && (() => {
+                const addr = addresses.find((a) => a.id === selectedAddressId);
+                return addr ? (
+                  <div className="px-5 py-[14px] border-t border-ink-100">
+                    <p className="text-[11px] text-ink-600 mb-2">{t("reviewShipTo")}</p>
+                    <DeliveryAddress address={addr} />
+                  </div>
+                ) : null;
+              })()}
+              {form.notes && (
                 <div className="px-5 py-[14px] border-t border-ink-100">
-                  <p className="text-[11px] text-ink-600 mb-2">{t("reviewShipTo")}</p>
-                  <DeliveryAddress address={addr} />
+                  <p className="text-[11px] text-ink-600 mb-1">{t("reviewNotes")}</p>
+                  <p className="text-[14px] text-ink-800 leading-relaxed whitespace-pre-wrap">{form.notes}</p>
                 </div>
-              ) : null;
-            })()}
-            {form.notes && (
-              <div className="px-5 py-[14px] border-t border-ink-100">
-                <p className="text-[11px] text-ink-600 mb-1">{t("reviewNotes")}</p>
-                <p className="text-[14px] text-ink-800 leading-relaxed whitespace-pre-wrap">{form.notes}</p>
-              </div>
-            )}
-          </Card>
+              )}
+            </Card>
+          </div>
 
-          {/* Acknowledgement */}
-          <button
-            type="button"
-            onClick={() => setAcked((a) => !a)}
-            className="flex items-start gap-[13px] text-left bg-white border border-ink-200 rounded-[14px] px-[18px] py-4 w-full hover:border-ink-300 transition-colors"
-          >
-            <span
+          {/* Summary rail */}
+          <div className="flex-none w-[300px] sticky top-8 flex flex-col gap-3">
+            <Card className="rounded-2xl border-ink-200 shadow-none">
+              <CardBody>
+                <SectionLabel>{t("summaryTitle")}</SectionLabel>
+                <div className="flex justify-between text-[13px] text-ink-700 py-1.5">
+                  <span>{t("summaryProducts")}</span>
+                  <span className="font-semibold text-ink-900">{lineCount}</span>
+                </div>
+                <div className="flex justify-between text-[13px] text-ink-700 py-1.5">
+                  <span>{t("summaryTotalUnits")}</span>
+                  <span className="font-semibold text-ink-900">{totalUnits}</span>
+                </div>
+                <div className="h-px bg-ink-100 my-2.5" />
+                <div className="flex justify-between items-baseline py-1">
+                  <span className="text-[13px] text-ink-600">{t("summaryListValue")}</span>
+                  <span className="font-serif text-[24px] text-ink-900">{cartTotal}</span>
+                </div>
+                <div className="flex items-start gap-2 mt-3.5 p-3 rounded-[11px] bg-ink-50 text-[12px] text-ink-600 leading-relaxed">
+                  <Lock size={14} className="flex-none mt-0.5 shrink-0" />
+                  {t("summaryPricingNote")}
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Accept terms */}
+            <Button
+              fullWidth
+              variant="outline"
+              onClick={() => setAcked((a) => !a)}
+              leftIcon={
+                <span
+                  className={[
+                    "flex-none w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                    acked ? "bg-success-400 border-success-400 text-ink-900" : "border-ink-300 bg-white",
+                  ].join(" ")}
+                >
+                  {acked && <Check size={11} strokeWidth={3} />}
+                </span>
+              }
               className={[
-                "flex-none w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-colors",
-                acked ? "bg-success-400 border-success-400 text-ink-900" : "border-ink-300 bg-white",
+                "h-auto py-3 px-[14px] justify-start items-start whitespace-normal",
+                acked
+                  ? "border-success-400 bg-success-50 hover:bg-success-50 hover:border-success-400 hover:opacity-100"
+                  : "hover:opacity-100",
               ].join(" ")}
             >
-              {acked && <Check size={11} strokeWidth={3} />}
-            </span>
-            <span className="text-[13.5px] text-ink-800 leading-relaxed">
-              {t("ackText")}
-            </span>
-          </button>
+              <span className="text-[12.5px] text-ink-800 leading-relaxed font-normal text-left">
+                {t("ackText")}
+              </span>
+            </Button>
+
+            <Button
+              fullWidth
+              size="lg"
+              disabled={!acked || isSubmitting}
+              isLoading={isSubmitting}
+              className="bg-ink-900 hover:opacity-90"
+              rightIcon={!isSubmitting ? <Send size={16} /> : undefined}
+              onClick={handleSubmit}
+            >
+              {t("submitButton")}
+            </Button>
+            <Button
+              fullWidth
+              size="lg"
+              variant="outline"
+              leftIcon={<ArrowLeft size={16} />}
+              onClick={() => setStep("details")}
+            >
+              {t("back")}
+            </Button>
+          </div>
+
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="flex-none bg-white border-t border-ink-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <Button variant="outline" size="lg" leftIcon={<ArrowLeft size={16} />} onClick={() => setStep("details")}>
-            {t("back")}
-          </Button>
-          <Button
-            size="lg"
-            disabled={!acked}
-            className="bg-success-400 text-ink-900 hover:bg-success-500 hover:text-white hover:opacity-100"
-            rightIcon={<Send size={16} />}
-            onClick={() => acked && setStep("success")}
-          >
-            {t("submitButton")}
-          </Button>
-        </div>
-      </footer>
     </div>
   );
 
@@ -705,24 +804,24 @@ export function QuoteRequestFlow({ lang }: { lang: string }) {
         <Card className="w-full mt-6 rounded-2xl border-ink-200 shadow-none text-left">
           <CardBody>
             <SectionLabel>{t("whatHappensNext")}</SectionLabel>
-            {TIMELINE.map((t, i) => (
+            {TIMELINE.map((item, i) => (
               <div key={i} className="flex gap-3.5">
                 <div className="flex flex-col items-center">
                   <span
                     className={[
                       "w-[26px] h-[26px] rounded-full flex items-center justify-center flex-none text-sm font-bold",
-                      t.done ? "bg-success-400 text-ink-900" : "bg-ink-100 text-ink-400",
+                      item.done ? "bg-success-400 text-ink-900" : "bg-ink-100 text-ink-400",
                     ].join(" ")}
                   >
-                    {t.done ? <Check size={13} /> : i + 1}
+                    {item.done ? <Check size={13} /> : i + 1}
                   </span>
                   {i < TIMELINE.length - 1 && <span className="w-px flex-1 bg-ink-100 my-1" />}
                 </div>
                 <div className={i < TIMELINE.length - 1 ? "pb-4" : ""}>
-                  <p className={["text-[14px] font-semibold", t.done ? "text-ink-900" : "text-ink-600"].join(" ")}>
-                    {t.label}
+                  <p className={["text-[14px] font-semibold", item.done ? "text-ink-900" : "text-ink-600"].join(" ")}>
+                    {item.label}
                   </p>
-                  <p className="text-[12.5px] text-ink-600 mt-0.5">{t.sub}</p>
+                  <p className="text-[12.5px] text-ink-600 mt-0.5">{item.sub}</p>
                 </div>
               </div>
             ))}
