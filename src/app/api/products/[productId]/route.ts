@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getByContextProduct, extractProductImage } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
+import { parseExtensions } from "@/lib/api/products";
 
 export async function GET(
   _req: NextRequest,
@@ -48,6 +49,12 @@ export async function GET(
         ? rawCustomInputs
         : null;
 
+    const rawExtensions = raw.attributes?.extensions;
+    const extensions =
+      rawExtensions && typeof rawExtensions === "object" && Object.keys(rawExtensions).length > 0
+        ? parseExtensions(rawExtensions as Record<string, unknown>)
+        : null;
+
     return NextResponse.json({
       id: product.id ?? "",
       name: raw.attributes?.name ?? "",
@@ -64,6 +71,7 @@ export async function GET(
       productType,
       parentId,
       customInputs,
+      extensions,
       variationOptions: variations.map((v: any) => ({
         variationName: v.name ?? "",
         optionName: v.option?.name ?? "",

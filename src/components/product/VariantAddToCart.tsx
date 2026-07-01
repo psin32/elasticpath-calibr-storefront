@@ -118,14 +118,10 @@ export function VariantAddToCart({
   function handleProductResolved(childId: string | null) {
     setResolvedProductId(childId);
     onVariantResolved?.(childId);
-    if (childId && childSlugs?.[childId]) {
-      if (navigateOnSelect) {
-        startTransition(() => {
-          router.replace(`/${lang}/products/${childSlugs![childId]}`);
-        });
-      } else {
-        window.history.replaceState(null, "", `/${lang}/products/${childSlugs![childId]}`);
-      }
+    if (navigateOnSelect && childId && childSlugs?.[childId]) {
+      startTransition(() => {
+        router.replace(`/${lang}/products/${childSlugs![childId]}`);
+      });
     }
   }
 

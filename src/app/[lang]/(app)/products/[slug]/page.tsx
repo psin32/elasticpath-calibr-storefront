@@ -16,6 +16,7 @@ import {
 import { getProductOffering } from "@/lib/api/subscriptions";
 import { ProductCarouselDisplay } from "@/components/product/ProductCarouselDisplay";
 import { SubscriptionProductActions } from "@/components/product/SubscriptionProductActions";
+import { ProductExtensions } from "@/components/product/ProductExtensions";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -164,7 +165,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   parentId={product.parentId}
                   imageUrl={product.imageUrl ?? undefined}
                   initialOffering={offering}
-                  navigateOnSelect={product.productType === "child"}
+                  navigateOnSelect={true}
                   productCustomInputs={product.customInputs}
                 />
               </>
@@ -236,6 +237,12 @@ export default async function ProductDetailPage({ params }: Props) {
                   description={product.description}
                   className="text-base"
                 />
+              </div>
+            )}
+
+            {product.extensions && product.extensions.length > 0 && (
+              <div className="mt-8">
+                <ProductExtensions extensions={product.extensions} />
               </div>
             )}
           </div>

@@ -71,6 +71,18 @@ export type ProductCustomInput = {
   validation_rules: unknown[];
 };
 
+export type ProductExtensionField = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+export type ProductExtensionGroup = {
+  key: string;
+  title: string;
+  fields: ProductExtensionField[];
+};
+
 export type ProductDetailData = {
   id: string;
   slug: string;
@@ -93,7 +105,44 @@ export type ProductDetailData = {
   bulkBuyTiers?: BulkBuyTier[];
   customRelationshipSlugs?: string[];
   customInputs?: Record<string, ProductCustomInput>;
+  extensions?: ProductExtensionGroup[];
 };
+
+function toTitleCase(slug: string): string {
+  return slug.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function parseExtensions(
+  raw: Record<string, unknown>,
+): ProductExtensionGroup[] {
+  const excluded = (process.env.NEXT_PUBLIC_EXTENSIONS_EXCLUDED ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  return Object.entries(raw)
+    .map(([extKey, extValue]) => {
+      const match = extKey.match(/\(([^)]+)\)/);
+      const name = match ? match[1] : extKey;
+      if (excluded.includes(name.toLowerCase())) return null;
+      if (!extValue || typeof extValue !== "object") return null;
+
+      const fields: ProductExtensionField[] = Object.entries(
+        extValue as Record<string, unknown>,
+      )
+        .filter(([, v]) => v !== null && v !== undefined && v !== "")
+        .map(([fieldKey, fieldValue]) => ({
+          key: fieldKey,
+          label: toTitleCase(fieldKey),
+          value: String(fieldValue),
+        }));
+
+      if (fields.length === 0) return null;
+
+      return { key: name, title: toTitleCase(name), fields };
+    })
+    .filter((g): g is ProductExtensionGroup => g !== null);
+}
 
 function extractChildIds(matrix: Record<string, unknown>): string[] {
   const ids: string[] = [];
@@ -309,6 +358,14 @@ function formatProductDetail(
     rawCustomInputs && Object.keys(rawCustomInputs).length > 0
       ? (rawCustomInputs as Record<string, ProductCustomInput>)
       : undefined;
+
+  const rawExtensions = (product.attributes as Record<string, unknown>)
+    ?.extensions as Record<string, unknown> | undefined;
+  const extensions =
+    rawExtensions && Object.keys(rawExtensions).length > 0
+      ? parseExtensions(rawExtensions)
+      : undefined;
+
   return {
     id: product.id ?? "",
     slug: product.attributes?.slug ?? product.id ?? "",
@@ -338,6 +395,7 @@ function formatProductDetail(
       ? customRelationshipSlugs
       : undefined,
     customInputs,
+    extensions: extensions?.length ? extensions : undefined,
   };
 }
 
@@ -419,6 +477,9 @@ export async function getProductBySlug(
         }
         if (!formatted.customInputs && parentFormatted.customInputs) {
           formatted.customInputs = parentFormatted.customInputs;
+        }
+        if (!formatted.extensions?.length && parentFormatted.extensions?.length) {
+          formatted.extensions = parentFormatted.extensions;
         }
       }
     }
