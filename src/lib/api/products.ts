@@ -2,6 +2,7 @@ import {
   getByContextAllProducts,
   getByContextProduct,
   getByContextProductsForNode,
+  getByContextProductsForHierarchy,
   getByContextAllRelatedProducts,
   extractProductImage,
   type Product,
@@ -106,6 +107,8 @@ export type ProductDetailData = {
   customRelationshipSlugs?: string[];
   customInputs?: Record<string, ProductCustomInput>;
   extensions?: ProductExtensionGroup[];
+  breadCrumbNodes?: string[];
+  breadCrumbs?: Record<string, string[]>;
 };
 
 function toTitleCase(slug: string): string {
@@ -396,6 +399,13 @@ function formatProductDetail(
       : undefined,
     customInputs,
     extensions: extensions?.length ? extensions : undefined,
+    breadCrumbNodes: (product.meta?.bread_crumb_nodes as string[] | undefined)?.length
+      ? (product.meta!.bread_crumb_nodes as string[])
+      : undefined,
+    breadCrumbs: (() => {
+      const raw = product.meta?.bread_crumbs as Record<string, string[]> | undefined;
+      return raw && Object.keys(raw).length > 0 ? raw : undefined;
+    })(),
   };
 }
 
@@ -408,6 +418,23 @@ export async function getFeaturedProducts(
     query: {
       include: ["main_image"],
       filter: "in(product_types,standard,parent)",
+      "page[limit]": BigInt(limit),
+    },
+  });
+  const products = response.data?.data ?? [];
+  return products.map((p) => formatProduct(p, response.data?.included));
+}
+
+export async function getProductsForHierarchy(
+  hierarchyId: string,
+  limit = 24,
+): Promise<ProductCardData[]> {
+  const client = await createElasticPathClient();
+  const response = await getByContextProductsForHierarchy({
+    client,
+    path: { hierarchy_id: hierarchyId },
+    query: {
+      include: ["main_image"],
       "page[limit]": BigInt(limit),
     },
   });

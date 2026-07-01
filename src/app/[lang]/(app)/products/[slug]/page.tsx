@@ -14,11 +14,12 @@ import {
   getProductRelationshipCarousels,
 } from "@/lib/api/products";
 import { getProductOffering } from "@/lib/api/subscriptions";
+import { getProductBreadcrumb } from "@/lib/api/breadcrumb";
+import { ProductBreadcrumb } from "@/components/product/ProductBreadcrumb";
 import { ProductCarouselDisplay } from "@/components/product/ProductCarouselDisplay";
 import { SubscriptionProductActions } from "@/components/product/SubscriptionProductActions";
 import { ProductExtensions } from "@/components/product/ProductExtensions";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 type Props = {
   params: Promise<{ lang: string; slug: string }>;
@@ -39,7 +40,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = await getProductBySlug(slug).catch(() => null);
   if (!product) notFound();
 
-  const [t, messages, offering, relationshipCarousels] = await Promise.all([
+  const [t, messages, offering, relationshipCarousels, breadcrumbItems] = await Promise.all([
     getTranslations("product"),
     getMessages(),
     getProductOffering(product.id).catch(() => null),
@@ -47,6 +48,9 @@ export default async function ProductDetailPage({ params }: Props) {
       product.id,
       product.customRelationshipSlugs ?? [],
     ).catch(() => []),
+    product.breadCrumbNodes && product.breadCrumbs
+      ? getProductBreadcrumb(lang, product.breadCrumbNodes, product.breadCrumbs).catch(() => [])
+      : Promise.resolve([]),
   ]);
 
   const relMsgs = (
@@ -71,23 +75,12 @@ export default async function ProductDetailPage({ params }: Props) {
     <div className="min-h-screen bg-white">
       <Header lang={lang} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-8">
-          <ol className="flex items-center gap-2 text-sm text-gray-500">
-            <li>
-              <Link
-                href={`/${lang}`}
-                className="hover:text-gray-900 transition-colors"
-              >
-                {t("breadcrumbHome")}
-              </Link>
-            </li>
-            <li aria-hidden="true">›</li>
-            <li className="font-medium text-gray-900 truncate max-w-xs">
-              {product.name}
-            </li>
-          </ol>
-        </nav>
+        <ProductBreadcrumb
+          lang={lang}
+          items={breadcrumbItems}
+          productName={product.name}
+          homeLabel={t("breadcrumbHome")}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Left: Images */}

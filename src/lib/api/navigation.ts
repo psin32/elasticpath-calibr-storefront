@@ -4,6 +4,12 @@ import {
   getByContextChildNodes,
   getByContextAllNodes,
 } from "@epcc-sdk/sdks-shopper";
+
+export type NavHierarchyData = {
+  id: string;
+  slug: string;
+  name: string;
+};
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
 import type { NavItem } from "@/components/header/navigation/types";
 
@@ -80,6 +86,20 @@ export async function buildSiteNavigation(): Promise<NavItem[]> {
   );
 
   return navItems;
+}
+
+export async function getHierarchyBySlug(slug: string): Promise<NavHierarchyData | null> {
+  const client = await createElasticPathClient();
+  const response = await getByContextAllHierarchies({ client });
+  const hierarchy = (response.data?.data ?? []).find(
+    (h) => (h.attributes as { slug?: string })?.slug === slug,
+  );
+  if (!hierarchy) return null;
+  return {
+    id: hierarchy.id ?? "",
+    slug: (hierarchy.attributes as { slug?: string })?.slug ?? "",
+    name: (hierarchy.attributes as { name?: string })?.name ?? "",
+  };
 }
 
 export async function getNodeBySlug(slug: string): Promise<NavNodeData | null> {

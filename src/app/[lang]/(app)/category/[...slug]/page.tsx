@@ -2,8 +2,8 @@ import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/header/Header";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { getNodeBySlug } from "@/lib/api/navigation";
-import { getProductsForNode } from "@/lib/api/products";
+import { getNodeBySlug, getHierarchyBySlug } from "@/lib/api/navigation";
+import { getProductsForNode, getProductsForHierarchy } from "@/lib/api/products";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -15,29 +15,40 @@ function slugToLabel(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+async function resolveCategory(slug: string[]) {
+  const leafSlug = slug[slug.length - 1];
+  if (slug.length === 1) {
+    const hierarchy = await getHierarchyBySlug(leafSlug).catch(() => null);
+    if (!hierarchy) return null;
+    return { id: hierarchy.id, name: hierarchy.name, isHierarchy: true as const };
+  }
+  const node = await getNodeBySlug(leafSlug).catch(() => null);
+  if (!node) return null;
+  return { id: node.id, name: node.name, isHierarchy: false as const };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const leafSlug = slug[slug.length - 1];
-  const node = await getNodeBySlug(leafSlug).catch(() => null);
+  const category = await resolveCategory(slug).catch(() => null);
+  const fallback = slugToLabel(slug[slug.length - 1]);
   return {
-    title: node?.name ?? slugToLabel(leafSlug),
-    description: `Browse ${node?.name ?? slugToLabel(leafSlug)} from our catalog`,
+    title: category?.name ?? fallback,
+    description: `Browse ${category?.name ?? fallback} from our catalog`,
   };
 }
 
 export default async function CategoryPage({ params }: Props) {
   const { lang, slug } = await params;
 
-  const leafSlug = slug[slug.length - 1];
-  const node = await getNodeBySlug(leafSlug).catch(() => null);
-  if (!node) notFound();
+  const category = await resolveCategory(slug).catch(() => null);
+  if (!category) notFound();
 
-  const products = await getProductsForNode(node.id);
+  const products = category.isHierarchy
+    ? await getProductsForHierarchy(category.id)
+    : await getProductsForNode(category.id);
 
-  // Build breadcrumb segments from URL path
-  // e.g. ["men", "clothing", "suits"] → Home › Men › Clothing › Suits
   const breadcrumbs = slug.map((segment, i) => ({
-    label: i === slug.length - 1 ? node.name : slugToLabel(segment),
+    label: i === slug.length - 1 ? category.name : slugToLabel(segment),
     href: `/${lang}/category/${slug.slice(0, i + 1).join("/")}`,
     isCurrent: i === slug.length - 1,
   }));
@@ -73,7 +84,7 @@ export default async function CategoryPage({ params }: Props) {
 
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{node.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{category.name}</h1>
           {products.length > 0 && (
             <p className="mt-2 text-sm text-gray-500">
               {products.length} product{products.length !== 1 ? "s" : ""}
