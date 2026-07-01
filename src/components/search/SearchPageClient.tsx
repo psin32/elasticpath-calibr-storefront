@@ -259,9 +259,11 @@ export function SearchPageClient({
 
   return (
     <InstantSearch
+      key={initialQuery}
       indexName={SEARCH_INDEX_NAME}
       searchClient={searchClient}
       routing={routing}
+      initialUiState={{ [SEARCH_INDEX_NAME]: { query: initialQuery } }}
       future={{
         preserveSharedStateOnUnmount: true,
       }}
