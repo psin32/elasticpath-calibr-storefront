@@ -17,6 +17,7 @@
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "clsx": "^2.1.1",
+    "cookies-next": "^6.1.1",
     "instantsearch.js": "^4.103.0",
     "lucide-react": "^0.469.0",
     "next": "16.2.1",

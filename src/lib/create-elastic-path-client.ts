@@ -1,10 +1,17 @@
 import { createClient } from "@epcc-sdk/sdks-shopper";
 import { cookies } from "next/headers";
+import { EP_CURRENCY_CODE } from "./currency";
 
 let _cachedToken: { access_token: string; expires: number } | null = null;
-let _tokenFetchPromise: Promise<{ access_token: string; expires: number }> | null = null;
+let _tokenFetchPromise: Promise<{
+  access_token: string;
+  expires: number;
+}> | null = null;
 
-async function getImplicitToken(): Promise<{ access_token: string; expires: number }> {
+async function getImplicitToken(): Promise<{
+  access_token: string;
+  expires: number;
+}> {
   if (_cachedToken && Date.now() / 1000 < _cachedToken.expires - 60) {
     return _cachedToken;
   }
@@ -16,7 +23,10 @@ async function getImplicitToken(): Promise<{ access_token: string; expires: numb
     `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}/oauth/access_token`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE,
+      },
       body: `grant_type=implicit&client_id=${process.env.NEXT_PUBLIC_EPCC_CLIENT_ID}`,
       cache: "no-store",
     },
@@ -46,6 +56,7 @@ export async function createElasticPathClient() {
 
   const client = createClient({
     baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}`,
+    headers: { "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE },
   });
 
   client.interceptors.request.use(async (request) => {
@@ -55,7 +66,10 @@ export async function createElasticPathClient() {
     }
     request.headers.set("EP-Inventories-Multi-Location", "true");
     if (amToken) {
-      request.headers.set("EP-Account-Management-Authentication-Token", amToken);
+      request.headers.set(
+        "EP-Account-Management-Authentication-Token",
+        amToken,
+      );
     }
     return request;
   });

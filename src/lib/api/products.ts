@@ -322,7 +322,13 @@ function formatProductDetail(
     const rawPrice = (product.attributes as Record<string, unknown>)?.price as
       | Record<string, { amount?: number }>
       | undefined;
-    const currency = rawPrice ? Object.keys(rawPrice)[0] : "USD";
+    const defaultCurrency = process.env.NEXT_PUBLIC_DEFAULT_CURRENCY ?? "USD";
+    const currency =
+      rawPrice?.[defaultCurrency] != null
+        ? defaultCurrency
+        : rawPrice
+          ? (Object.keys(rawPrice)[0] ?? defaultCurrency)
+          : defaultCurrency;
     const baseAmount = rawPrice?.[currency]?.amount ?? 0;
     const fmt = new Intl.NumberFormat("en", { style: "currency", currency });
     const messages = Object.values(rawTiers)

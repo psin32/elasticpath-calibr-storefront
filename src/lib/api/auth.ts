@@ -3,16 +3,21 @@ import {
   postV2AccountMembersTokens,
   getV2AccountMembersAccountMemberId,
 } from "@epcc-sdk/sdks-shopper";
+import { EP_CURRENCY_CODE } from "../currency";
 
 const PASSWORD_PROFILE_ID = process.env.NEXT_PUBLIC_PASSWORD_PROFILE_ID!;
 
 function getAuthClient() {
   const { client } = configureClient(
-    { baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}` },
+    {
+      baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}`,
+      headers: { "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE },
+    },
+
     {
       clientId: process.env.NEXT_PUBLIC_EPCC_CLIENT_ID!,
       storage: "localStorage",
-    }
+    },
   );
   return client;
 }
@@ -33,7 +38,7 @@ export type AccountMemberCredentials = {
 };
 
 function buildCredentials(
-  result: Awaited<ReturnType<typeof postV2AccountMembersTokens>>
+  result: Awaited<ReturnType<typeof postV2AccountMembersTokens>>,
 ): AccountMemberCredentials {
   const tokens = result.data?.data;
   if (!tokens?.length) {
@@ -42,8 +47,7 @@ function buildCredentials(
       "Authentication failed. Check your email and password.";
     throw new Error(errDetail);
   }
-  const accountMemberId =
-    (result.data?.meta as any)?.account_member_id ?? "";
+  const accountMemberId = (result.data?.meta as any)?.account_member_id ?? "";
 
   const accounts = tokens.reduce(
     (acc, t) => ({
@@ -55,7 +59,7 @@ function buildCredentials(
         expires: t.expires as unknown as string,
       },
     }),
-    {} as Record<string, AccountMemberCredential>
+    {} as Record<string, AccountMemberCredential>,
   );
 
   return {
@@ -67,7 +71,7 @@ function buildCredentials(
 
 async function fetchMemberProfile(
   amToken: string,
-  accountMemberId: string
+  accountMemberId: string,
 ): Promise<{ name: string; email: string }> {
   try {
     const client = getAuthClient();
@@ -95,7 +99,7 @@ async function fetchMemberProfile(
 
 export async function loginWithAccountManagement(
   email: string,
-  password: string
+  password: string,
 ): Promise<AccountMemberCredentials> {
   const client = getAuthClient();
   const result = await postV2AccountMembersTokens({
@@ -114,7 +118,10 @@ export async function loginWithAccountManagement(
 
   const firstToken = Object.values(credentials.accounts)[0]?.token ?? "";
   if (credentials.accountMemberId && firstToken) {
-    const profile = await fetchMemberProfile(firstToken, credentials.accountMemberId);
+    const profile = await fetchMemberProfile(
+      firstToken,
+      credentials.accountMemberId,
+    );
     credentials.member_name = profile.name;
     credentials.member_email = profile.email || email;
   } else {
@@ -127,7 +134,7 @@ export async function loginWithAccountManagement(
 export async function registerWithAccountManagement(
   name: string,
   email: string,
-  password: string
+  password: string,
 ): Promise<AccountMemberCredentials> {
   const client = getAuthClient();
   const result = await postV2AccountMembersTokens({

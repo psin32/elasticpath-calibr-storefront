@@ -24,6 +24,7 @@ import {
   createSearchRouting,
   SEARCH_INDEX_NAME,
 } from "@/lib/instantsearch-routing";
+import { EP_CURRENCY_CODE } from "@/lib/currency";
 import type { ProductCardData } from "@/lib/api/products";
 
 const HIERARCHICAL_ATTRIBUTES = [
@@ -42,6 +43,8 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
   const dp = meta.display_price ?? {};
   const odp = meta.original_display_price ?? {};
   const mainImage = hit.main_image as { link?: { href?: string } } | undefined;
+  const productTypes = meta.product_types as string[] | undefined;
+  const tiersAttr = attrs.tiers;
 
   return {
     id: (hit.objectID as string) ?? (hit.id as string) ?? "",
@@ -53,7 +56,10 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
       odp.without_tax?.formatted ?? odp.with_tax?.formatted ?? undefined,
     imageUrl: mainImage?.link?.href,
     hasVariations: Boolean(attrs.base_product),
-    hasBulkBuy: false,
+    hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    isBundle:
+      !!productTypes?.includes("bundle") ||
+      !!(attrs.components && Object.keys(attrs.components as object).length > 0),
   };
 }
 
@@ -145,7 +151,11 @@ function CategoryFilter() {
   );
 }
 
-function PriceRangeFilter({ currencyCode = "USD" }: { currencyCode?: string }) {
+function PriceRangeFilter({
+  currencyCode = EP_CURRENCY_CODE,
+}: {
+  currencyCode?: string;
+}) {
   const t = useTranslations("search");
   const { start, range, canRefine, refine } = useRange({
     attribute: `price.${currencyCode}.float_price`,
