@@ -26,11 +26,18 @@ function injectAmToken(client: Client): void {
   });
 }
 
+const MULTI_LOCATION =
+  process.env.NEXT_PUBLIC_EP_INVENTORIES_MULTI_LOCATION === "true";
+
 export function createEpClient(extraHeaders?: Record<string, string>): Client {
   const { client } = configureClient(
     {
       baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}`,
-      headers: { "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE, ...extraHeaders },
+      headers: {
+        "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE,
+        ...(MULTI_LOCATION ? { "EP-Inventories-Multi-Location": "true" } : {}),
+        ...extraHeaders,
+      },
     },
     {
       clientId: process.env.NEXT_PUBLIC_EPCC_CLIENT_ID!,

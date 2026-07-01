@@ -473,7 +473,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Initialise EP client + load active cart once on mount
   useEffect(() => {
-    const client = createEpClient({ "EP-Inventories-Multi-Location": "true" });
+    const client = createEpClient();
     setEpClient(client);
 
     initializeCart()

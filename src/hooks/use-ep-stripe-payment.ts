@@ -65,7 +65,7 @@ export function useEpStripePayment(
           return;
         }
 
-        const client = createEpClient({ "EP-Inventories-Multi-Location": "true" });
+        const client = createEpClient();
 
         // Derive shipping address: prefer form data, fall back to first account address
         const primaryAddr = savedAddresses[0];

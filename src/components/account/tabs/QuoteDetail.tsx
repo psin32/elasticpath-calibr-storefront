@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ShoppingBag, MapPin, User, FileText, Calendar, Hash, Tag, PackageOpen } from "lucide-react";
+import { ArrowLeft, ShoppingBag, MapPin, User, FileText, Tag, PackageOpen } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { createEpClient } from "@/lib/api/ep-client";
 import { getQuote, getQuoteItems } from "@/lib/api/quotes";
@@ -31,6 +31,7 @@ type QuoteData = {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+  expiresAt?: string;
   totalFormatted?: string;
   contact?: { name?: string; email?: string };
   shippingAddress?: Record<string, string>;
@@ -49,6 +50,7 @@ function formatDate(iso: string | undefined): string {
 }
 
 const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  draft:    "default",
   pending:  "warning",
   active:   "info",
   accepted: "success",
@@ -64,18 +66,23 @@ function QuoteStatusBadge({ status }: { status?: string }) {
 }
 
 function mapQuote(raw: any): QuoteData {
+  const ca = raw.custom_attributes;
   return {
     id: raw.id ?? "",
     name: raw.name,
-    status: raw.status,
+    status: raw.quote_metadata?.status,
     createdAt: raw.meta?.timestamps?.created_at,
     updatedAt: raw.meta?.timestamps?.updated_at,
+    expiresAt: raw.meta?.timestamps?.expires_at,
     totalFormatted:
       raw.meta?.display_price?.with_tax?.formatted ??
       raw.meta?.display_price?.without_tax?.formatted,
-    contact: raw.contact,
+    contact: {
+      name: ca?.buyer_name?.value,
+      email: ca?.buyer_email?.value,
+    },
     shippingAddress: raw.shipping_address,
-    customAttributes: raw.custom_attributes,
+    customAttributes: ca,
   };
 }
 
@@ -107,22 +114,6 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
         <p className="text-xs text-gray-400 mb-0.5">{label}</p>
         <p className="text-sm text-gray-800 font-medium break-words">{value}</p>
       </div>
-    </div>
-  );
-}
-
-function AddressBlock({ addr }: { addr: Record<string, string> }) {
-  const lines = [
-    [addr.first_name, addr.last_name].filter(Boolean).join(" "),
-    addr.company_name,
-    addr.line_1,
-    addr.line_2,
-    [addr.city, addr.county, addr.postcode].filter(Boolean).join(", "),
-    addr.country,
-  ].filter(Boolean);
-  return (
-    <div className="text-sm text-gray-800 space-y-0.5">
-      {lines.map((l, i) => <p key={i}>{l}</p>)}
     </div>
   );
 }
@@ -259,30 +250,30 @@ export function QuoteDetail({ quoteId }: { quoteId: string }) {
               )}
 
               {/* Request details */}
-              {ca && Object.keys(ca).length > 0 && (
+              {ca && (attr(ca, "payment_term") || attr(ca, "address")) && (
                 <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("quoteRequestDetails")}</p>
-                  <DetailRow icon={<Hash size={14} />} label={t("quotePo")} value={attr(ca, "po_reference")} />
-                  <DetailRow icon={<Calendar size={14} />} label={t("quoteDelivery")} value={attr(ca, "requested_date")} />
                   <DetailRow icon={<Tag size={14} />} label={t("quoteTerms")} value={attr(ca, "payment_term")} />
-                  <DetailRow icon={<Tag size={14} />} label={t("quoteTargetPrice")} value={attr(ca, "target_price")} />
-                  <DetailRow icon={<PackageOpen size={14} />} label={t("quoteVolume")} value={attr(ca, "annual_volume")} />
-                  {attr(ca, "notes") && (
-                    <div className="py-3 border-b border-gray-100 last:border-b-0">
-                      <p className="text-xs text-gray-400 mb-1">{t("quoteNotes")}</p>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{attr(ca, "notes")}</p>
-                    </div>
-                  )}
+                  <DetailRow icon={<MapPin size={14} />} label={t("quoteShipTo")} value={attr(ca, "address")} />
                 </div>
               )}
 
-              {/* Ship-to address */}
+              {/* Ship-to address (structured, when present from order address fields) */}
               {quote.shippingAddress && Object.keys(quote.shippingAddress).length > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("quoteShipTo")}</p>
                   <div className="flex gap-3">
                     <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />
-                    <AddressBlock addr={quote.shippingAddress as Record<string, string>} />
+                    <div className="text-sm text-gray-800 space-y-0.5">
+                      {[
+                        [quote.shippingAddress.first_name, quote.shippingAddress.last_name].filter(Boolean).join(" "),
+                        quote.shippingAddress.company_name,
+                        quote.shippingAddress.line_1,
+                        quote.shippingAddress.line_2,
+                        [quote.shippingAddress.city, quote.shippingAddress.county, quote.shippingAddress.postcode].filter(Boolean).join(", "),
+                        quote.shippingAddress.country,
+                      ].filter(Boolean).map((l, i) => <p key={i}>{l}</p>)}
+                    </div>
                   </div>
                 </div>
               )}

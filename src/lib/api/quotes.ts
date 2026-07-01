@@ -98,7 +98,7 @@ export function bulkAddQuoteItems(options: {
   body: { data: QuoteItemPayload[] };
   headers?: Record<string, string>;
 }) {
-  return options.client.put({
+  return options.client.post({
     ...options,
     headers: { ...JSON_CT, ...options.headers },
     security: BEARER,

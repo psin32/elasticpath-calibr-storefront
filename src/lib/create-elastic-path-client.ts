@@ -64,7 +64,9 @@ export async function createElasticPathClient() {
     if (token?.access_token) {
       request.headers.set("Authorization", `Bearer ${token.access_token}`);
     }
-    request.headers.set("EP-Inventories-Multi-Location", "true");
+    if (process.env.NEXT_PUBLIC_EP_INVENTORIES_MULTI_LOCATION === "true") {
+      request.headers.set("EP-Inventories-Multi-Location", "true");
+    }
     if (amToken) {
       request.headers.set(
         "EP-Account-Management-Authentication-Token",

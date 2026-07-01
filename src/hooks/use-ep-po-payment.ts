@@ -42,7 +42,7 @@ export function useEpPOPayment(
       setError(null);
 
       try {
-        const client = createEpClient({ "EP-Inventories-Multi-Location": "true" });
+        const client = createEpClient();
 
         const primaryAddr = savedAddresses[0];
         const fromForm = formData.shippingAddress?.line1;

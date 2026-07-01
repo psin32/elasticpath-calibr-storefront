@@ -35,6 +35,7 @@ function formatDate(iso: string | undefined): string {
 }
 
 const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  draft:    "default",
   pending:  "warning",
   active:   "info",
   accepted: "success",
@@ -50,16 +51,20 @@ function QuoteStatusBadge({ status }: { status?: string }) {
 }
 
 function mapQuote(raw: any): QuoteSummary {
+  const ca = raw.custom_attributes;
   return {
     id: raw.id ?? "",
     name: raw.name ?? raw.id?.slice(0, 8).toUpperCase(),
-    status: raw.status,
+    status: raw.quote_metadata?.status,
     createdAt: raw.meta?.timestamps?.created_at,
     totalFormatted:
       raw.meta?.display_price?.with_tax?.formatted ??
       raw.meta?.display_price?.without_tax?.formatted,
     itemCount: raw.meta?.item_count,
-    contact: raw.contact,
+    contact: {
+      name: ca?.buyer_name?.value,
+      email: ca?.buyer_email?.value,
+    },
   };
 }
 
