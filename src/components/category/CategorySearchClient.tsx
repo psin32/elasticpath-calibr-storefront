@@ -6,7 +6,6 @@ import {
   useHits,
   useInstantSearch,
   usePagination,
-  useSearchBox,
   useStats,
   useHierarchicalMenu,
   useRange,
@@ -20,10 +19,7 @@ import { useEpClient } from "@/components/ClientProvider";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Pagination } from "@/components/ui/Pagination/Pagination";
 import { Button } from "@/components/ui/Button";
-import {
-  createSearchRouting,
-  SEARCH_INDEX_NAME,
-} from "@/lib/instantsearch-routing";
+import { SEARCH_INDEX_NAME } from "@/lib/instantsearch-routing";
 import type { ProductCardData } from "@/lib/api/products";
 
 const HIERARCHICAL_ATTRIBUTES = [
@@ -32,17 +28,12 @@ const HIERARCHICAL_ATTRIBUTES = [
   "meta.search.categories.lvl2",
 ];
 
-// EP Typesense hit shape (confirmed from adapter response):
-// hit.attributes.{name, slug, description, sku, base_product}
-// hit.meta.display_price.with_tax.formatted
-// hit.main_image.link.href  (merged by adapter when include:["main_image"])
 function hitToCard(hit: Record<string, unknown>): ProductCardData {
   const attrs = (hit.attributes as Record<string, any>) ?? {};
   const meta = (hit.meta as Record<string, any>) ?? {};
   const dp = meta.display_price ?? {};
   const odp = meta.original_display_price ?? {};
   const mainImage = hit.main_image as { link?: { href?: string } } | undefined;
-
   return {
     id: (hit.objectID as string) ?? (hit.id as string) ?? "",
     name: attrs.name ?? "",
@@ -69,7 +60,6 @@ function FilterSection({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-
   return (
     <div className="border-b border-gray-100 last:border-0">
       <button
@@ -123,7 +113,7 @@ function CategoryFilter() {
             {item.count}
           </span>
         </button>
-        {item.isRefined && item.data && item.data.length > 0 && (
+        {item.data && item.data.length > 0 && (
           <div className="mt-0.5">{renderItems(item.data, depth + 1)}</div>
         )}
       </div>
@@ -150,7 +140,6 @@ function PriceRangeFilter({ currencyCode = "USD" }: { currencyCode?: string }) {
   const { start, range, canRefine, refine } = useRange({
     attribute: `price.${currencyCode}.float_price`,
   });
-
   const [minInput, setMinInput] = useState("");
   const [maxInput, setMaxInput] = useState("");
 
@@ -177,8 +166,6 @@ function PriceRangeFilter({ currencyCode = "USD" }: { currencyCode?: string }) {
           </label>
           <input
             type="number"
-            min={range.min}
-            max={range.max}
             value={minInput}
             placeholder={range.min != null ? String(range.min) : "0"}
             onChange={(e) => setMinInput(e.target.value)}
@@ -194,8 +181,6 @@ function PriceRangeFilter({ currencyCode = "USD" }: { currencyCode?: string }) {
           </label>
           <input
             type="number"
-            min={range.min}
-            max={range.max}
             value={maxInput}
             placeholder={range.max != null ? String(range.max) : "∞"}
             onChange={(e) => setMaxInput(e.target.value)}
@@ -228,7 +213,7 @@ function ClearFiltersButton() {
   );
 }
 
-function FilterSidebar({ currencyCode }: { currencyCode?: string }) {
+function FilterSidebar() {
   const t = useTranslations("search");
   return (
     <div>
@@ -242,20 +227,25 @@ function FilterSidebar({ currencyCode }: { currencyCode?: string }) {
         <CategoryFilter />
       </FilterSection>
       <FilterSection title={t("price")} defaultOpen={false}>
-        <PriceRangeFilter currencyCode={currencyCode} />
+        <PriceRangeFilter />
       </FilterSection>
     </div>
   );
 }
 
-// ─── Search Results ───────────────────────────────────────────────────────────
+// ─── Category Results ─────────────────────────────────────────────────────────
 
-function SearchInner({ lang }: { lang: string }) {
+function CategoryInner({
+  lang,
+  categoryName,
+}: {
+  lang: string;
+  categoryName: string;
+}) {
   const t = useTranslations("search");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { status, error, results } = useInstantSearch();
   const { hits } = useHits<Record<string, unknown>>();
-  const { query } = useSearchBox();
   const { nbHits } = useStats();
   const { currentRefinement, nbPages, refine: goToPage } = usePagination();
 
@@ -267,19 +257,15 @@ function SearchInner({ lang }: { lang: string }) {
 
   return (
     <div>
-      {/* Page heading */}
       <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {query ? t("headingQuery", { query }) : t("heading")}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">{categoryName}</h1>
           {!isLoading && nbHits > 0 && (
             <p className="mt-1 text-sm text-gray-500">
-              {t("productCount", { count: nbHits })}
+              {nbHits} product{nbHits !== 1 ? "s" : ""}
             </p>
           )}
         </div>
-        {/* Mobile filter toggle */}
         <Button
           variant="outline"
           size="sm"
@@ -298,14 +284,11 @@ function SearchInner({ lang }: { lang: string }) {
         </div>
       )}
 
-      {/* Two-column layout */}
       <div className="flex gap-8">
-        {/* Desktop sidebar */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
           <FilterSidebar />
         </aside>
 
-        {/* Product grid */}
         <div className="flex-1 min-w-0">
           {isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -350,20 +333,12 @@ function SearchInner({ lang }: { lang: string }) {
 
           {!isLoading && hits.length === 0 && !error && (
             <div className="py-20 text-center">
-              <p className="text-gray-500 text-base">
-                {query ? t("noResultsForQuery", { query }) : t("noResults")}
-              </p>
-              {query && (
-                <p className="mt-2 text-sm text-gray-400">
-                  {t("noResultsHint")}
-                </p>
-              )}
+              <p className="text-gray-500 text-base">{t("noResults")}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div
@@ -400,45 +375,46 @@ function SearchInner({ lang }: { lang: string }) {
 
 // ─── Root Provider ────────────────────────────────────────────────────────────
 
-export type SearchPageClientProps = {
+type Props = {
   lang: string;
-  initialQuery?: string;
+  categoryName: string;
+  slugs: string[];
 };
 
-export function SearchPageClient({
-  lang,
-  initialQuery = "",
-}: SearchPageClientProps) {
+export function CategorySearchClient({ lang, categoryName, slugs }: Props) {
   const epClient = useEpClient();
 
+  // Stable string so useMemo doesn't reconstruct the client on every render
+  const slugKey = slugs.join(",");
+
   const searchClient = useMemo(() => {
+    const nodeSlugFilter = slugs
+      .map((s) => `meta.search.nodes.slug:=[\`${s}\`]`)
+      .join(" && ");
+
     const adapter = new CatalogSearchInstantSearchAdapter({
       client: epClient as any,
       include: ["main_image"],
       additionalSearchParameters: {
         query_by: "name,description,sku",
         per_page: 12,
-        filter_by:
-          "meta.product_types:=parent || meta.product_types:=standard || meta.product_types:=bundle",
+        filter_by: nodeSlugFilter,
         facet_by:
           "meta.search.categories.lvl0,meta.search.categories.lvl1,meta.search.categories.lvl2",
       },
     });
-    return adapter.searchClient;
-  }, [epClient]);
 
-  const routing = useMemo(() => createSearchRouting(), []);
+    return adapter.searchClient;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [epClient, slugKey]);
 
   return (
     <InstantSearch
       indexName={SEARCH_INDEX_NAME}
       searchClient={searchClient}
-      routing={routing}
-      future={{
-        preserveSharedStateOnUnmount: true,
-      }}
+      future={{ preserveSharedStateOnUnmount: true }}
     >
-      <SearchInner lang={lang} />
+      <CategoryInner lang={lang} categoryName={categoryName} />
     </InstantSearch>
   );
 }
