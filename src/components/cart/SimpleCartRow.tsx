@@ -24,6 +24,9 @@ type Props = {
   onQuantityChange: (cartItemId: string, qty: number) => void;
   onRemove: (cartItemId: string) => void;
   disabled?: boolean;
+  bulkMode?: boolean;
+  pendingQty?: number;
+  onPendingChange?: (cartItemId: string, qty: number) => void;
 };
 
 export function SimpleCartRow({
@@ -43,20 +46,34 @@ export function SimpleCartRow({
   onQuantityChange,
   onRemove,
   disabled,
+  bulkMode = false,
+  pendingQty,
+  onPendingChange,
 }: Props) {
   const t = useTranslations("cart");
   const [draft, setDraft] = useState(String(quantity));
 
+  const isPending = bulkMode && pendingQty !== undefined && pendingQty !== quantity;
+
   useEffect(() => {
-    setDraft(String(quantity));
-  }, [quantity]);
+    setDraft(bulkMode && pendingQty !== undefined ? String(pendingQty) : String(quantity));
+  }, [quantity, bulkMode, pendingQty]);
 
   const commitQty = (raw: string) => {
     const n = parseInt(raw, 10);
-    if (isNaN(n) || n < 0) { setDraft(String(quantity)); return; }
+    if (isNaN(n) || n < 0) {
+      setDraft(bulkMode && pendingQty !== undefined ? String(pendingQty) : String(quantity));
+      return;
+    }
+    if (bulkMode) {
+      onPendingChange?.(cartItemId, n);
+      return;
+    }
     if (n === quantity) { setDraft(String(quantity)); return; }
     onQuantityChange(cartItemId, n);
   };
+
+  const effectiveQty = bulkMode && pendingQty !== undefined ? pendingQty : quantity;
 
   return (
     <div className={isSubscription ? "relative mt-3" : undefined}>
@@ -125,24 +142,41 @@ export function SimpleCartRow({
         {/* Inline stepper */}
         <div className="flex items-center gap-1.5 ml-auto">
           <button
-            onClick={() => onQuantityChange(cartItemId, Math.max(0, quantity - 1))}
-            disabled={disabled || quantity <= 1}
+            onClick={() => {
+              if (bulkMode) onPendingChange?.(cartItemId, Math.max(0, effectiveQty - 1));
+              else onQuantityChange(cartItemId, Math.max(0, quantity - 1));
+            }}
+            disabled={disabled || effectiveQty <= 1}
             className="w-[30px] h-[34px] border border-ink-200 rounded-[7px] bg-white text-ink-700 flex items-center justify-center hover:bg-ink-100 transition-colors disabled:opacity-40"
           >
             <Minus size={14} />
           </button>
-          <input
-            type="number"
-            value={draft}
-            min={0}
-            disabled={disabled}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={(e) => commitQty(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") commitQty((e.target as HTMLInputElement).value); }}
-            className="w-[54px] h-[34px] text-center text-[14px] font-bold text-ink-900 border border-ink-200 rounded-[7px] bg-white outline-none focus:border-success-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          />
+          <div className="relative">
+            <input
+              type="number"
+              value={draft}
+              min={0}
+              disabled={disabled}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={(e) => commitQty(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitQty((e.target as HTMLInputElement).value); }}
+              className={[
+                "w-[54px] h-[34px] text-center text-[14px] font-bold text-ink-900 rounded-[7px] border outline-none transition-colors",
+                "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                isPending
+                  ? "border-amber-300 bg-amber-50 focus:border-amber-400"
+                  : "border-ink-200 bg-white focus:border-success-400",
+              ].join(" ")}
+            />
+            {isPending && (
+              <span className="absolute -top-1 -right-1 w-[6px] h-[6px] rounded-full bg-amber-400" />
+            )}
+          </div>
           <button
-            onClick={() => onQuantityChange(cartItemId, quantity + 1)}
+            onClick={() => {
+              if (bulkMode) onPendingChange?.(cartItemId, effectiveQty + 1);
+              else onQuantityChange(cartItemId, quantity + 1);
+            }}
             disabled={disabled}
             className="w-[30px] h-[34px] border border-ink-200 rounded-[7px] bg-white text-ink-700 flex items-center justify-center hover:bg-ink-100 transition-colors disabled:opacity-40"
           >

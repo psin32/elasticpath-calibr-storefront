@@ -12,6 +12,7 @@ import {
 import {
   initializeCart,
   manageCarts,
+  bulkUpdateItemsInCart,
   getCartItems,
   getCarts,
   createACart,
@@ -124,7 +125,7 @@ type CartContextValue = {
     productFields?: ProductField[],
   ) => Promise<PromotionSuggestion[] | undefined>;
   addItems: (
-    items: Array<{ productId: string; quantity: number }>,
+    items: Array<{ productId: string; quantity: number; customInputs?: Record<string, string> }>,
   ) => Promise<PromotionSuggestion[] | undefined>;
   addBundleItem: (
     productId: string,
@@ -133,6 +134,7 @@ type CartContextValue = {
   ) => Promise<PromotionSuggestion[] | undefined>;
   removeItem: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  bulkUpdateItems: (items: Array<{ cartItemId: string; quantity: number }>) => Promise<void>;
   clearCart: () => Promise<void>;
   switchCart: (newCartId: string) => Promise<void>;
   createCart: (name: string) => Promise<string | null>;
@@ -710,7 +712,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItems = useCallback(
     async (
-      items: Array<{ productId: string; quantity: number }>,
+      items: Array<{ productId: string; quantity: number; customInputs?: Record<string, string> }>,
     ): Promise<PromotionSuggestion[] | undefined> => {
       if (!epClient || !cartId || items.length === 0) return undefined;
       setIsLoading(true);
@@ -722,11 +724,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           client: epClient,
           path: { cartID: cartId },
           body: {
-            data: items.map(({ productId, quantity }) => ({
-              type: "cart_item" as const,
-              id: productId,
-              quantity,
-            })),
+            data: items.map(({ productId, quantity, customInputs }) => {
+              const item: any = { type: "cart_item", id: productId, quantity };
+              if (customInputs && Object.keys(customInputs).length > 0) {
+                item.custom_inputs = customInputs;
+              }
+              return item;
+            }),
           },
         });
         const suggestions = (res.data as any)?.meta?.promotion_suggestions as
@@ -833,6 +837,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     },
     [epClient, cartId, removeItem, loadItems, setPromotionSuggestions],
+  );
+
+  const bulkUpdateItems = useCallback(
+    async (items: Array<{ cartItemId: string; quantity: number }>) => {
+      if (!epClient || !cartId || items.length === 0) return;
+      setIsLoading(true);
+      try {
+        await bulkUpdateItemsInCart({
+          client: epClient,
+          path: { cartID: cartId },
+          body: {
+            data: items.map(({ cartItemId, quantity }) => ({ id: cartItemId, quantity })),
+          },
+        });
+        await loadItems();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [epClient, cartId, loadItems],
   );
 
   const clearCart = useCallback(async () => {
@@ -1060,6 +1084,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addBundleItem,
         removeItem,
         updateQuantity,
+        bulkUpdateItems,
         clearCart,
         switchCart,
         createCart,

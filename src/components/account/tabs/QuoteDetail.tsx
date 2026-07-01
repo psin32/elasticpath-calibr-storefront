@@ -40,13 +40,11 @@ type QuoteData = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-function formatDate(iso: string | undefined): string {
+function formatDate(iso: string | undefined, locale: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
 }
 
 const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
@@ -58,10 +56,21 @@ const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
   expired:  "default",
 };
 
+const STATUS_KEY: Record<string, string> = {
+  draft: "quoteStatusDraft",
+  pending: "quoteStatusPending",
+  active: "quoteStatusActive",
+  accepted: "quoteStatusAccepted",
+  rejected: "quoteStatusRejected",
+  expired: "quoteStatusExpired",
+};
+
 function QuoteStatusBadge({ status }: { status?: string }) {
+  const t = useTranslations("account");
   if (!status) return null;
-  const variant = QUOTE_STATUS_VARIANT[status.toLowerCase()] ?? "default";
-  const label = status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const key = status.toLowerCase();
+  const variant = QUOTE_STATUS_VARIANT[key] ?? "default";
+  const label = STATUS_KEY[key] ? t(STATUS_KEY[key] as Parameters<typeof t>[0]) : status;
   return <Badge variant={variant} dot>{label}</Badge>;
 }
 
@@ -183,7 +192,12 @@ export function QuoteDetail({ quoteId }: { quoteId: string }) {
                 <p className="text-xs text-gray-400 mb-0.5">{t("quoteColumnId")}</p>
                 <p className="text-lg font-semibold font-mono text-gray-900">{quote.name ?? quote.id}</p>
                 {quote.createdAt && (
-                  <p className="text-xs text-gray-400 mt-1">{formatDate(quote.createdAt)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{formatDate(quote.createdAt, lang)}</p>
+                )}
+                {quote.expiresAt && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {t("quoteExpires")}: {formatDate(quote.expiresAt, lang)}
+                  </p>
                 )}
               </div>
               <QuoteStatusBadge status={quote.status} />

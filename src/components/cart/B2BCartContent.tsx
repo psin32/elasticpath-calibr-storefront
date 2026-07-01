@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
-import { ShoppingBag, LayoutList, LayoutGrid } from "lucide-react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { ShoppingBag, LayoutList, LayoutGrid, Layers } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -66,7 +66,7 @@ type Props = { lang: string };
 
 export function B2BCartContent({ lang }: Props) {
   const t = useTranslations("cart");
-  const { items, isLoading, isInitializing, addItem, updateQuantity, removeItem, promotionSuggestions } = useCart();
+  const { items, isLoading, isInitializing, addItem, addItems, bulkUpdateItems, updateQuantity, removeItem, promotionSuggestions } = useCart();
 
   const productInfoCache = useRef<Map<string, ProductInfo>>(new Map());
   const childrenCache = useRef<Map<string, ChildProduct[]>>(new Map());
@@ -74,6 +74,9 @@ export function B2BCartContent({ lang }: Props) {
   const [groups, setGroups] = useState<LineGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [viewMode, setViewModeState] = useState<"list" | "grid">(ENV_DEFAULT);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [pendingQtys, setPendingQtys] = useState<Map<string, number>>(new Map());
+  const [simplePendingQtys, setSimplePendingQtys] = useState<Map<string, number>>(new Map());
 
   // Sync from cookie after hydration
   useEffect(() => {
@@ -84,7 +87,43 @@ export function B2BCartContent({ lang }: Props) {
   const setViewMode = useCallback((mode: "list" | "grid") => {
     writeViewModeCookie(mode);
     setViewModeState(mode);
+    if (mode === "list") {
+      setBulkMode(false);
+      setPendingQtys(new Map());
+      setSimplePendingQtys(new Map());
+    }
   }, []);
+
+  const handlePendingChange = useCallback((productId: string, quantity: number) => {
+    setPendingQtys((prev) => new Map(prev).set(productId, quantity));
+  }, []);
+
+  const handleSimplePendingChange = useCallback((cartItemId: string, qty: number) => {
+    setSimplePendingQtys((prev) => new Map(prev).set(cartItemId, qty));
+  }, []);
+
+  const pendingCount = useMemo(() => {
+    let count = 0;
+    for (const [productId, pendingQty] of pendingQtys) {
+      let currentQty = 0;
+      for (const group of groups) {
+        if (group.kind !== "matrix") continue;
+        const entry = (group as Extract<LineGroup, { kind: "matrix" }>).cartItemsByProductId.get(productId);
+        if (entry) { currentQty = entry.quantity; break; }
+      }
+      if (pendingQty !== currentQty) count++;
+    }
+    for (const [cartItemId, pendingQty] of simplePendingQtys) {
+      for (const group of groups) {
+        if (group.kind !== "simple") continue;
+        if ((group as Extract<LineGroup, { kind: "simple" }>).cartItemId === cartItemId) {
+          if (pendingQty !== (group as Extract<LineGroup, { kind: "simple" }>).quantity) count++;
+          break;
+        }
+      }
+    }
+    return count;
+  }, [pendingQtys, simplePendingQtys, groups]);
 
   const rebuild = useCallback(async () => {
     setGroupsLoading(true);
@@ -306,6 +345,84 @@ export function B2BCartContent({ lang }: Props) {
     [addItem, updateQuantity, removeItem, showCartError],
   );
 
+  const handleMatrixBulkAdd = useCallback(
+    async (items: Array<{ productId: string; quantity: number }>) => {
+      try {
+        const enriched = items.map(({ productId, quantity }) => {
+          let customInputs: Record<string, string> | undefined;
+          for (const [parentId, children] of childrenCache.current) {
+            const child = children.find((c) => c.id === productId);
+            if (child && child.variationOptions.length > 0) {
+              customInputs = {
+                parent_product_id: parentId,
+                options: child.variationOptions.map((o) => o.optionName).join(" / "),
+              };
+              break;
+            }
+          }
+          return { productId, quantity, customInputs };
+        });
+        await addItems(enriched);
+      } catch (err) {
+        showCartError(err);
+      }
+    },
+    [addItems, showCartError],
+  );
+
+  const handleMatrixBulkUpdate = useCallback(
+    async (items: Array<{ cartItemId: string; quantity: number }>) => {
+      try {
+        const removes = items.filter((i) => i.quantity <= 0);
+        const updates = items.filter((i) => i.quantity > 0);
+        await Promise.all([
+          ...removes.map((i) => removeItem(i.cartItemId)),
+          updates.length > 0 ? bulkUpdateItems(updates) : Promise.resolve(),
+        ]);
+      } catch (err) {
+        showCartError(err);
+      }
+    },
+    [bulkUpdateItems, removeItem, showCartError],
+  );
+
+  const handleCartUpdateAll = useCallback(async () => {
+    const additions: Array<{ productId: string; quantity: number }> = [];
+    const mutations: Array<{ cartItemId: string; quantity: number }> = [];
+
+    for (const [productId, pendingQty] of pendingQtys) {
+      let cartEntry: CartItemEntry | undefined;
+      for (const group of groups) {
+        if (group.kind !== "matrix") continue;
+        cartEntry = (group as Extract<LineGroup, { kind: "matrix" }>).cartItemsByProductId.get(productId);
+        if (cartEntry) break;
+      }
+      const currentQty = cartEntry?.quantity ?? 0;
+      if (pendingQty === currentQty) continue;
+      if (pendingQty > 0 && !cartEntry) {
+        additions.push({ productId, quantity: pendingQty });
+      } else if (cartEntry) {
+        mutations.push({ cartItemId: cartEntry.cartItemId, quantity: pendingQty });
+      }
+    }
+
+    for (const [cartItemId, pendingQty] of simplePendingQtys) {
+      for (const group of groups) {
+        if (group.kind !== "simple") continue;
+        const sg = group as Extract<LineGroup, { kind: "simple" }>;
+        if (sg.cartItemId === cartItemId && pendingQty !== sg.quantity) {
+          mutations.push({ cartItemId, quantity: pendingQty });
+          break;
+        }
+      }
+    }
+
+    if (additions.length > 0) await handleMatrixBulkAdd(additions);
+    if (mutations.length > 0) await handleMatrixBulkUpdate(mutations);
+    setPendingQtys(new Map());
+    setSimplePendingQtys(new Map());
+  }, [pendingQtys, simplePendingQtys, groups, handleMatrixBulkAdd, handleMatrixBulkUpdate]);
+
   const handleSimpleQtyChange = useCallback(
     async (cartItemId: string, qty: number) => {
       try {
@@ -364,33 +481,64 @@ export function B2BCartContent({ lang }: Props) {
                 {t("units", { count: totalUnits })} ·{" "}
                 {t("products", { count: lineCount })}
               </p>
-              <div className="flex items-center gap-[3px] bg-ink-100 rounded-[8px] p-[3px]">
-                <button
-                  onClick={() => setViewMode("list")}
-                  title={t("viewList")}
-                  aria-pressed={viewMode === "list"}
-                  className={[
-                    "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
-                    viewMode === "list"
-                      ? "bg-white shadow-sm text-ink-900"
-                      : "text-ink-600 hover:text-ink-900",
-                  ].join(" ")}
-                >
-                  <LayoutList size={15} />
-                </button>
-                <button
-                  onClick={() => setViewMode("grid")}
-                  title={t("viewGrid")}
-                  aria-pressed={viewMode === "grid"}
-                  className={[
-                    "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
-                    viewMode === "grid"
-                      ? "bg-white shadow-sm text-ink-900"
-                      : "text-ink-600 hover:text-ink-900",
-                  ].join(" ")}
-                >
-                  <LayoutGrid size={15} />
-                </button>
+              <div className="flex items-center gap-2">
+                {viewMode === "grid" && (
+                  <>
+                    <button
+                      onClick={() => setBulkMode((v) => !v)}
+                      aria-pressed={bulkMode}
+                      className={[
+                        "h-7 px-3 rounded-[6px] border text-[12px] font-semibold flex items-center gap-1.5 transition-colors",
+                        bulkMode
+                          ? "bg-amber-50 border-amber-300 text-amber-700"
+                          : "bg-white border-ink-200 text-ink-600 hover:text-ink-900",
+                      ].join(" ")}
+                    >
+                      <Layers size={13} />
+                      {t("bulkMode")}
+                    </button>
+                    {bulkMode && pendingCount > 0 && (
+                      <button
+                        onClick={handleCartUpdateAll}
+                        disabled={isLoading}
+                        className="h-7 px-3 rounded-[6px] bg-ink-900 text-white text-[12px] font-semibold flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-40"
+                      >
+                        {t("updateAll")}
+                        <span className="bg-white/20 text-white rounded-full px-1.5 text-[10px] font-bold leading-tight">
+                          {pendingCount}
+                        </span>
+                      </button>
+                    )}
+                  </>
+                )}
+                <div className="flex items-center gap-[3px] bg-ink-100 rounded-[8px] p-[3px]">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    title={t("viewList")}
+                    aria-pressed={viewMode === "list"}
+                    className={[
+                      "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
+                      viewMode === "list"
+                        ? "bg-white shadow-sm text-ink-900"
+                        : "text-ink-600 hover:text-ink-900",
+                    ].join(" ")}
+                  >
+                    <LayoutList size={15} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    title={t("viewGrid")}
+                    aria-pressed={viewMode === "grid"}
+                    className={[
+                      "w-8 h-7 rounded-[6px] flex items-center justify-center transition-colors",
+                      viewMode === "grid"
+                        ? "bg-white shadow-sm text-ink-900"
+                        : "text-ink-600 hover:text-ink-900",
+                    ].join(" ")}
+                  >
+                    <LayoutGrid size={15} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -433,6 +581,8 @@ export function B2BCartContent({ lang }: Props) {
                         matrixGroup={group.matrixGroup}
                         cartItemsByProductId={group.cartItemsByProductId}
                         onQuantityChange={handleMatrixQtyChange}
+                        onBulkAdd={handleMatrixBulkAdd}
+                        onBulkUpdate={handleMatrixBulkUpdate}
                         disabled={isLoading}
                       />
                     );
@@ -480,6 +630,11 @@ export function B2BCartContent({ lang }: Props) {
                         matrixGroup={group.matrixGroup}
                         cartItemsByProductId={group.cartItemsByProductId}
                         onQuantityChange={handleMatrixQtyChange}
+                        onBulkAdd={handleMatrixBulkAdd}
+                        onBulkUpdate={handleMatrixBulkUpdate}
+                        bulkMode={bulkMode}
+                        pendingQtys={pendingQtys}
+                        onPendingChange={handlePendingChange}
                         disabled={isLoading}
                       />
                     );
@@ -491,6 +646,9 @@ export function B2BCartContent({ lang }: Props) {
                       onQuantityChange={handleSimpleQtyChange}
                       onRemove={removeItem}
                       disabled={isLoading}
+                      bulkMode={bulkMode}
+                      pendingQty={simplePendingQtys.get(group.cartItemId)}
+                      onPendingChange={handleSimplePendingChange}
                     />
                   );
                 })}

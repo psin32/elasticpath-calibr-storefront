@@ -25,13 +25,11 @@ type QuoteSummary = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-function formatDate(iso: string | undefined): string {
+function formatDate(iso: string | undefined, locale: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
 }
 
 const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
@@ -43,10 +41,21 @@ const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
   expired:  "default",
 };
 
+const STATUS_KEY: Record<string, string> = {
+  draft: "quoteStatusDraft",
+  pending: "quoteStatusPending",
+  active: "quoteStatusActive",
+  accepted: "quoteStatusAccepted",
+  rejected: "quoteStatusRejected",
+  expired: "quoteStatusExpired",
+};
+
 function QuoteStatusBadge({ status }: { status?: string }) {
+  const t = useTranslations("account");
   if (!status) return <span className="text-gray-400">—</span>;
-  const variant = QUOTE_STATUS_VARIANT[status.toLowerCase()] ?? "default";
-  const label = status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const key = status.toLowerCase();
+  const variant = QUOTE_STATUS_VARIANT[key] ?? "default";
+  const label = STATUS_KEY[key] ? t(STATUS_KEY[key] as Parameters<typeof t>[0]) : status;
   return <Badge variant={variant} dot size="sm">{label}</Badge>;
 }
 
@@ -159,7 +168,7 @@ export function QuotesTab() {
                     </Link>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">
-                    {formatDate(q.createdAt)}
+                    {formatDate(q.createdAt, lang)}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700">
                     <span className="block">{q.contact?.name ?? "—"}</span>
