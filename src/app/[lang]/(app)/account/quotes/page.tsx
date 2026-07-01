@@ -1,5 +1,5 @@
-import { PlaceholderTab } from "@/components/account/tabs/PlaceholderTab";
+import { QuotesTab } from "@/components/account/tabs/QuotesTab";
 
 export default function QuotesPage() {
-  return <PlaceholderTab titleKey="tabQuotes" />;
+  return <QuotesTab />;
 }

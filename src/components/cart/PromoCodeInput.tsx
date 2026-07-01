@@ -31,7 +31,7 @@ export function PromoCodeInput() {
   return (
     <div className="space-y-2">
       {/* Applied codes */}
-      {appliedPromoCodes.map(({ id, code: appliedCode }) => (
+      {appliedPromoCodes.filter(({ code: c }) => !c.startsWith("auto_")).map(({ id, code: appliedCode }) => (
         <div
           key={id}
           className="flex items-center justify-between px-3 py-2 rounded-lg bg-success-50 border border-success-200"

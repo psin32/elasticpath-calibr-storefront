@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "sonner";
 
 export default async function CheckoutLayout({
   children,
@@ -15,6 +16,7 @@ export default async function CheckoutLayout({
       <AuthProvider>
         <CartProvider>{children}</CartProvider>
       </AuthProvider>
+      <Toaster position="top-right" />
     </NextIntlClientProvider>
   );
 }
