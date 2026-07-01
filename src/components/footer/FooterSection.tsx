@@ -18,5 +18,5 @@ export async function FooterSection({ lang }: FooterSectionProps) {
     return <Footer lang={lang} />;
   }
 
-  return <PlasmicContent component="footer" prefetchedData={plasmicData} />;
+  return <PlasmicContent component="footer" prefetchedData={plasmicData} componentProps={{ lang }} />;
 }
