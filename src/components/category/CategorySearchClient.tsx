@@ -17,6 +17,7 @@ import { Pagination } from "@/components/ui/Pagination/Pagination";
 import { Button } from "@/components/ui/Button";
 import { SEARCH_INDEX_NAME } from "@/lib/instantsearch-routing";
 import { FilterSidebar } from "@/components/search/filters";
+import { SortBy } from "@/components/search/SortBy";
 import type { ProductCardData } from "@/lib/api/products";
 
 function buildFacetBy(filterItems: string): string {
@@ -84,7 +85,7 @@ function CategoryInner({
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{categoryName}</h1>
           {!isLoading && nbHits > 0 && (
@@ -93,15 +94,18 @@ function CategoryInner({
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="lg:hidden"
-          onClick={() => setMobileFiltersOpen(true)}
-        >
-          <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-          {t("filters")}
-        </Button>
+        <div className="flex items-center gap-3">
+          <SortBy />
+          <Button
+            variant="outline"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setMobileFiltersOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+            {t("filters")}
+          </Button>
+        </div>
       </div>
 
       {error && (

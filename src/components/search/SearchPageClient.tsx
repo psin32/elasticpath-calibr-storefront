@@ -21,9 +21,10 @@ import {
   SEARCH_INDEX_NAME,
 } from "@/lib/instantsearch-routing";
 import { FilterSidebar } from "@/components/search/filters";
+import { SortBy } from "@/components/search/SortBy";
 import type { ProductCardData } from "@/lib/api/products";
 
-// EP Typesense hit shape (confirmed from adapter response):
+// EP hit shape (confirmed from adapter response):
 // hit.attributes.{name, slug, description, sku, base_product}
 // hit.meta.display_price.with_tax.formatted
 // hit.main_image.link.href  (merged by adapter when include:["main_image"])
@@ -49,7 +50,9 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
     hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
     isBundle:
       !!productTypes?.includes("bundle") ||
-      !!(attrs.components && Object.keys(attrs.components as object).length > 0),
+      !!(
+        attrs.components && Object.keys(attrs.components as object).length > 0
+      ),
   };
 }
 
@@ -68,7 +71,13 @@ function buildFacetBy(filterItems: string): string {
 
 // ─── Search Results ───────────────────────────────────────────────────────────
 
-function SearchInner({ lang, filterItems }: { lang: string; filterItems: string }) {
+function SearchInner({
+  lang,
+  filterItems,
+}: {
+  lang: string;
+  filterItems: string;
+}) {
   const t = useTranslations("search");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { status, error, results } = useInstantSearch();
@@ -86,7 +95,7 @@ function SearchInner({ lang, filterItems }: { lang: string; filterItems: string 
   return (
     <div>
       {/* Page heading */}
-      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             {query ? t("headingQuery", { query }) : t("heading")}
@@ -97,16 +106,18 @@ function SearchInner({ lang, filterItems }: { lang: string; filterItems: string 
             </p>
           )}
         </div>
-        {/* Mobile filter toggle */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="lg:hidden"
-          onClick={() => setMobileFiltersOpen(true)}
-        >
-          <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-          {t("filters")}
-        </Button>
+        <div className="flex items-center gap-3">
+          <SortBy />
+          <Button
+            variant="outline"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setMobileFiltersOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+            {t("filters")}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -238,8 +249,6 @@ export function SearchPageClient({
       additionalSearchParameters: {
         query_by: "name,description,sku",
         per_page: 12,
-        filter_by:
-          "meta.product_types:=parent || meta.product_types:=standard || meta.product_types:=bundle",
         facet_by: buildFacetBy(filterItems),
       },
     });

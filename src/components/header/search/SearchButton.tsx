@@ -197,8 +197,6 @@ export function SearchButton({ lang }: SearchButtonProps) {
       additionalSearchParameters: {
         query_by: "name,description,sku",
         per_page: 6,
-        filter_by:
-          "meta.product_types:=parent || meta.product_types:=standard || meta.product_types:=bundle",
       },
     });
     return adapter.searchClient;

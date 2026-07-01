@@ -621,7 +621,13 @@
     "metaTitle": "Tous les produits",
     "metaTitleQuery": "Recherche : {query}",
     "on": "Activé",
-    "off": "Désactivé"
+    "off": "Désactivé",
+    "sortBy": "Trier par",
+    "sortRelevance": "Pertinence",
+    "sortPriceLow": "Prix : croissant",
+    "sortPriceHigh": "Prix : décroissant",
+    "sortNameAZ": "Nom : A–Z",
+    "sortNameZA": "Nom : Z–A"
   },
   "orderConfirmation": {
     "title": "Commande confirmée !",

@@ -2,8 +2,6 @@ import { postMultiSearch } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
 import type { ProductCardData } from "./products";
 
-const PRODUCT_TYPE_FILTER =
-  "meta.product_types:=parent || meta.product_types:=standard || meta.product_types:=bundle";
 
 export async function searchProductsByNodeSlugs(
   slugs: string[],
@@ -24,7 +22,7 @@ export async function searchProductsByNodeSlugs(
       searches: [
         {
           q: "*",
-          filter_by: `(${slugFilter}) && (${PRODUCT_TYPE_FILTER})`,
+          filter_by: slugFilter,
           per_page: limit,
           page: 1,
         },
