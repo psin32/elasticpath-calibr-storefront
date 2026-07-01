@@ -4,15 +4,30 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { User, LogOut, ChevronDown, Check, Building2, MapPin, ShoppingBag, ShoppingCart, RefreshCw } from "lucide-react";
+import {
+  User,
+  LogOut,
+  ChevronDown,
+  Check,
+  Building2,
+  MapPin,
+  ShoppingBag,
+  ShoppingCart,
+  RefreshCw,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 
 export function AccountButton() {
   const t = useTranslations("header");
   const tAccount = useTranslations("account");
-  const { credentials, selectedAccount, isAuthenticated, selectAccount, logout } =
-    useAuth();
+  const {
+    credentials,
+    selectedAccount,
+    isAuthenticated,
+    selectAccount,
+    logout,
+  } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,10 +90,14 @@ export function AccountButton() {
         </span>
         <span className="hidden sm:flex sm:flex-col sm:items-start sm:max-w-[140px]">
           {memberName && (
-            <span className="text-xs font-medium leading-tight truncate w-full text-left">{memberName}</span>
+            <span className="text-xs font-medium leading-tight truncate w-full text-left">
+              {memberName}
+            </span>
           )}
           {(hasMultipleAccounts || !memberName) && (
-            <span className={`leading-tight truncate w-full text-left ${memberName ? "text-[11px] text-gray-500" : "text-sm"}`}>
+            <span
+              className={`leading-tight truncate w-full text-left ${memberName ? "text-[11px] text-gray-500" : "text-sm"}`}
+            >
               {accountName}
             </span>
           )}
@@ -88,12 +107,20 @@ export function AccountButton() {
 
       {showDropdown && (
         <div className="absolute right-0 top-full mt-1 w-60 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-          {/* Email — only unique info not already shown in the button trigger */}
-          {credentials?.member_email && (
+          {/* Email + account name when it differs from member name */}
+          {(credentials?.member_email || (selectedAccount?.account_name && memberName !== selectedAccount.account_name)) && (
             <div className="px-3 py-2 border-b border-gray-100">
-              <p className="text-xs text-gray-400 truncate">
-                {credentials.member_email}
-              </p>
+              {credentials?.member_email && (
+                <p className="text-xs text-gray-400 truncate">
+                  {credentials.member_email}
+                </p>
+              )}
+              {selectedAccount?.account_name && memberName !== selectedAccount.account_name && (
+                <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                  <Building2 size={11} className="shrink-0" />
+                  {selectedAccount.account_name}
+                </p>
+              )}
             </div>
           )}
 
@@ -124,7 +151,10 @@ export function AccountButton() {
                       {account.account_name}
                     </span>
                     {isActive && (
-                      <Check size={14} className="shrink-0 text-brand-primary" />
+                      <Check
+                        size={14}
+                        className="shrink-0 text-brand-primary"
+                      />
                     )}
                   </button>
                 );
@@ -151,6 +181,14 @@ export function AccountButton() {
               {tAccount("tabAddresses")}
             </Link>
             <Link
+              href={`/${lang}/account/carts`}
+              onClick={() => setShowDropdown(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ShoppingCart size={15} />
+              {tAccount("tabCarts")}
+            </Link>
+            <Link
               href={`/${lang}/account/orders`}
               onClick={() => setShowDropdown(false)}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -165,14 +203,6 @@ export function AccountButton() {
             >
               <RefreshCw size={15} />
               {tAccount("tabSubscriptions")}
-            </Link>
-            <Link
-              href={`/${lang}/account/carts`}
-              onClick={() => setShowDropdown(false)}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <ShoppingCart size={15} />
-              {tAccount("tabCarts")}
             </Link>
           </div>
           <div className="border-t border-gray-100" />
