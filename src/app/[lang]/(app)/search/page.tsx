@@ -28,7 +28,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
       <Header lang={lang} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <Suspense>
-          <SearchPageClient lang={lang} initialQuery={initialQuery} />
+          <SearchPageClient lang={lang} initialQuery={initialQuery} filterItems={process.env.NEXT_PUBLIC_FILTER_ITEMS ?? ""} />
         </Suspense>
       </main>
     </div>

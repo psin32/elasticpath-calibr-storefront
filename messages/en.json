@@ -619,7 +619,9 @@
     "viewResults": "View results",
     "viewAllResults": "View all results for \"{query}\"",
     "metaTitle": "All Products",
-    "metaTitleQuery": "Search: {query}"
+    "metaTitleQuery": "Search: {query}",
+    "on": "On",
+    "off": "Off"
   },
   "orderConfirmation": {
     "title": "Order confirmed!",
