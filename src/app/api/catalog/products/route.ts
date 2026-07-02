@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getByContextAllProducts, getByContextProductsForNode, extractProductImage } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
+import { getServerCurrency } from "@/lib/currency-server";
+import { hasBulkBuyForCurrency } from "@/lib/bulk-buy";
 import type { ProductCardData } from "@/lib/api/products";
 import type { Product, IncludedResponse } from "@epcc-sdk/sdks-shopper";
 
-function formatCard(product: Product, included?: IncludedResponse): ProductCardData {
+function formatCard(product: Product, included: IncludedResponse | undefined, currency: string): ProductCardData {
   const image = extractProductImage(product, included?.main_images);
   const price =
     product.meta?.display_price?.without_tax?.formatted ??
@@ -14,7 +16,6 @@ function formatCard(product: Product, included?: IncludedResponse): ProductCardD
     product.meta?.original_display_price?.without_tax?.formatted ??
     product.meta?.original_display_price?.with_tax?.formatted;
   const variationMatrix = product.meta?.variation_matrix as Record<string, unknown> | undefined;
-  const tiersAttr = (product.attributes as Record<string, unknown>)?.tiers;
   const isBundle =
     !!product.meta?.product_types?.includes("bundle") ||
     !!(product.attributes as Record<string, unknown>)?.components;
@@ -27,7 +28,10 @@ function formatCard(product: Product, included?: IncludedResponse): ProductCardD
     originalPriceFormatted: originalPrice,
     imageUrl: image?.link?.href,
     hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
-    hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    hasBulkBuy: hasBulkBuyForCurrency(
+      product.attributes as Record<string, unknown>,
+      currency,
+    ),
     isBundle,
   };
 }
@@ -42,6 +46,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const client = await createElasticPathClient();
+    const currency = await getServerCurrency();
 
     if (nodeId) {
       const response = await getByContextProductsForNode({
@@ -50,7 +55,7 @@ export async function GET(request: NextRequest) {
         query: { include: ["main_image"], "page[limit]": BigInt(24) },
       });
       const data = (response.data?.data ?? []).map((p) =>
-        formatCard(p, response.data?.included),
+        formatCard(p, response.data?.included, currency),
       );
       return NextResponse.json({ data });
     }
@@ -66,7 +71,7 @@ export async function GET(request: NextRequest) {
         },
       });
       const data = (response.data?.data ?? []).map((p) =>
-        formatCard(p, response.data?.included),
+        formatCard(p, response.data?.included, currency),
       );
       return NextResponse.json({ data });
     }
@@ -81,7 +86,7 @@ export async function GET(request: NextRequest) {
       },
     });
     const data = (response.data?.data ?? []).map((p) =>
-      formatCard(p, response.data?.included),
+      formatCard(p, response.data?.included, currency),
     );
     return NextResponse.json({ data });
   } catch (err) {

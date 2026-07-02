@@ -1,6 +1,7 @@
 import { createClient } from "@epcc-sdk/sdks-shopper";
 import { cookies } from "next/headers";
-import { EP_CURRENCY_CODE } from "./currency";
+import { DEFAULT_CURRENCY } from "./currency";
+import { getServerCurrency } from "./currency-server";
 
 let _cachedToken: { access_token: string; expires: number } | null = null;
 let _tokenFetchPromise: Promise<{
@@ -25,7 +26,7 @@ async function getImplicitToken(): Promise<{
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE,
+        "X-MOLTIN-CURRENCY": DEFAULT_CURRENCY,
       },
       body: `grant_type=implicit&client_id=${process.env.NEXT_PUBLIC_EPCC_CLIENT_ID}`,
       cache: "no-store",
@@ -53,10 +54,11 @@ export async function createElasticPathClient() {
   } catch {
     // Outside request context (e.g. build time) — no cookie available
   }
+  const currency = await getServerCurrency();
 
   const client = createClient({
     baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}`,
-    headers: { "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE },
+    headers: { "X-MOLTIN-CURRENCY": currency },
   });
 
   client.interceptors.request.use(async (request) => {

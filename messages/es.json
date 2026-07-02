@@ -692,5 +692,15 @@
   },
   "common": {
     "close": "Cerrar"
+  },
+  "currency": {
+    "selectCurrency": "Seleccionar moneda",
+    "changeTitle": "¿Cambiar a {currency}?",
+    "changeDescription": "Los precios de tu carrito están en tu moneda actual.",
+    "cartWarning": "Tu carrito tiene {count, plural, one {# artículo} other {# artículos}}. Para cambiar de moneda, crea un carrito nuevo o elimina todos los artículos de tu carrito actual.",
+    "createNewCart": "Crear carrito nuevo",
+    "clearItems": "Eliminar todos los artículos",
+    "cancel": "Cancelar",
+    "newCartName": "Carrito ({currency})"
   }
 }

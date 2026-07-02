@@ -2,50 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Settings, X, Check } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import {
   usePreferences,
   type CartMode,
   type ShoppingMode,
 } from "@/context/PreferencesContext";
-
-type OptionItem = { value: string; label: string; desc: string };
-
-function RadioOption({
-  option,
-  selected,
-  onSelect,
-}: {
-  option: OptionItem;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className={[
-        "w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
-        selected
-          ? "border-brand-primary bg-brand-primary/5"
-          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50",
-      ].join(" ")}
-    >
-      <span
-        className={[
-          "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-none transition-colors",
-          selected ? "border-brand-primary bg-brand-primary" : "border-gray-300",
-        ].join(" ")}
-      >
-        {selected && <Check size={10} className="text-white" strokeWidth={3} />}
-      </span>
-      <div>
-        <p className="text-sm font-medium text-gray-900">{option.label}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{option.desc}</p>
-      </div>
-    </button>
-  );
-}
+import { RadioOption, type OptionItem } from "./RadioOption";
+import { LocaleSelector } from "./LocaleSelector";
+import { CurrencySelector } from "./CurrencySelector";
 
 export function SettingsButton() {
   const { cartMode, shoppingMode, setCartMode, setShoppingMode } = usePreferences();
@@ -134,6 +100,22 @@ export function SettingsButton() {
                 />
               ))}
             </div>
+          </section>
+
+          {/* Language */}
+          <section>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+              Language
+            </p>
+            <LocaleSelector currentLocale={lang} />
+          </section>
+
+          {/* Currency */}
+          <section>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+              Currency
+            </p>
+            <CurrencySelector />
           </section>
         </div>
 

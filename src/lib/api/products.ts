@@ -9,6 +9,9 @@ import {
   type IncludedResponse,
 } from "@epcc-sdk/sdks-shopper";
 import { createElasticPathClient } from "@/lib/create-elastic-path-client";
+import { DEFAULT_CURRENCY } from "@/lib/currency";
+import { getServerCurrency } from "@/lib/currency-server";
+import { hasBulkBuyForCurrency, type TierMap } from "@/lib/bulk-buy";
 
 export type BulkBuyTier = {
   quantityRange: string;
@@ -188,6 +191,7 @@ async function buildChildSlugs(
 function formatProduct(
   product: Product,
   included?: IncludedResponse,
+  selectedCurrency?: string,
 ): ProductCardData {
   const image = extractProductImage(product, included?.main_images);
   const price =
@@ -200,7 +204,6 @@ function formatProduct(
   const variationMatrix = product.meta?.variation_matrix as
     | Record<string, unknown>
     | undefined;
-  const tiersAttr = (product.attributes as Record<string, unknown>)?.tiers;
   const isBundle =
     !!product.meta?.product_types?.includes("bundle") ||
     !!(
@@ -216,7 +219,10 @@ function formatProduct(
     originalPriceFormatted: originalPrice,
     imageUrl: image?.link?.href,
     hasVariations: !!variationMatrix && Object.keys(variationMatrix).length > 0,
-    hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    hasBulkBuy: hasBulkBuyForCurrency(
+      product.attributes as Record<string, unknown>,
+      selectedCurrency ?? DEFAULT_CURRENCY,
+    ),
     isBundle,
   };
 }
@@ -224,6 +230,7 @@ function formatProduct(
 function formatProductDetail(
   product: Product,
   included?: IncludedResponse,
+  selectedCurrency?: string,
 ): ProductDetailData {
   const mainImage = extractProductImage(product, included?.main_images);
   const additionalImages = (included?.files ?? [])
@@ -308,37 +315,28 @@ function formatProductDetail(
     ? (product.meta.child_option_ids as string[])
     : undefined;
 
-  const rawTiers = (product.attributes as Record<string, unknown>)?.tiers as
-    | Record<
-        string,
-        {
-          minimum_quantity?: number;
-          price?: Record<string, { amount?: number }>;
-        }
-      >
-    | undefined;
   let bulkBuyTiers: BulkBuyTier[] | undefined;
-  if (rawTiers && Object.keys(rawTiers).length > 0) {
+  const currency = selectedCurrency ?? DEFAULT_CURRENCY;
+  // Only build tiers when the selected currency is fully priced —
+  // otherwise the bulk buy section is hidden.
+  if (
+    hasBulkBuyForCurrency(
+      product.attributes as Record<string, unknown>,
+      currency,
+    )
+  ) {
+    const rawTiers = (product.attributes as Record<string, unknown>)
+      ?.tiers as TierMap;
     const rawPrice = (product.attributes as Record<string, unknown>)?.price as
       | Record<string, { amount?: number }>
       | undefined;
-    const defaultCurrency = process.env.NEXT_PUBLIC_DEFAULT_CURRENCY ?? "USD";
-    const currency =
-      rawPrice?.[defaultCurrency] != null
-        ? defaultCurrency
-        : rawPrice
-          ? (Object.keys(rawPrice)[0] ?? defaultCurrency)
-          : defaultCurrency;
     const baseAmount = rawPrice?.[currency]?.amount ?? 0;
     const fmt = new Intl.NumberFormat("en", { style: "currency", currency });
     const messages = Object.values(rawTiers)
       .filter((t) => t.minimum_quantity != null)
       .map((t) => ({
         quantity: t.minimum_quantity!,
-        price:
-          t.price?.[currency]?.amount != null
-            ? fmt.format(t.price[currency].amount! / 100)
-            : "",
+        price: fmt.format(t.price![currency].amount! / 100),
       }))
       .sort((a, b) => a.quantity - b.quantity);
     let lastQty = 1;
@@ -428,7 +426,8 @@ export async function getFeaturedProducts(
     },
   });
   const products = response.data?.data ?? [];
-  return products.map((p) => formatProduct(p, response.data?.included));
+  const currency = await getServerCurrency();
+  return products.map((p) => formatProduct(p, response.data?.included, currency));
 }
 
 export async function getProductsForHierarchy(
@@ -445,7 +444,8 @@ export async function getProductsForHierarchy(
     },
   });
   const products = response.data?.data ?? [];
-  return products.map((p) => formatProduct(p, response.data?.included));
+  const currency = await getServerCurrency();
+  return products.map((p) => formatProduct(p, response.data?.included, currency));
 }
 
 export async function getProductsForNode(
@@ -462,7 +462,8 @@ export async function getProductsForNode(
     },
   });
   const products = response.data?.data ?? [];
-  return products.map((p) => formatProduct(p, response.data?.included));
+  const currency = await getServerCurrency();
+  return products.map((p) => formatProduct(p, response.data?.included, currency));
 }
 
 export async function getProductBySlug(
@@ -479,7 +480,12 @@ export async function getProductBySlug(
   const product = response.data?.data?.[0];
   if (!product) return null;
 
-  const formatted = formatProductDetail(product, response.data?.included);
+  const currency = await getServerCurrency();
+  const formatted = formatProductDetail(
+    product,
+    response.data?.included,
+    currency,
+  );
 
   if (formatted.productType === "child") {
     // Fetch parent product to get the full variation list and child slug map
@@ -498,7 +504,11 @@ export async function getProductBySlug(
       });
       const parentProduct = parentRes.data?.data;
       if (parentProduct) {
-        const parentFormatted = formatProductDetail(parentProduct, undefined);
+        const parentFormatted = formatProductDetail(
+          parentProduct,
+          undefined,
+          currency,
+        );
         if (parentFormatted.variations)
           formatted.variations = parentFormatted.variations;
         if (parentFormatted.variationMatrix) {
@@ -541,6 +551,7 @@ export async function getProductRelationshipCarousels(
 ): Promise<RelationshipCarousel[]> {
   if (!slugs.length) return [];
   const client = await createElasticPathClient();
+  const currency = await getServerCurrency();
   const results = await Promise.all(
     slugs.map(async (slug) => {
       try {
@@ -551,7 +562,7 @@ export async function getProductRelationshipCarousels(
           query: { "page[limit]": BigInt(24), include: ["main_image"] } as any,
         });
         const products = (response.data?.data ?? []).map((p) =>
-          formatProduct(p, response.data?.included),
+          formatProduct(p, response.data?.included, currency),
         );
         if (!products.length) return null;
         return { slug, products };
@@ -577,5 +588,6 @@ export async function getProductById(
   return formatProductDetail(
     product,
     response.data?.included as IncludedResponse,
+    await getServerCurrency(),
   );
 }

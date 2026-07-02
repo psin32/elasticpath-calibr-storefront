@@ -692,5 +692,15 @@
   },
   "common": {
     "close": "Close"
+  },
+  "currency": {
+    "selectCurrency": "Select currency",
+    "changeTitle": "Switch to {currency}?",
+    "changeDescription": "Prices in your cart are in your current currency.",
+    "cartWarning": "Your cart has {count, plural, one {# item} other {# items}}. To switch currency, create a new cart or remove all items from your current cart.",
+    "createNewCart": "Create new cart",
+    "clearItems": "Remove all items",
+    "cancel": "Cancel",
+    "newCartName": "Cart ({currency})"
   }
 }

@@ -3,7 +3,7 @@ import {
   postV2AccountMembersTokens,
   getV2AccountMembersAccountMemberId,
 } from "@epcc-sdk/sdks-shopper";
-import { EP_CURRENCY_CODE } from "../currency";
+import { getSelectedCurrency } from "../currency";
 
 const PASSWORD_PROFILE_ID = process.env.NEXT_PUBLIC_PASSWORD_PROFILE_ID!;
 
@@ -11,7 +11,7 @@ function getAuthClient() {
   const { client } = configureClient(
     {
       baseUrl: `https://${process.env.NEXT_PUBLIC_EPCC_ENDPOINT_URL}`,
-      headers: { "X-MOLTIN-CURRENCY": EP_CURRENCY_CODE },
+      headers: { "X-MOLTIN-CURRENCY": getSelectedCurrency() },
     },
 
     {

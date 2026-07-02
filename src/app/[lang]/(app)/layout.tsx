@@ -3,6 +3,8 @@ import { getMessages } from "next-intl/server";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { PreferencesProvider } from "@/context/PreferencesContext";
+import { CurrencyProvider } from "@/context/CurrencyContext";
+import { getServerCurrency } from "@/lib/currency-server";
 import { FooterSection } from "@/components/footer/FooterSection";
 import { ClientProvider } from "@/components/ClientProvider";
 import { Toaster } from "sonner";
@@ -14,10 +16,15 @@ export default async function AppLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
-  const [messages, { lang }] = await Promise.all([getMessages(), params]);
+  const [messages, { lang }, currency] = await Promise.all([
+    getMessages(),
+    params,
+    getServerCurrency(),
+  ]);
 
   return (
     <NextIntlClientProvider messages={messages}>
+      <CurrencyProvider initialCurrency={currency}>
       <ClientProvider>
         <PreferencesProvider>
           <AuthProvider>
@@ -30,6 +37,7 @@ export default async function AppLayout({
           </AuthProvider>
         </PreferencesProvider>
       </ClientProvider>
+      </CurrencyProvider>
     </NextIntlClientProvider>
   );
 }

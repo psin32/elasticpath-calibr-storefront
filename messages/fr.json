@@ -692,5 +692,15 @@
   },
   "common": {
     "close": "Fermer"
+  },
+  "currency": {
+    "selectCurrency": "Choisir la devise",
+    "changeTitle": "Passer à {currency} ?",
+    "changeDescription": "Les prix de votre panier sont dans votre devise actuelle.",
+    "cartWarning": "Votre panier contient {count, plural, one {# article} other {# articles}}. Pour changer de devise, créez un nouveau panier ou supprimez tous les articles de votre panier actuel.",
+    "createNewCart": "Créer un nouveau panier",
+    "clearItems": "Supprimer tous les articles",
+    "cancel": "Annuler",
+    "newCartName": "Panier ({currency})"
   }
 }

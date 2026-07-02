@@ -12,6 +12,8 @@ import { useTranslations } from "next-intl";
 import CatalogSearchInstantSearchAdapter from "@elasticpath/catalog-search-instantsearch-adapter";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useEpClient } from "@/components/ClientProvider";
+import { getSelectedCurrency } from "@/lib/currency";
+import { hasBulkBuyForCurrency } from "@/lib/bulk-buy";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Pagination } from "@/components/ui/Pagination/Pagination";
 import { Button } from "@/components/ui/Button";
@@ -40,7 +42,6 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
   const odp = meta.original_display_price ?? {};
   const mainImage = hit.main_image as { link?: { href?: string } } | undefined;
   const productTypes = meta.product_types as string[] | undefined;
-  const tiersAttr = attrs.tiers;
 
   return {
     id: (hit.objectID as string) ?? (hit.id as string) ?? "",
@@ -52,7 +53,7 @@ function hitToCard(hit: Record<string, unknown>): ProductCardData {
       odp.without_tax?.formatted ?? odp.with_tax?.formatted ?? undefined,
     imageUrl: mainImage?.link?.href,
     hasVariations: Boolean(attrs.base_product),
-    hasBulkBuy: !!tiersAttr && Object.keys(tiersAttr as object).length > 0,
+    hasBulkBuy: hasBulkBuyForCurrency(attrs, getSelectedCurrency()),
     isBundle:
       !!productTypes?.includes("bundle") ||
       !!(attrs.components && Object.keys(attrs.components as object).length > 0),
